@@ -1,0 +1,257 @@
+---
+title: "מה זה plugin ב-Claude Code ואיך מתקינים, בונים ובודקים אותו?"
+description: "Plugin אורז skills,‏ agents,‏ hooks ושרתי MCP לחבילה אחת. איך מתקינים מ-marketplace עם /plugin, בונים plugin מינימלי, ומודדים אותו עם claude plugin eval."
+level: "advanced"
+order: 27
+source: "https://code.claude.com/docs/en/discover-plugins"
+lastVerified: "2026-09-23"
+keywords: ["Claude Code", "plugin", "plugins", "תוסף", "תוספים", "להתקין plugin", "התקנת תוסף", "/plugin", "marketplace", "plugin.json", "claude plugin eval", "evals", "בדיקת plugin", "--plugin-dir"]
+canDo: "עכשיו אתה יכול להתקין plugin מ-marketplace, לבנות plugin משלך עם skill, לבדוק אותו עם --plugin-dir ולמדוד מה הוא תורם עם claude plugin eval."
+relatedSlugs: ["skills", "hooks", "mcp"]
+faq:
+  - q: "מה ההבדל בין plugin לבין skills והגדרות בתיקיית .claude?"
+    a: "הגדרות בתיקיית .claude מתאימות לעבודה אישית או לפרויקט אחד, והשמות שלהן קצרים, כמו /hello. plugin הוא תיקייה עצמאית שאפשר לשתף עם הצוות או הקהילה, לנהל בגרסאות ולהתקין בכמה פרויקטים. ה-skills שלו מקבלים namespace, כמו /my-plugin:hello."
+  - q: "איך מתקינים plugin מה-marketplace הרשמי?"
+    a: "Claude Code מוסיף את ה-marketplace הרשמי claude-plugins-official אוטומטית בהפעלה האינטראקטיבית הראשונה. מריצים /plugin ועוברים ללשונית Discover, או מקלידים ישירות /plugin install ואחריו שם-התוסף@claude-plugins-official, ובוחרים scope להתקנה."
+  - q: "האם plugin בטוח להתקנה?"
+    a: "רק אם אתה סומך על המקור. לפי התיעוד, plugins ו-marketplaces יכולים להריץ קוד שרירותי במחשב שלך עם ההרשאות שלך, ו-Anthropic לא שולטת במה שהם כוללים. בודקים את עמוד הבית של ה-plugin לפני ההתקנה."
+  - q: "מה claude plugin eval מודד?"
+    a: "הוא מריץ את ה-plugin מול סט פרומפטים לבדיקה, כל אחד שלוש פעמים כברירת מחדל, ובודק את התוצאה עם graders. כל case רץ גם בלי ה-plugin, וההפרש בין הציונים מראה מה ה-plugin באמת תרם."
+  - q: "האם הרצת evals עולה כסף?"
+    a: "כן. כל הרצה וכל grader מסוג judge הם קריאות אמיתיות למודל בחשבון שלך, ונספרים במכסת התוכנית או בחשבון ה-API. אפשר להגביל עלות עם הדגל max-cost-usd ולחסוך חצי מההרצות עם ablation none."
+---
+
+import { CommandBlock, Callout, StepList } from "@/components/lesson";
+
+Plugin ב-Claude Code הוא תיקייה שאורזת skills,‏ agents,‏ hooks ושרתי MCP לחבילה אחת שאפשר לשתף. מתקינים עם `/plugin install` מתוך marketplace, בונים תיקייה עם `.claude-plugin/plugin.json` ו-`skills/`, בודקים עם `claude --plugin-dir`, ומודדים אם ה-plugin באמת עוזר עם `claude plugin eval`.
+
+## למה זה חשוב
+בשיעורים הקודמים בנית skills,‏ subagents ו-hooks בתוך `.claude/` של פרויקט אחד. כדי להעביר אותם לחבר צוות, צריך להעתיק קבצים ידנית. plugin פותר את זה: חבילה אחת, עם שם וגרסה, שמתקינים בפקודה אחת. ומאחר ש-Claude לא תמיד בוחר ב-skill שכתבת, `claude plugin eval` נותן דרך למדוד את זה במקום לנחש.
+
+| גישה | שם ה-skill | מתאים ל |
+| --- | --- | --- |
+| הגדרות עצמאיות (`.claude/`) | `/hello` | workflows אישיים, התאמות לפרויקט אחד, ניסויים מהירים |
+| Plugin | `/plugin-name:hello` | שיתוף עם הצוות או הקהילה, גרסאות, שימוש חוזר בכמה פרויקטים |
+
+התיעוד הרשמי ממליץ להתחיל ב-`.claude/`, ולהמיר ל-plugin כשמוכנים לשתף.
+
+## מה plugin יכול לכלול?
+כל רכיב יושב בתיקייה משלו בשורש ה-plugin:
+
+| תיקייה / קובץ | מה יש בה |
+| --- | --- |
+| `.claude-plugin/plugin.json` | ה-manifest: שם, תיאור, גרסה |
+| `skills/` | skills, כל אחד בתיקייה `<name>/SKILL.md` |
+| `agents/` | הגדרות של agents מותאמים |
+| `hooks/hooks.json` | hooks שרצים על אירועים |
+| `.mcp.json` | הגדרות שרתי MCP |
+| `.lsp.json` | שרתי LSP ל-code intelligence |
+| `monitors/monitors.json` | monitors שרצים ברקע |
+| `bin/` | קבצי הרצה שמתווספים ל-`PATH` של כלי Bash |
+| `settings.json` | הגדרות ברירת מחדל כשה-plugin מופעל |
+
+<Callout type="warning">
+טעות נפוצה: לשים `skills/`,‏ `agents/` או `hooks/` בתוך `.claude-plugin/`. רק `plugin.json` נכנס לשם. כל השאר יושב בשורש ה-plugin.
+</Callout>
+
+## איך מתקינים plugin מ-marketplace?
+marketplace הוא קטלוג של plugins. העבודה איתו בשני שלבים: מוסיפים את ה-marketplace, ואז מתקינים ממנו plugins בודדים.
+
+Claude Code מוסיף את ה-marketplace הרשמי של Anthropic,‏ `claude-plugins-official`, אוטומטית בהפעלה האינטראקטיבית הראשונה. כדי לדפדף בו, מריצים:
+
+<CommandBlock>/plugin</CommandBlock>
+
+נפתח מנהל plugins עם לשוניות. עוברים ביניהן עם `Tab` (או `Shift+Tab` אחורה):
+
+- **Discover:** plugins מכל ה-marketplaces שהוספת.
+- **Installed:** ה-plugins המותקנים, עם אפשרות להפעיל, לכבות או להסיר.
+- **Marketplaces:** הוספה, עדכון והסרה של marketplaces.
+- **Errors:** שגיאות טעינה.
+
+בוחרים plugin כדי לראות פרטים, כולל הערכת **Context cost** ורשימת **Will install** של כל מה שהוא מוסיף. אפשר גם להתקין ישירות לפי שם. זו הדוגמה מהתיעוד:
+
+<CommandBlock>/plugin install github@claude-plugins-official</CommandBlock>
+
+בזמן ההתקנה בוחרים scope:
+
+| Scope | למי |
+| --- | --- |
+| User | לך, בכל הפרויקטים |
+| Project | לכל מי שעובד על הריפו (נכתב ל-`.claude/settings.json`) |
+| Local | לך בלבד, בריפו הזה |
+
+אם סיכום ההתקנה מציג `Run /reload-plugins to activate.`, ‏Claude Code מריץ את ה-reload בשבילך. skills של plugin מקבלים namespace לפי שם ה-plugin, למשל `/commit-commands:commit`.
+
+<Callout type="warning">
+התקן רק plugins ממקורות שאתה סומך עליהם. לפי [התיעוד](https://code.claude.com/docs/en/discover-plugins#security), plugins ו-marketplaces יכולים להריץ קוד שרירותי במחשב שלך עם ההרשאות שלך, ו-Anthropic לא שולטת במה שהם כוללים.
+</Callout>
+
+### איך מוסיפים marketplace אחר?
+מריצים `/plugin marketplace add` עם מקור: ריפו GitHub בפורמט `owner/repo`, כתובת git, נתיב מקומי או URL ל-`marketplace.json`. למשל, ה-marketplace לדוגמה של Anthropic:
+
+<CommandBlock>/plugin marketplace add anthropics/claude-code</CommandBlock>
+
+ואז מתקינים ממנו:
+
+<CommandBlock>/plugin install commit-commands@claude-code-plugins</CommandBlock>
+
+יש גם marketplace קהילתי,‏ `anthropics/claude-plugins-community`, עם plugins של צד שלישי שעברו בדיקה אוטומטית. מתקינים ממנו עם הסיומת `@claude-community`.
+
+## איך מנהלים plugins מותקנים?
+הדרך הנוחה: `/plugin` ולשונית **Installed**. יש גם פקודות ישירות:
+
+```text
+/plugin list
+/plugin disable plugin-name@marketplace-name
+/plugin enable plugin-name@marketplace-name
+/plugin uninstall plugin-name@marketplace-name
+```
+
+לסקריפטים משתמשים בפקודות ה-shell,‏ `claude plugin`, שלא פותחות את הממשק. למשל `claude plugin install formatter@your-org --scope project`.
+
+## איך בונים plugin מינימלי?
+plugin מינימלי הוא תיקייה עם manifest ו-skill אחד. זה ה-quickstart מ[מדריך יצירת ה-plugins](https://code.claude.com/docs/en/plugins):
+
+<StepList>
+
+1. יוצרים את התיקיות:
+   ```bash
+   mkdir my-first-plugin
+   mkdir my-first-plugin/.claude-plugin
+   mkdir -p my-first-plugin/skills/hello
+   ```
+2. יוצרים את `my-first-plugin/.claude-plugin/plugin.json`:
+   ```json
+   {
+     "name": "my-first-plugin",
+     "description": "A greeting plugin to learn the basics",
+     "version": "1.0.0",
+     "author": {
+       "name": "Your Name"
+     }
+   }
+   ```
+   `name` קובע את ה-namespace של ה-skills. `version` אופציונלי. אם מגדירים אותו, המשתמשים מקבלים עדכון רק כשמעלים את המספר (למעט חריגים שמפורטים בתיעוד).
+3. יוצרים את `my-first-plugin/skills/hello/SKILL.md`. שם התיקייה `hello` הופך לשם ה-skill:
+   ```markdown
+   ---
+   description: Greet the user with a friendly message
+   disable-model-invocation: true
+   ---
+
+   Greet the user warmly and ask how you can help them today.
+   ```
+4. מפעילים את Claude Code עם ה-plugin, בלי להתקין אותו:
+   <CommandBlock>claude --plugin-dir ./my-first-plugin</CommandBlock>
+5. מנסים את ה-skill:
+   <CommandBlock>/my-first-plugin:hello</CommandBlock>
+
+</StepList>
+
+כשמשנים קבצים ב-plugin, מריצים `/reload-plugins` כדי לטעון את השינויים בלי להפעיל מחדש.
+
+דרך קצרה יותר: `claude plugin init my-tool` יוצר plugin בתיקייה `~/.claude/skills/my-tool/`, עם manifest ו-`SKILL.md` התחלתי. הוא נטען אוטומטית מהסשן הבא, בלי `--plugin-dir`.
+
+<Callout type="tip">
+לפני ששולחים plugin, מריצים `claude plugin validate ./your-plugin`. הפקודה בודקת את מבנה הקבצים ואת תקינות ה-JSON, לא את ההתנהגות.
+</Callout>
+
+## איך משתפים plugin דרך marketplace?
+יוצרים ריפו עם הקובץ `.claude-plugin/marketplace.json`, שמפרט את ה-plugins ואיפה כל אחד נמצא. זו הדוגמה מ[מדריך ה-marketplaces](https://code.claude.com/docs/en/plugin-marketplaces):
+
+```json
+{
+  "name": "my-plugins",
+  "owner": {
+    "name": "Your Name"
+  },
+  "plugins": [
+    {
+      "name": "quality-review-plugin",
+      "source": "./plugins/quality-review-plugin",
+      "description": "Adds a quality-review skill for quick code reviews"
+    }
+  ]
+}
+```
+
+בודקים מקומית:
+
+```text
+/plugin marketplace add ./my-marketplace
+/plugin install quality-review-plugin@my-plugins
+```
+
+כשזה עובד, דוחפים את הריפו ל-GitHub או לשרת git אחר, והצוות מוסיף אותו עם `/plugin marketplace add`. שמות מסוימים שמורים ל-Anthropic, כמו `claude-plugins-official`, ואי אפשר להשתמש בהם.
+
+## איך בודקים plugin עם claude plugin eval?
+`--plugin-dir` מראה שה-plugin עובד. [`claude plugin eval`](https://code.claude.com/docs/en/plugin-evals) מודד כמה פעמים Claude באמת בוחר בו ומגיע לתוצאה הנכונה. הפקודה מריצה את ה-plugin מול סט של cases: כל case הוא פרומפט ריאליסטי, ועוד grader אחד או יותר שבודקים את התוצאה.
+
+### מה קורה בהרצה?
+- כל case רץ בסשן לא אינטראקטיבי מבודד, עם ה-plugin שלך בלבד. ה-CLAUDE.md, ההגדרות וה-plugins האחרים שלך לא נטענים.
+- כל case רץ שלוש פעמים כברירת מחדל, כי הרצה אחת של agent לא אומרת הרבה.
+- כל case רץ גם בלי ה-plugin. מקבלים שני ציונים, `WITH` ו-`W/OUT`, וההפרש `Δ` הוא מה שה-plugin תרם.
+
+### איך מתחילים?
+
+<StepList>
+
+1. מתוך שורש ה-plugin, מריצים:
+   <CommandBlock>claude plugin eval init</CommandBlock>
+   נפתח סשן שבו Claude קורא את ה-plugin, שואל מה נחשב תוצאה טובה, מציע פרומפטים ו-graders, מנסה אותם וכותב תיקייה לכל case תחת `evals/`. כשהוא מסיים, יוצאים עם `/exit`.
+2. מריצים את כל ה-cases:
+   <CommandBlock>claude plugin eval .</CommandBlock>
+3. קוראים את טבלת הסיכום:
+   ```text
+   CASE        WITH  W/OUT Δ      RUNS COST    NOTES
+   first-case  1.00  0.33  +0.67  6    $0.41
+   ```
+   `Δ` חיובי אומר שה-plugin שיפר את הציון. `COST` הוא הערכה לפי מחיר מחירון.
+4. פותחים את הדוח (`report.html`, או הקישור שמופיע אחרי `Published:`) ורואים את התוצאה של כל grader בכל הרצה.
+
+</StepList>
+
+בהרצה הראשונה על תיקייה, Claude Code שואל `Trust this plugin directory?`. עונים `y` רק ל-plugin שאתה סומך עליו.
+
+### מה כדאי לבדוק כשהציון נמוך?
+לפי התיעוד, הממצא הראשון הנפוץ ביותר הוא `Δ` קרוב לאפס, כשה-grader מסוג `tool_used: Skill` נכשל. זה אומר ש-Claude לא בוחר ב-skill שלך כשהבקשה מנוסחת באופן טבעי. משנים את ה-`description` של ה-skill ומריצים שוב.
+
+כדי לנסות תיקון על case אחד בזול, מריצים הרצה אחת בלי baseline, ואז מאשרים את השינוי בשלוש הרצות:
+
+```bash
+claude plugin eval . --case <case-name> --runs 1 --ablation none
+```
+
+מחליפים את `<case-name>` בשם של אחת התיקיות תחת `evals/`.
+
+### אילו graders יש?
+
+| סוג | עובר כש |
+| --- | --- |
+| `regex` | ביטוי רגולרי נמצא בטקסט (ברירת המחדל: ההודעה האחרונה) |
+| `tool_used` | כלי נקרא מספר פעמים בטווח שהוגדר, למשל `Skill` |
+| `tool_order` | כלי אחד נקרא לפני כלי אחר |
+| `file_exists` | Claude יצר קובץ שמתאים לנתיב |
+| `llm` | מודל שופט מצביע PASS לפי rubric, בלפחות שתיים משלוש הצבעות |
+| `baseline` | מודל שופט מוצא שההרצה טובה לפחות כמו transcript לדוגמה |
+
+ארבעת הראשונים לא עולים דבר. `llm` ו-`baseline` קוראים למודל ומוסיפים עלות.
+
+<Callout type="warning">
+כל הרצה וכל grader מסוג judge הם קריאה אמיתית למודל, שנספרת במכסת התוכנית או בחשבון ה-API. case אחד הוא שש הרצות: שלוש עם ה-plugin ושלוש בלעדיו. `--ablation none` מוותר על ה-baseline וחוסך חצי. `--max-cost-usd` מגביל את הערכת העלות.
+</Callout>
+
+### אילו כלים זמינים בהרצה?
+כברירת מחדל רק כלים לקריאה, כמו `Read`,‏ `Glob`,‏ `Grep` ו-`Skill`, שה-case מבקש ב-`allowed_tools`. כדי לאפשר `Bash`,‏ `Write` או `Edit`, נותנים אותם במפורש:
+
+<CommandBlock>claude plugin eval . --allow-tools Write Edit "Bash(npm test *)"</CommandBlock>
+
+<Callout type="note">
+כשנותנים `Bash`, כל פקודה רצה בתוך ה-sandbox של מערכת ההפעלה. במחשב בלי sandbox, ‏Claude Code מסרב להריץ כל run כזה במקום להריץ אותו בלי הגנה. ב-Windows רגיל (native) אין sandbox, ולכן התיעוד ממליץ להריץ suites כאלה תחת WSL2.
+</Callout>
+
+התיעוד המלא מכסה גם mocks לשרתי MCP, fixtures, והרצה ב-CI עם `--json` ו-`--threshold`. ראה [Test plugins with evals](https://code.claude.com/docs/en/plugin-evals).
+
+## הצעד הבא
+- ← [Output styles: לשנות את סגנון התשובות של Claude](/advanced/output-styles)
+- שיעורים קשורים: [Skills](/advanced/skills) · [Hooks](/advanced/hooks) · [MCP](/advanced/mcp)
