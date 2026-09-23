@@ -1,0 +1,99 @@
+---
+title: "מה חדש ב-Claude Code בשבוע 37: בדיקות ל-plugins ועוד"
+description: "סיכום What's New של שבוע 37: הפקודה claude plugin eval לבדיקת plugins, חלונות נפרדים ב-Desktop, תקרת effort, מגבלת זמן ל-WebFetch והשלמת פקודות."
+type: "blog"
+status: "published"
+date: "2026-09-11"
+source: "https://code.claude.com/docs/en/whats-new/2026-w37"
+sources:
+  - "https://code.claude.com/docs/en/whats-new"
+  - "https://code.claude.com/docs/en/plugin-evals"
+  - "https://code.claude.com/docs/en/desktop"
+  - "https://code.claude.com/docs/en/settings-reference"
+  - "https://code.claude.com/docs/en/tools-reference"
+  - "https://code.claude.com/docs/en/interactive-mode"
+  - "https://code.claude.com/docs/en/model-config"
+keywords: ["Claude Code", "What's New", "מה חדש", "claude plugin eval", "בדיקת plugin", "evals", "Claude Code Desktop", "maxEffortLevel", "effort", "WebFetch", "השלמת פקודות", "עדכון שבועי"]
+author: "מערכת"
+faq:
+  - q: "מה עושה הפקודה claude plugin eval?"
+    a: "היא מריצה את ה-plugin שלך מול סט של מקרי בדיקה, כל אחד שלוש פעמים כברירת מחדל, ובודקת כל תוצאה עם graders. כברירת מחדל כל מקרה רץ גם בלי ה-plugin, וההפרש בין שני הציונים מראה מה ה-plugin באמת תרם."
+  - q: "האם הרצת evals ל-plugin עולה כסף?"
+    a: "כן. לפי התיעוד, כל הרצה וכל grader שמבקש ממודל שני לשפוט את התשובה הם קריאות מודל אמיתיות בחשבון שלך, ונספרות במכסת התוכנית או בחשבון ה-API. אפשר להגביל את העלות המשוערת עם הדגל max-cost-usd."
+  - q: "למה צריך תקרת effort אם אפשר פשוט לבחור רמה נמוכה?"
+    a: "ההגדרה maxEffortLevel לא בוחרת רמה אלא קובעת תקרה: כל רמה גבוהה ממנה רצה ברמת התקרה, גם כשהיא מגיעה מפקודה, ממשתנה סביבה, מ-frontmatter של skill או מברירת המחדל של המודל. כשכמה scopes מגדירים תקרה, הנמוכה מביניהן קובעת, כך שארגון יכול לאכוף אותה דרך managed settings."
+---
+
+import { Callout, SourceBadge } from "@/components/lesson";
+
+{/* תשובה-קודם: ≤50 מילים שעונות ישירות על "מה חדש ולמה אכפת לי" */}
+בשבוע 37 (7–11 בספטמבר 2026) Claude Code קיבל כלי לבדיקת plugins מול סט מקרים, עם השוואה לריצה בלי ה-plugin. בנוסף: חלונות נפרדים ב-Desktop, תקרה לרמת ה-effort, מגבלת זמן ל-WebFetch ורשימת פקודות באמצע פרומפט.
+
+<SourceBadge href="https://code.claude.com/docs/en/whats-new/2026-w37" />
+
+## מה חדש
+
+### בדיקות אוטומטיות ל-plugins עם `claude plugin eval`
+הפקודה [`claude plugin eval`](https://code.claude.com/docs/en/plugin-evals) מריצה את ה-plugin שלך מול סט של מקרי בדיקה ומחשבת ציון. כל מקרה הוא פרומפט שמשתמש אמיתי עשוי להקליד, ולצידו graders: בדיקות עבר/נכשל כמו regex על התשובה, בדיקה אם כלי מסוים נקרא, או rubric שמודל שני שופט לפיו.
+
+- כל מקרה רץ שלוש פעמים כברירת מחדל, כי ריצה אחת של סוכן לא דטרמיניסטי לא אומרת הרבה.
+- כברירת מחדל כל מקרה רץ שוב **בלי** ה-plugin, ומתקבלים שני ציונים (`WITH` ו-`W/OUT`) וההפרש ביניהם.
+- `claude plugin eval init` פותח סשן שבו Claude שואל מה נחשב תוצאה טובה, מציע מקרים ו-graders, מנסה אותם פעם אחת וכותב את הקבצים לתיקייה `evals/`.
+- אחרי ההרצה מודפסת טבלת סיכום, ו-`report.html` עם הפירוט של כל ריצה נשמר בתיקייה עם חותמת זמן תחת `evals/results/`.
+
+```bash
+# מתוך תיקיית השורש של ה-plugin
+claude plugin eval init
+# אחרי שהסשן מסתיים:
+claude plugin eval .
+```
+
+### חלונות נפרדים ב-Claude Code Desktop
+באפליקציית Desktop אפשר עכשיו [להוציא pane לחלון משלו](https://code.claude.com/docs/en/desktop#arrange-your-workspace), למשל את ה-diff או את הטרמינל, להעביר אותו למסך שני ולהחזיר אותו למקום כשמסיימים. Claude ממשיך לעבוד בחלון הראשי בזמן הזה.
+
+### תקרה לרמת ה-effort: `maxEffortLevel`
+ההגדרה [`maxEffortLevel`](https://code.claude.com/docs/en/settings-reference#maxeffortlevel) קובעת את רמת ה-[effort](https://code.claude.com/docs/en/model-config#adjust-effort-level) המקסימלית שסשן יכול להשתמש בה. רמות נמוכות נשארות זמינות, וכל בקשה לרמה גבוהה יותר רצה ברמת התקרה.
+
+- Claude Code אוכף את התקרה בעצמו לפני כל בקשה, ולכן היא חלה על כל ספק, כולל Amazon Bedrock, Google Cloud's Agent Platform ו-Microsoft Foundry.
+- אפשר להגדיר אותה ברמה העליונה או לכל מודל בנפרד תחת `modelSettings`.
+- כשכמה scopes מגדירים תקרה, הנמוכה מביניהן קובעת.
+
+```json
+{
+  "maxEffortLevel": "medium"
+}
+```
+
+### WebFetch כבר לא נתקע
+אם [WebFetch](https://code.claude.com/docs/en/tools-reference#webfetch-tool-behavior) לא סיים להוריד עמוד תוך חמש דקות, כולל הפניות, הבקשה נכשלת עם שגיאת deadline במקום להיתקע. המשתנה `CLAUDE_CODE_WEBFETCH_DEADLINE_MS` משנה את המגבלה, וערך `0` מבטל אותה.
+
+### רשימת פקודות באמצע פרומפט
+כשמקלידים `/` אחרי רווח באמצע פרומפט, מופיעה עכשיו [רשימה של פקודות תואמות](https://code.claude.com/docs/en/interactive-mode#complete-a-command-mid-prompt) במקום הצעה אחת. ב-fullscreen הרשימה נפתחת תוך כדי הקלדה; מחוץ לו `Tab` פותח אותה כשיש כמה התאמות. skill של plugin נמצא גם לפי השם שלו בלי קידומת ה-plugin.
+
+## למה זה משנה
+*זה החלק הפרשני שלנו, לא ציטוט מהמקור.*
+
+עד עכשיו היה קשה לדעת אם plugin באמת משפר את התוצאה או ש-Claude היה מצליח באותה מידה גם בלעדיו. ההשוואה המובנית לריצה בלי ה-plugin הופכת את השאלה הזו למספר, וזה שימושי במיוחד כשמשנים skill או כשמודל חדש יוצא: אפשר להריץ את אותו סט ולראות אם משהו נשבר.
+
+`maxEffortLevel` רלוונטי בעיקר לצוותים ולארגונים שרוצים שליטה צפויה בעלויות ובזמני תגובה, גם כשעובדים דרך ספק ענן ולא ישירות מול Anthropic. שאר העדכונים קטנים יותר, אבל חוסכים חיכוך יומיומי: פחות סשנים תקועים ב-WebFetch, ופחות צורך לזכור שמות מלאים של פקודות.
+
+## מה זה אומר בפועל
+
+- **אם אתה כותב plugins או skills:** הרץ `claude plugin eval init` בתיקיית ה-plugin וקבל סט בדיקות ראשוני. בזמן כיוונון ה-graders אפשר להריץ עם `--ablation none` כדי להריץ רק עם ה-plugin, בלי ההשוואה, וכך לחצות את העלות. רקע על בניית plugins: [שיעור ה-plugins](/advanced/plugins).
+- **אם אתה עובד עם Desktop על כמה מסכים:** הוצא את ה-diff למסך השני ותמשיך לשוחח עם Claude בחלון הראשי. עוד על האפליקציה: [שיעור ה-Desktop](/pro/desktop).
+- **אם אתה מנהל הגדרות לצוות:** שקול להגדיר `maxEffortLevel` ב-managed settings. איך עובדים scopes של הגדרות: [שיעור ה-settings](/advanced/settings). לבחירת מודל ורמת effort, תמיד לפי [תיעוד model-config](https://code.claude.com/docs/en/model-config).
+- **בעבודה יומיומית בטרמינל:** נסה להקליד `/` באמצע פרומפט ולבחור פקודה מהרשימה. עוד קיצורים: [שיעור המצב האינטראקטיבי](/beginner-plus/interactive-mode).
+
+<Callout type="note">
+הפקודות וההגדרות כאן דורשות גרסה עדכנית של Claude Code או של Claude Desktop; את דרישות הגרסה המדויקות לכל פיצ'ר ראו בעמודי התיעוד המקושרים. סיכום השבוע כולל עדכונים נוספים שלא נכנסו לכאן, והרשימה המלאה נמצאת ב-[changelog](https://code.claude.com/docs/en/changelog).
+</Callout>
+
+## מקורות
+- [What's New, שבוע 37](https://code.claude.com/docs/en/whats-new/2026-w37)
+- [What's New, עמוד הסיכומים השבועיים](https://code.claude.com/docs/en/whats-new)
+- [Test plugins with evals](https://code.claude.com/docs/en/plugin-evals)
+- [Claude Code Desktop: Arrange your workspace](https://code.claude.com/docs/en/desktop#arrange-your-workspace)
+- [Settings reference: maxEffortLevel](https://code.claude.com/docs/en/settings-reference#maxeffortlevel)
+- [Model configuration: Adjust effort level](https://code.claude.com/docs/en/model-config#adjust-effort-level)
+- [Tools reference: WebFetch tool behavior](https://code.claude.com/docs/en/tools-reference#webfetch-tool-behavior)
+- [Interactive mode: Complete a command mid-prompt](https://code.claude.com/docs/en/interactive-mode#complete-a-command-mid-prompt)
