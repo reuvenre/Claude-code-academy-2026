@@ -215,6 +215,26 @@ Use the code-reviewer subagent to find performance issues, then use the optimize
 כש-subagents מסיימים, התוצאות שלהם חוזרות לשיחה הראשית. הרבה subagents שכל אחד מחזיר תוצאות מפורטות יכולים לצרוך הרבה הקשר. שים לב שהדוגמה הראשונה למעלה מבקשת במפורש רק את הבדיקות שנכשלו ("report only the failing tests").
 </Callout>
 
+## איך בונים subagent שמחזיר תוצאה שאפשר לעבוד איתה?
+subagent שמוגדר חלש נוטה לרוץ יותר מדי זמן, או להחזיר סיכום שהשיחה הראשית לא יכולה להשתמש בו. ה[קורס הרשמי](https://academy.claude.com/courses/introduction-to-subagents/designing-effective-subagents) מציע ארבעה הרגלים:
+
+- **תיאור שמכוון גם את המשימה.** Claude בוחר subagent לפי ה-`description`, ולפי הקורס נעזר בו גם כשהוא כותב את הודעת המשימה. אם התיאור אומר שצריך לציין בדיוק אילו קבצים לבדוק, Claude יכלול את רשימת הקבצים בהודעה.
+- **פורמט פלט ב-system prompt.** לפי הקורס זה השיפור החשוב ביותר: כשה-subagent יודע אילו סעיפים למלא, הוא יודע מתי סיים. בלי פורמט הוא מתקשה להחליט מתי חקר מספיק.
+- **סעיף למכשולים.** מבקשים בפורמט לדווח על workarounds, תקלות סביבה ופקודות שדרשו דגל מיוחד. אחרת השיחה הראשית תגלה אותם שוב מאפס.
+- **רק הכלים הדרושים.** subagent מחקר צריך `Read`,‏ `Grep` ו-`Glob`. subagent ל-review צריך גם `Bash` בשביל `git diff`. את `Edit` ו-`Write` נותנים רק ל-subagent שתפקידו לשנות קוד. גם [התיעוד](https://code.claude.com/docs/en/sub-agents#example-subagents) ממליץ להגביל כלים ולתכנן כל subagent למשימה אחת.
+
+לדוגמה, סוף ה-system prompt של subagent ל-review:
+
+```markdown
+Return your report in this format:
+- Summary: what you reviewed and your overall assessment
+- Critical Issues: problems that must be fixed before merging
+- Recommendations: suggested improvements
+- Obstacles Encountered: setup issues, workarounds, commands that needed special flags
+```
+
+לפני שמאצילים, שואלים: האם העבודה שבדרך חשובה לי? אם צריך רק את התוצאה, מאצילים. אם צריך לראות כל שלב ולהגיב לו, נשארים בשיחה הראשית ([קורס רשמי](https://academy.claude.com/courses/introduction-to-subagents/using-subagents-effectively)). זה נכון במיוחד לשרשור: כשכל שלב תלוי במה שהקודם גילה, כמו שחזור באג, דיבוג ותיקון, מידע הולך לאיבוד במעבר בין subagents. [התיעוד](https://code.claude.com/docs/en/sub-agents#choose-between-subagents-and-main-conversation) ממליץ על השיחה הראשית כשכמה שלבים חולקים הרבה הקשר.
+
 ## הצעד הבא
 - ← [Hooks: פעולות שרצות תמיד בנקודות קבועות](/advanced/hooks)
 - שיעורים קשורים: [Skills](/advanced/skills) · [סקירת דרכי ההרחבה](/advanced/extend-overview) · [מצבי הרשאות](/beginner-plus/permission-modes)

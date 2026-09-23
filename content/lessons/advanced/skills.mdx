@@ -170,9 +170,24 @@ Claude Code מגיע עם Skills מובנים, כמו `/code-review`,‏ `/debug
 
 מפעילים אותם כמו כל Skill, עם `/` ושם ה-Skill. חלקם Claude מפעיל לבד כשזה רלוונטי, ואחרים, כמו `/verify`, רצים רק כשאתה מפעיל. אם יצרת Skill בשם של bundled skill, ה-Skill שלך מחליף את הפקודה, אבל לא את הכינויים (aliases) שלה: Skill בשם `code-review` מחליף את `/code-review`, אבל `/review` ממשיך להריץ את המובנה. כדי לכבות את כל ה-bundled skills משתמשים בהגדרה `disableBundledSkills`. הרשימה המלאה נמצאת ב[מדריך הפקודות הרשמי](https://code.claude.com/docs/en/commands), מסומנת **Skill**.
 
-<Callout type="tip">
-Claude לא משתמש ב-Skill שיצרת? בודקים שהתיאור כולל מילים שאנשים באמת אומרים, ושה-Skill מופיע כשמבקשים `What skills are available?`. אם ה-YAML שבור, `/skill-name` עדיין עובד אבל Claude לא יכול להתאים לפי התיאור. מריצים עם `--debug` כדי לראות את שגיאת הניתוח.
-</Callout>
+## איך משתפים Skill ומה עושים כשהוא לא עובד?
+Skill שימושי יותר כשכל הצוות עובד איתו, כך מסביר ה[קורס הרשמי](https://academy.claude.com/courses/introduction-to-agent-skills/sharing-skills). [התיעוד](https://code.claude.com/docs/en/skills#share-skills) מונה שלוש דרכים להפיץ Skill:
+
+- **בריפו:** מכניסים את `.claude/skills/` ל-git. כל מי שעובד על הריפו מקבל את ה-Skills, ואת העדכונים שלהם עם כל pull.
+- **ב-plugin:** יוצרים תיקיית `skills/` בתוך [plugin](/advanced/plugins) ומפיצים מעבר לריפו אחד.
+- **בארגון:** מפיצים דרך managed settings. מתאים לסטנדרטים שכולם חייבים לעבוד לפיהם.
+
+Skill שנמצא רק ב-`~/.claude/skills/` במחשב שלך לא נטען בסשנים בענן וב-routines. כדי שיעבוד שם, מכניסים אותו ל-`.claude/skills/` של הריפו. גם [subagent](/advanced/subagents) לא מקבל את ה-Skills שכבר הפעלת בשיחה. כדי שיתחיל עם Skill טעון, מוסיפים אותו לשדה `skills` בקובץ ה-subagent.
+
+כש-Skill לא מתנהג כמו שציפית, בודקים לפי התסמין ([Troubleshooting בתיעוד](https://code.claude.com/docs/en/skills#troubleshooting), [קורס רשמי](https://academy.claude.com/courses/introduction-to-agent-skills/troubleshooting-skills)):
+
+| תסמין | מה עושים |
+| --- | --- |
+| Claude לא מפעיל את ה-Skill | מוסיפים לתיאור מילים שאנשים באמת אומרים, בודקים שה-Skill מופיע כשמבקשים `What skills are available?`, מנסחים את הבקשה קרוב יותר לתיאור, או מפעילים ישירות עם `/skill-name` |
+| `/skill-name` עובד, אבל Claude לא מתאים לפי התיאור | ה-YAML ב-frontmatter שבור. מריצים עם `--debug` כדי לראות את שגיאת הניתוח. מגרסה 2.1.233, `claude plugin validate .claude/skills` מאתר קבצי `SKILL.md` שלא עוברים ניתוח |
+| Claude מפעיל את ה-Skill כשלא רצית, או בוחר Skill אחר | מחדדים את התיאור כך שיהיה שונה מהתיאורים של Skills אחרים. אם רוצים רק הפעלה ידנית, מוסיפים `disable-model-invocation: true` |
+| רץ Skill אחר עם אותו שם | בודקים את סדר העדיפויות בסעיף "איפה שומרים Skill?" ומשנים את השם |
+| יש הרבה Skills ו-Claude מפספס חלק מהם | Claude Code מקצר תיאורים כדי שייכנסו לתקציב של רשימת ה-Skills. `/doctor` מציג כמה הרשימה עולה בהקשר ומה תופס הכי הרבה |
 
 ## הצעד הבא
 - ← [Subagents: איך מאצילים משימות לסוכני משנה](/advanced/subagents)
