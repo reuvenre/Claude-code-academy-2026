@@ -1,6 +1,7 @@
 import type { BaseLayoutProps } from 'fumadocs-ui/layouts/shared';
-import { appName, gitConfig } from './shared';
+import { appName } from './shared';
 
+// בלי קישור ל-GitHub באתר (החלטת בעל האתר)
 export function baseOptions(): BaseLayoutProps {
   return {
     nav: {
@@ -11,6 +12,5 @@ export function baseOptions(): BaseLayoutProps {
       { text: 'הקורס', url: '/beginner' },
       { text: 'מרכז הרפרנס', url: '/reference' },
     ],
-    githubUrl: `https://github.com/${gitConfig.user}/${gitConfig.repo}`,
   };
 }
