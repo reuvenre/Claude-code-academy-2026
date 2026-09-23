@@ -7,7 +7,8 @@
     "dev": "next dev",
     "start": "next start",
     "types:check": "next typegen && tsc --noEmit",
-    "lint": "eslint"
+    "lint": "eslint",
+    "audit": "node scripts/audit-lesson.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",

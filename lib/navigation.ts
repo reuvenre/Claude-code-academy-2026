@@ -64,6 +64,8 @@ export function isLevelLive(level: Level): boolean {
 export function getSidebarTree(): PageTree.Root {
   const folders: PageTree.Folder[] = levels.map((level) => {
     const info = levelInfo[level];
+    // בסיידבר: הכותרת הקצרה מהסילבוס (הכותרת המלאה בנוסח שאלה ארוכה מדי לתפריט)
+    const shortTitles = new Map(curriculum[level].map((item) => [item.slug, item.title]));
     return {
       $id: `level:${level}`,
       type: 'folder',
@@ -72,7 +74,7 @@ export function getSidebarTree(): PageTree.Root {
       children: getLevelLessons(level).map((page) => ({
         $id: `lesson:${page.url}`,
         type: 'page',
-        name: page.data.title,
+        name: shortTitles.get(page.slugs.at(-1)!) ?? page.data.title,
         url: page.url,
       })),
     };
