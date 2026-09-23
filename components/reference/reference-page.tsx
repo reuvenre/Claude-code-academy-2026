@@ -8,7 +8,7 @@ import { FAQ } from '@/components/lesson/faq';
 import { LastVerified, SourceBadge } from '@/components/lesson/badges';
 import type { referenceSource } from '@/lib/source';
 import { absoluteUrl, site } from '@/lib/seo/site';
-import { breadcrumbJsonLd, faqPageJsonLd } from '@/lib/seo/jsonld';
+import { breadcrumbJsonLd, faqPageJsonLd, isoDateTime } from '@/lib/seo/jsonld';
 
 type ReferencePageData = InferPageType<typeof referenceSource>;
 
@@ -33,7 +33,7 @@ export function ReferencePage({
       url,
       mainEntityOfPage: url,
       inLanguage: site.language,
-      dateModified: data.lastVerified,
+      dateModified: isoDateTime(data.lastVerified),
       keywords: data.keywords.join(', '),
       isBasedOn: data.source,
       author: { '@type': 'Organization', name: site.name, url: site.url },

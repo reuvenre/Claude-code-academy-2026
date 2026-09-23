@@ -4,7 +4,7 @@ import { JsonLd } from '@/components/seo/json-ld';
 import { curriculum } from '@/lib/curriculum';
 import { levelInfo, levels } from '@/lib/levels';
 import { getLevelLessons, getReferencePages } from '@/lib/navigation';
-import { breadcrumbJsonLd } from '@/lib/seo/jsonld';
+import { breadcrumbJsonLd, isoDateTime } from '@/lib/seo/jsonld';
 import { absoluteUrl, site } from '@/lib/seo/site';
 
 export const metadata: Metadata = {
@@ -32,7 +32,7 @@ export default function AboutPage() {
       url: absoluteUrl('/about'),
       inLanguage: site.language,
       about: { '@type': 'Organization', name: site.name, url: site.url },
-      ...(lastVerified ? { dateModified: lastVerified } : {}),
+      ...(lastVerified ? { dateModified: isoDateTime(lastVerified) } : {}),
     },
     breadcrumbJsonLd([{ name: 'אודות' }]),
   ];

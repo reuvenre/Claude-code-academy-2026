@@ -6,6 +6,11 @@ import { absoluteUrl, site } from './site';
 
 type JsonLd = Record<string, unknown>;
 
+// Google מצפה ל-datetime מלא עם אזור זמן (ISO 8601), לא לתאריך בלבד
+export function isoDateTime(date: string): string {
+  return date.includes('T') ? date : `${date}T00:00:00+00:00`;
+}
+
 const organizationRef = { '@type': 'Organization', name: site.name, url: site.url };
 
 export function organizationJsonLd(): JsonLd {
@@ -27,6 +32,7 @@ export function techArticleJsonLd(lesson: {
   lastVerified: string;
   keywords: string[];
   source: string;
+  image?: string;
 }): JsonLd {
   const url = absoluteUrl(lesson.url);
   return {
@@ -37,7 +43,8 @@ export function techArticleJsonLd(lesson: {
     url,
     mainEntityOfPage: url,
     inLanguage: site.language,
-    dateModified: lesson.lastVerified,
+    dateModified: isoDateTime(lesson.lastVerified),
+    ...(lesson.image ? { image: absoluteUrl(lesson.image) } : {}),
     keywords: lesson.keywords.join(', '),
     // המקור הרשמי שממנו אומת השיעור — שקיפות מקור (E-E-A-T)
     isBasedOn: lesson.source,
@@ -119,8 +126,8 @@ export function postJsonLd(post: {
     url,
     mainEntityOfPage: url,
     inLanguage: site.language,
-    datePublished: post.date,
-    dateModified: post.date,
+    datePublished: isoDateTime(post.date),
+    dateModified: isoDateTime(post.date),
     keywords: post.keywords.join(', '),
     isBasedOn: post.source,
     author: { '@type': 'Organization', name: post.author === 'מערכת' ? site.name : post.author },

@@ -4,6 +4,7 @@ import { createRelativeLink } from 'fumadocs-ui/mdx';
 import { getMDXComponents } from '@/components/mdx';
 import { JsonLd } from '@/components/seo/json-ld';
 import { getReadingMinutes } from '@/lib/reading-time';
+import { getPageImageUrl } from '@/lib/shared';
 import { faqPageJsonLd, lessonBreadcrumbs, techArticleJsonLd } from '@/lib/seo/jsonld';
 import type { source } from '@/lib/source';
 import { CanDo } from './can-do';
@@ -33,7 +34,7 @@ export async function LessonPage({
   const lessonId = page.url;
 
   const jsonLd = [
-    techArticleJsonLd({ ...data, url: page.url }),
+    techArticleJsonLd({ ...data, url: page.url, image: getPageImageUrl(page).url }),
     lessonBreadcrumbs(data),
     ...(data.faq?.length ? [faqPageJsonLd(data.faq)] : []),
   ];
