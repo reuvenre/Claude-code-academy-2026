@@ -1,0 +1,262 @@
+---
+title: "איך עובדים עם Claude Code בריפו גדול או ב-monorepo ענק?"
+description: "מפעילים את Claude Code מתיקיית החבילה, מפצלים את CLAUDE.md לפי תיקיות, חוסמים קריאת קוד מיוצר ומוסיפים skills לכל חבילה, כדי שההקשר יכיל רק את מה שרלוונטי."
+level: "pro"
+order: 56
+source: "https://code.claude.com/docs/en/large-codebases"
+lastVerified: "2026-09-23"
+keywords: ["Claude Code", "monorepo", "מונורפו", "large codebase", "ריפו גדול", "קוד גדול", "CLAUDE.md מקונן", "claudeMdExcludes", "sparsePaths", "--add-dir", "additionalDirectories", "חלון הקשר", "context", "skills לחבילה"]
+canDo: "עכשיו אתה יכול להגדיר את Claude Code ב-monorepo או בריפו גדול כך שיטען רק את ההנחיות, הקבצים וה-skills של האזור שאתה עובד בו."
+relatedSlugs: ["claude-md", "subagents", "worktrees"]
+faq:
+  - q: "מאיפה כדאי להפעיל את Claude Code ב-monorepo?"
+    a: "אם המשימה נוגעת בחבילה אחת, מפעילים מתיקיית החבילה. Claude טוען את ה-CLAUDE.md שלה ושל כל התיקיות מעליה, וניגש רק לתת-העץ הזה. אם המשימה חוצה כמה חבילות, מפעילים משורש הריפו, ואז CLAUDE.md של תתי-תיקיות נטען רק כש-Claude קורא בהן קבצים."
+  - q: "איך מונעים מ-CLAUDE.md של צוות אחר להיטען?"
+    a: "מוסיפים את ההגדרה claudeMdExcludes עם תבנית glob, למשל **/packages/web/**, בקובץ .claude/settings.local.json. זו רשימה קבועה ולא מתג למשימה. קובצי CLAUDE.md מנוהלים של הארגון לא ניתנים להחרגה."
+  - q: "האם כללי Read ב-deny חוסמים גם חיפוש grep ב-Bash?"
+    a: "רק חלקית. הכללים חוסמים את כלי הקבצים של Claude ופקודות מוכרות כמו cat או grep כשהנתיב החסום מופיע כארגומנט. אבל חיפוש כמו grep -r על תיקייה שמכילה קבצים חסומים עדיין מחזיר אותם בפלט, ותהליכי משנה שפותחים קבצים בעצמם לא מכוסים."
+  - q: "מה ההבדל בין additionalDirectories לבין --add-dir?"
+    a: "שתי הדרכים נותנות ל-Claude גישת קריאה ועריכה לתיקייה נוספת. additionalDirectories בהגדרות לא טוען מהתיקייה אף פעם CLAUDE.md או skills. הדגל --add-dir טוען את ה-skills שלה, ואת CLAUDE.md רק אם מגדירים את משתנה הסביבה CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD."
+  - q: "למה שינוי שחוצה כמה חבילות כדאי להתחיל ב-plan mode?"
+    a: "ב-plan mode Claude כותב את התוכנית לקובץ. סשן ארוך דוחס את ההקשר בדרך, ו-Claude Code מזריק מחדש את קובץ התוכנית אחרי כל דחיסה, כך שהתוכנית נשמרת גם כשחלק מהיסטוריית השיחה לא."
+---
+
+import { CommandBlock, Callout } from "@/components/lesson";
+
+בריפו גדול או ב-monorepo מצמצמים את מה ש-Claude Code רואה: מפעילים אותו מתיקיית החבילה שעובדים בה, מפצלים את CLAUDE.md לפי תיקיות, חוסמים קריאה של קוד מיוצר ו-vendor, ומוסיפים skills לכל חבילה. כך חלון ההקשר מתמלא רק במה שרלוונטי למשימה.
+
+## למה זה חשוב
+ברירות המחדל של Claude Code מכוונות לפרויקטים קטנים. כשהקוד גדל, הן עלולות למלא את חלון ההקשר בהנחיות ובקריאות קבצים שלא קשורות למשימה. לפי התיעוד הרשמי זה עולה טוקנים ופוגע בביצועים של Claude. כל ההגדרות בשיעור עצמאיות ומשתלבות זו בזו, אז בוחרים את מה שמתאים לריפו שלך.
+
+הדוגמאות מתייחסות ל-monorepo עם שלוש חבילות. בריפו גדול בעץ אחד מחליפים את `packages/api/` בתיקיית תת-מערכת, כמו `src/backend/`:
+
+```text
+monorepo/
+  CLAUDE.md                     # root instructions
+  packages/
+    api/
+      CLAUDE.md                 # API-specific instructions
+      .claude/skills/
+      src/
+    web/
+      CLAUDE.md                 # frontend-specific instructions
+      .claude/skills/
+      src/
+    shared/
+      CLAUDE.md                 # shared library instructions
+      src/
+```
+
+## מאיפה כדאי להפעיל את Claude?
+התיקייה שממנה מריצים `claude` קובעת לאילו קבצים יש גישה, אילו CLAUDE.md נטענים ואילו הגדרות פרויקט חלות.
+
+| מפעילים מ- | גישה לקבצים | CLAUDE.md שנטען בהפעלה | מתי |
+| --- | --- | --- | --- |
+| שורש הריפו | כל הקבצים | רק של השורש; של תתי-תיקיות נטען כש-Claude קורא בהן | המשימה חוצה כמה חבילות |
+| תת-תיקייה | רק תת-העץ, עד שמעניקים עוד | של התיקייה ושל כל תיקייה מעליה | העבודה בחבילה אחת |
+
+<Callout type="note">
+הגדרות פרויקט ב-`.claude/settings.json` לא עוברות בירושה מתיקיות אב, בשונה מ-CLAUDE.md. כל תיקייה שמפעילים ממנה צריכה קובץ הגדרות שלם משלה.
+</Callout>
+
+## איך מפצלים את CLAUDE.md לפי תיקיות?
+שמים CLAUDE.md בשורש עם כללים לכל הריפו, ו-CLAUDE.md בכל חבילה עם המוסכמות שלה. כך Claude טוען את הכללים הכלליים ורק את מוסכמות האזור שעובדים בו. מכניסים את הקבצים ל-git, ובדרך כלל הבעלים של כל תיקייה מתחזק את הקובץ שלה.
+
+ה-CLAUDE.md בשורש, מהדוגמה בתיעוד:
+
+```markdown
+Run package scripts from the package directory, not the monorepo root.
+Prefix commit subjects with the package name, for example `api: add rate limiting`.
+Never edit files under packages/*/generated/. Run `npm run codegen` in the package instead.
+```
+
+וה-`packages/api/CLAUDE.md`:
+
+```markdown
+Copy `.env.example` to `.env` before running anything. Tests and the dev server fail without it.
+Write database queries with the Knex query builder. Never put raw SQL strings in route handlers.
+Never edit a migration after it has merged. Add a new migration instead.
+```
+
+כשמפעילים מ-`packages/api/`, נטענים שני הקבצים האלה, ואף הנחיה של `packages/web/` לא נכנסת להקשר. כדי לוודא, מריצים `/context` ובודקים את הרשימה תחת **Memory files**.
+
+התיעוד ממליץ לעבור על הקבצים ב-pull requests כמו על כל שינוי תיעוד, ולבדוק אותם מחדש אחרי שחרור מודל גדול: הוראה שעקפה מגבלה של מודל ישן עלולה להפוך לעומס מיותר.
+
+### קובץ לכל תיקייה או כלל עם paths?
+אפשר לכוון הנחיות לחלק מהעץ גם עם [path-scoped rules](https://code.claude.com/docs/en/memory#path-specific-rules) תחת `.claude/rules/`. ההבדל הוא איפה הקובץ יושב ומתי הוא נטען:
+
+| גישה | מיקום | נטען כש- | מתאים כש- |
+| --- | --- | --- | --- |
+| CLAUDE.md בתיקייה | בתוך התיקייה, ליד הקוד | מפעילים ממנה, או כש-Claude קורא בה קובץ | בעלי התיקייה מתחזקים את המוסכמות שלהם |
+| כלל ב-`.claude/rules/` | `.claude/` מרכזי בשורש | Claude עובד עם קובץ שתואם ל-glob שב-`paths:` | רוצים הכול במקום אחד, או אותו כלל לנתיבים מפוזרים |
+
+### איך מחריגים CLAUDE.md של חבילות שלא נוגעים בהן?
+כשמפעילים מהשורש, ה-CLAUDE.md של כל תת-תיקייה נטען ברגע ש-Claude קורא בה קובץ. ההגדרה `claudeMdExcludes` מדלגת על קבצים לפי נתיב או glob, והם לא נטענים בכלל. מתאים לחבילות של צוותים אחרים, קוד legacy או ספריות vendor.
+
+להחרגה אישית שמים אותה ב-`.claude/settings.local.json` (ומוסיפים את הקובץ ל-gitignore בעצמך אם יצרת אותו ידנית):
+
+```json
+{
+  "claudeMdExcludes": [
+    "**/packages/web/**"
+  ]
+}
+```
+
+זה מדלג על כל CLAUDE.md וקובצי rules תחת החבילה. התבניות מושוות לנתיבים מלאים, ולכן מתחילים אותן ב-`**/`. עוד דוגמאות מהתיעוד:
+
+- `"**/packages/*/CLAUDE.md"`: מחריג את ה-CLAUDE.md של כל חבילה ומשאיר את זה שבשורש.
+- `"**/packages/legacy-*/**"`: מחריג כל חבילה ששמה תואם, כולל rules.
+
+<Callout type="tip">
+הרשימה קבועה, לא מתג למשימה. כדי להתמקד היום בחבילה אחת ומחר באחרת, מפעילים את Claude מתיקיית החבילה במקום לערוך את ההחרגות. קובצי CLAUDE.md מנוהלים של הארגון לא ניתנים להחרגה.
+</Callout>
+
+## איך מונעים מ-Claude לקרוא קוד מיוצר ו-vendor?
+חיפושי התוכן של Claude מכבדים את `.gitignore` כברירת מחדל, כך שנתיבים שכבר רשומים שם, כמו `node_modules/`,‏ `dist/` ו-`build/`, לא מופיעים בתוצאות. לנתיבים שכן נמצאים ב-git, כמו SDK מוטמע או קוד מיוצר, מוסיפים כללי `Read` ל-`permissions.deny`:
+
+```json
+{
+  "permissions": {
+    "deny": [
+      "Read(./**/dist/**/*)",
+      "Read(./**/build/**/*)",
+      "Read(./**/*.generated.*)",
+      "Read(./**/vendor/**/*)"
+    ]
+  }
+}
+```
+
+התבניות מסתיימות ב-`/**/*` ולא ב-`/**`, כדי לחסום את מה שבתוך התיקייה ולא את התיקייה עצמה. כך Claude עדיין יכול להריץ `ls dist` או `cd build`.
+
+איפה שמים את הכללים:
+
+| למי | איפה |
+| --- | --- |
+| כל מי שעובד בריפו | `.claude/settings.json` שנכנס ל-git, בתיקייה שממנה מפעילים |
+| רק לך | `.claude/settings.local.json` בשורש הריפו (אם מפעילים מתתי-תיקיות, כותבים את הכללים עם נתיב מוחלט שמתחיל ב-`//`, כי נתיב יחסי מעוגן לתיקייה שממנה מפעילים) |
+| כולם, באכיפה בכל סשן | [managed settings](https://code.claude.com/docs/en/managed-settings) |
+
+<Callout type="warning">
+הכללים מכסים את כלי הקבצים של Claude, ובתוך Bash פקודות מוכרות כמו `cat`,‏ `grep` ו-`find` כשהנתיב החסום מופיע כארגומנט. חיפוש כמו `grep -r` על תיקייה שמכילה קבצים חסומים עדיין מחזיר אותם בפלט, ותהליכי משנה שפותחים קבצים בעצמם לא מכוסים בכלל.
+</Callout>
+
+## איך חוסכים קריאות קבצים עם code intelligence?
+בריפו גדול, מציאת הגדרה של symbol או של מי שקורא לו יכולה לעלות הרבה קריאות קבצים ו-grep. [plugins של code intelligence](https://code.claude.com/docs/en/discover-plugins#code-intelligence) מחברים את Claude ל-language server, כך שהוא קופץ להגדרות, מוצא הפניות ורואה שגיאות טיפוסים בלי לסרוק את העץ. ב-marketplace הרשמי יש plugins ל-TypeScript,‏ Python,‏ Go,‏ Rust ושפות נוספות. להתקנת ה-plugin של TypeScript מריצים בתוך הסשן:
+
+<CommandBlock>/plugin install typescript-lsp@claude-plugins-official</CommandBlock>
+
+אם מתקבלת השגיאה `Marketplace "claude-plugins-official" not found`, מוסיפים את ה-marketplace עם `/plugin marketplace add anthropics/claude-plugins-official` ומנסים שוב. ה-plugin דורש את קובץ ההרצה של ה-language server בכל מחשב של מפתח.
+
+## איך נותנים ל-Claude גישה לחבילה שכנה?
+כשמפעילים מ-`packages/api/`, ‏Claude קורא וכותב רק בתוך התיקייה הזו. כדי לעדכן טיפוס משותף ש-`api` ו-`web` מייבאים, מעניקים גישה לתיקיות השכנות. אותו מנגנון עובד גם לריפו נפרד.
+
+בהגדרות, ב-`packages/api/.claude/settings.json`:
+
+```json
+{
+  "permissions": {
+    "additionalDirectories": [
+      "../shared",
+      "../web"
+    ]
+  }
+}
+```
+
+נתיבים יחסיים מחושבים מהתיקייה שממנה מפעילים. לגישה חד-פעמית, בלי לערוך הגדרות:
+
+<CommandBlock>claude --add-dir ../shared</CommandBlock>
+
+בשתי הדרכים Claude קורא ועורך בתיקייה. ההבדל הוא מה עוד נטען ממנה:
+
+| נוסף עם | טוען CLAUDE.md ו-rules | טוען skills |
+| --- | --- | --- |
+| ההגדרה `additionalDirectories` | אף פעם | אף פעם |
+| הדגל `--add-dir` או הפקודה `/add-dir` | רק עם משתנה הסביבה שלמטה | כן |
+
+```bash
+CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD=1 claude --add-dir ../shared
+```
+
+## איך מוסיפים skills לכל חבילה?
+כל תת-תיקייה יכולה להגדיר [skills](https://code.claude.com/docs/en/skills) משלה תחת `.claude/skills/`. skill נטען רק כש-Claude מחליט שהוא רלוונטי, כך שכלים של ה-API לא תופסים הקשר בזמן עבודה על ה-frontend. מכניסים אותם ל-git ליד הקוד של האזור:
+
+<CommandBlock>mkdir -p packages/api/.claude/skills/api-testing</CommandBlock>
+
+ובתוכה כותבים `SKILL.md`. זו ההתחלה של הדוגמה מהתיעוד:
+
+```markdown
+---
+name: api-testing
+description: Testing patterns for the API package. Use when writing or modifying tests in packages/api/.
+---
+
+## Running tests
+
+- All tests: `npm test`
+- Single file: `npm test -- src/__tests__/routes/users.test.ts`
+```
+
+כש-Claude עובד על קובץ ב-`packages/api/` הוא טוען את `api-testing`, וכשהוא עובד ב-`packages/web/` הוא טוען את ה-skills של `web`. אפשר גם להגביל skill לפי תבנית קבצים עם שדה `paths` ב-frontmatter, למשל skill של migrations שמוגדר ל-`**/migrations/**`.
+
+### איך שומרים על רשימת skills קטנה?
+Claude בוחר skill לפי השם והתיאור של כל ה-skills שהוא מגלה. מהשורש, ה-skills של כל תת-תיקייה שהוא נוגע בה מצטברים, ולפי התיעוד זה יכול להגיע למאות. כשיש הרבה, חלק מה-skills מאבדים את התיאור לגמרי. לכן:
+
+- כותבים תיאורים קצרים שמתחילים במילים שיופיעו בבקשה, כמו "writing or modifying tests in `packages/api/`".
+- skills שמשותפים לכל הריפו, כמו מוסכמות PR, שמים ב-`.claude/skills/` של השורש.
+- skills שצריכים גרסאות או עובדים בכמה ריפוזיטוריז אורזים כ-[plugin](/advanced/plugins).
+
+## איך מקטינים worktrees בריפו גדול?
+הדגל `--worktree` פותח סשן ב-worktree חדש של git, וכברירת מחדל מוציא את כל הריפו. ההגדרה `worktree.sparsePaths` משתמשת ב-sparse-checkout של git וכותבת לדיסק רק את התיקיות ברשימה ואת הקבצים שבשורש. כך worktrees נפתחים מהר יותר ותופסים פחות מקום. `symlinkDirectories` יוצר symlink ל-`node_modules` של הריפו הראשי במקום לשכפל אותו:
+
+```json
+{
+  "worktree": {
+    "sparsePaths": [
+      ".claude",
+      "packages/api",
+      "packages/shared"
+    ],
+    "symlinkDirectories": [
+      "node_modules"
+    ]
+  }
+}
+```
+
+הנתיבים ב-`sparsePaths` יחסיים לשורש הריפו, והם תיקיות, לא קבצים. תיקיות בשורש לא נכללות אוטומטית, ולכן מוסיפים `.claude` אם רוצים את ההגדרות וה-rules של השורש בתוך ה-worktree. זה שימושי במיוחד ל-subagents שרצים ב-worktree: כל אחד מקבל checkout קל. כל ה-worktrees בסשן חולקים את אותה רשימה, אז אם subagent אחד צריך את `api` ואחר את `web`, מכניסים את שניהם.
+
+<Callout type="note">
+אחרי יצירת ה-worktree, תיקיית העבודה של הסשן היא שורש ה-worktree ולא תת-התיקייה שממנה הפעלת. לכן הגדרות אחרות שצריך בתוך worktrees, כמו כללי deny או hooks, שמים ב-`.claude/settings.json` של שורש הריפו. עוד על worktrees בשיעור [סשנים מקבילים עם git worktree](/pro/worktrees).
+</Callout>
+
+## איך subagents שומרים על ההקשר נקי בזמן חקירה?
+כש-Claude חוקר קוד הוא קורא הרבה קבצים, וכולם צורכים הקשר. לפי [Best practices](https://code.claude.com/docs/en/best-practices#use-subagents-for-investigation), ‏subagents רצים בחלון הקשר נפרד ומחזירים רק סיכום, כך שהשיחה הראשית נשארת פנויה למימוש. דוגמת הפרומפט מהתיעוד:
+
+```text
+Use subagents to investigate how our authentication system handles token
+refresh, and whether we have any existing OAuth utilities I should reuse.
+```
+
+עוד על subagents בשיעור [מה זה subagent](/advanced/subagents).
+
+## איך מבצעים שינוי שחוצה כמה חבילות?
+ההגדרות למעלה קובעות מה Claude רואה. כששינוי אחד נוגע בכמה חבילות, למשל טיפוס משותף וכל המקומות שמשתמשים בו, התיעוד ממליץ על שני דברים:
+
+- **כל השינוי בסשן אחד:** נותנים ל-Claude את העריכה המשותפת ואת כל נקודות הקריאה יחד, כדי שההחלטות יהיו עקביות ולא יחושבו מחדש לכל חבילה.
+- **לתכנן לפני עריכה:** ב-[plan mode](https://code.claude.com/docs/en/permission-modes#analyze-before-you-edit-with-plan-mode) ‏Claude כותב את התוכנית לקובץ. סשן ארוך דוחס את ההקשר בדרך, ו-Claude Code מזריק מחדש את קובץ התוכנית אחרי כל דחיסה, כך שהתוכנית שורדת גם כשהיסטוריית השיחה לא.
+
+## מה עושים כשקובצי CLAUDE.md כבר לא מחזיקים?
+כשהריפו גדל, קובצי CLAUDE.md לפי תיקייה נהיים קשים לניהול: מוסכמות סוטות, קבצים מתיישנים, ואין בעלים לשורש. התיעוד מציע להוציא מוסכמות וחומר עזר מ-CLAUDE.md שנטען תמיד, אל מנגנונים שנטענים לפי צורך:
+
+| מנגנון | מה הוא נותן |
+| --- | --- |
+| [Skills](/advanced/skills) | חומר עזר שנטען רק כשהוא רלוונטי |
+| [Plugins](/advanced/plugins) | חבילות עם גרסה של skills,‏ hooks ופקודות, שצוות platform מנהל במרכז |
+| [MCP](/advanced/mcp) | אם בארגון כבר יש אינדקס חיפוש קוד או RAG, חושפים אותו ככלי ש-Claude שואל במקום לקרוא קבצים |
+
+## הצעד הבא
+- ← [כוונון מתקדם: fast mode, מודל והכתבה קולית](/pro/power-tuning)
+- שיעורים קשורים: [CLAUDE.md](/beginner-plus/claude-md) · [subagents](/advanced/subagents) · [worktrees](/pro/worktrees)
