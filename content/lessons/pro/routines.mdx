@@ -1,0 +1,179 @@
+---
+title: "מה זה routines ב-Claude Code ואיך מריצים אוטומציה בענן?"
+description: "Routine היא הגדרה שמורה של פרומפט, ריפו ו-connectors ש-Claude Code מריץ בענן לפי לוח זמנים, קריאת API או אירוע GitHub. יוצרים עם /schedule או באתר."
+level: "pro"
+order: 45
+source: "https://code.claude.com/docs/en/routines"
+lastVerified: "2026-09-23"
+keywords: ["Claude Code", "routines", "routine", "אוטומציה", "אוטומציה בענן", "תזמון", "משימה מתוזמנת", "/schedule", "/routines", "cron", "API trigger", "GitHub trigger", "טריגר", "connectors"]
+canDo: "עכשיו אתה יכול ליצור routine שרצה בענן לפי לוח זמנים, קריאת API או אירוע GitHub, לצמצם את מה שהיא יכולה לגשת אליו, ולבדוק בתמליל מה היא עשתה בכל ריצה."
+relatedSlugs: ["scheduled", "web", "connectors"]
+faq:
+  - q: "מה ההבדל בין routine למשימה מתוזמנת עם /loop?"
+    a: "Routine רצה בתשתית ענן מנוהלת של Anthropic, ולכן היא ממשיכה לעבוד גם כשהמחשב סגור. /loop ומשימות מתוזמנות ב-Desktop רצים על המחשב שלך, עם גישה לקבצים מקומיים. ב-Desktop בוחרים Cloud כדי ליצור routine, ו-Local כדי ליצור משימה מתוזמנת מקומית."
+  - q: "האם routine מבקשת אישור לפני שהיא מריצה פקודות?"
+    a: "ברוב המקרים לא. Routine רצה כסשן ענן אוטונומי מלא, בלי בחירת מצב הרשאות. היא מריצה פקודות shell וקוראת לכל connector שכללת בלי לעצור לאישור, למעט חלק מהפעולות על artifacts. לכן מצמצמים מראש את הריפו, הסביבה וה-connectors."
+  - q: "למה /schedule מחזיר Unknown command?"
+    a: "הפקודה מוסתרת כשאחת הדרישות שלה לא מתקיימת. הסיבות הנפוצות: התחברות עם Console API key או ספק ענן במקום מנוי claude.ai, מצב שבו לא מחוברים בכלל (בלי API key או פרטי התחברות אחרים), הרצה מתוך סשן ענן, או מדיניות ארגון שמכבה routines או סשני ענן. באתר claude.ai/code/routines אפשר לנהל routines בכל מקרה, אלא אם הארגון כיבה אותן."
+  - q: "האם ריצה ירוקה ברשימה אומרת שהמשימה הצליחה?"
+    a: "סטטוס ירוק אומר רק שהסשן התחיל והסתיים בלי תקלת תשתית. הוא לא אומר שהמשימה בפרומפט הצליחה. פותחים את הריצה וקוראים את התמליל כדי לראות מה Claude באמת עשה, כולל בקשות רשת שנחסמו או כלים חסרים."
+  - q: "כמה routines אפשר להריץ?"
+    a: "Routines צורכות מהמנוי כמו סשנים רגילים, ובנוסף יש מכסה יומית של ריצות לכל חשבון. ריצות חד-פעמיות לא נספרות במכסה היומית. את הצריכה והריצות שנותרו רואים ב-claude.ai/code/routines או ב-claude.ai/settings/usage."
+---
+
+import { CommandBlock, Callout, StepList } from "@/components/lesson";
+
+Routine היא הגדרה שמורה של Claude Code: פרומפט, ריפו אחד או יותר ו-connectors. היא רצה אוטומטית בענן, גם כשהמחשב סגור. מפעילים אותה בשלוש דרכים: לוח זמנים, קריאת HTTP ל-endpoint משלה, או אירוע GitHub. יוצרים עם `/schedule` או ב-claude.ai/code/routines.
+
+## למה זה חשוב
+Routine הופכת משימה חוזרת לעבודה שקורית בלי שתפתח טרמינל. היא מתאימה לעבודה בלי השגחה, שחוזרת על עצמה ויש לה תוצאה ברורה. דוגמאות מהתיעוד הרשמי:
+
+- **תחזוקת backlog:** כל ערב חול, לתייג issues חדשים, לשייך בעלים ולשלוח סיכום ל-Slack.
+- **טריאז' התראות:** כלי הניטור קורא ל-routine, והיא מחפשת את הסיבה ופותחת draft PR עם תיקון מוצע.
+- **code review מותאם:** על כל PR חדש, להפעיל את רשימת הבדיקה של הצוות ולהשאיר הערות.
+- **סחף בתיעוד:** פעם בשבוע, לסרוק PRs שמוזגו ולפתוח PRs לעדכון התיעוד.
+
+<Callout type="note">
+Routines נמצאות ב-research preview. ההתנהגות, המגבלות וה-API עשויים להשתנות. הן זמינות בתוכניות Pro,‏ Max,‏ Team ו-Enterprise.
+</Callout>
+
+## ממה בנויה routine?
+
+| רכיב | מה הוא קובע |
+| --- | --- |
+| **פרומפט** | מה Claude עושה בכל ריצה. יש בו גם בורר מודל, ו-Claude משתמש במודל שנבחר בכל ריצה |
+| **ריפו** | ריפו GitHub אחד או יותר, שמשוכפלים בכל ריצה. Claude מתחיל מה-branch ברירת המחדל |
+| **סביבה** | [סביבת ענן](https://code.claude.com/docs/en/cloud-environments): גישת רשת, משתני סביבה וסקריפט התקנה |
+| **connectors** | שירותים חיצוניים כמו Slack או Linear, דרך ה-connectors בחשבון claude.ai שלך |
+| **טריגרים** | מתי היא רצה: לוח זמנים, API, אירוע GitHub, או שילוב שלהם |
+
+על שמות המודלים הזמינים ראה [model-config](https://code.claude.com/docs/en/model-config).
+
+## איך יוצרים routine?
+יש שלוש דרכים, וכולן כותבות לאותו חשבון ענן: האתר, אפליקציית Desktop וה-CLI. Routine שנוצרה באחת מופיעה מיד בשתיים האחרות.
+
+### מה-CLI
+מריצים בתוך סשן:
+
+<CommandBlock>/schedule</CommandBlock>
+
+Claude שואל על לוח הזמנים, הריפו והפרומפט, ואז שומר את ה-routine בחשבון. אפשר גם לתאר מראש, כמו בדוגמאות מהתיעוד:
+
+```text
+/schedule daily PR review at 9am
+```
+
+```text
+/schedule clean up feature flag in one week
+```
+
+לפקודה יש גם כינוי: `/routines`. אם Claude עונה שצריך להתחבר או שאין חיבור לחשבון claude.ai, שום routine לא נוצרה.
+
+### מהאתר
+
+<StepList>
+
+1. נכנסים ל-[claude.ai/code/routines](https://claude.ai/code/routines) ולוחצים **New routine**.
+2. נותנים שם וכותבים את הפרומפט.
+3. בוחרים ריפו אחד או יותר.
+4. בוחרים סביבת ענן. סביבת **Default** מגיעה עם גישת רשת **Trusted**.
+5. תחת **Select a trigger** בוחרים טריגר אחד או כמה.
+6. תחת **Connectors** מסירים את מה שה-routine לא צריכה.
+7. לוחצים **Create**. כדי להריץ מיד, לוחצים **Run now** בעמוד ה-routine.
+
+</StepList>
+
+ב-Desktop: בלשונית **Code** לוחצים **Routines**, אחר כך **New routine**, ובוחרים **Cloud**. בחירה ב-**Local** יוצרת משימה מתוזמנת שרצה על המחשב שלך, לא routine בענן.
+
+## איך כותבים פרומפט ל-routine?
+הפרומפט הוא החלק החשוב ביותר. ה-routine רצה לבד, ולכן הפרומפט חייב לעמוד בפני עצמו ולהגיד במפורש מה לעשות ואיך נראית הצלחה. אין מי שיענה לשאלות באמצע.
+
+## איזה טריגרים יש?
+
+| טריגר | מתי רץ | איפה מגדירים |
+| --- | --- | --- |
+| **Schedule** | לפי תדירות קבועה, או פעם אחת בזמן מסוים | אתר או CLI |
+| **API** | כשמישהו שולח POST ל-endpoint של ה-routine | אתר בלבד |
+| **GitHub** | על אירועי pull request או release בריפו | אתר או CLI |
+
+Routine אחת יכולה לשלב כמה טריגרים. לדוגמה, routine של PR review שרצה כל לילה, מופעלת מסקריפט deploy וגם מגיבה לכל PR חדש.
+
+### לוח זמנים
+בוחרים תדירות מוכנה: hourly,‏ daily,‏ weekdays או weekly. מזינים שעה באזור הזמן שלך, והיא מומרת אוטומטית. ריצה יכולה להתחיל כמה דקות אחרי הזמן שנקבע, בהפרש קבוע לכל routine.
+
+למרווח מותאם, כמו כל שעתיים, בוחרים את התדירות הקרובה בטופס ואז מריצים `/schedule update` ב-CLI כדי להגדיר ביטוי cron. המרווח המינימלי הוא שעה.
+
+ריצה חד-פעמית מגדירים במילים, ו-Claude מאשר את הזמן המדויק לפני השמירה:
+
+```text
+/schedule tomorrow at 9am, summarize yesterday's merged PRs
+```
+
+אחרי הריצה היא נכבית לבד, והאתר מסמן אותה **Ran**.
+
+### API
+טריגר API נותן ל-routine ‏endpoint משלה. מוסיפים אותו רק מהאתר: עורכים את ה-routine, לוחצים **Add another trigger** ובוחרים **API**. מעתיקים את ה-URL, לוחצים **Generate token** ומעתיקים את הטוקן מיד. הוא מוצג פעם אחת בלבד.
+
+זו הדוגמה מהתיעוד. ה-ID והטוקן הם placeholders:
+
+```bash
+curl -X POST https://api.anthropic.com/v1/claude_code/routines/trig_01ABCDEFGHJKLMNOPQRSTUVW/fire \
+  -H "Authorization: Bearer sk-ant-oat01-xxxxx" \
+  -H "anthropic-beta: experimental-cc-routine-2026-04-01" \
+  -H "anthropic-version: 2023-06-01" \
+  -H "Content-Type: application/json" \
+  -d '{"text": "Sentry alert SEN-4521 fired in prod. Stack trace attached."}'
+```
+
+השדה `text` אופציונלי ומעביר הקשר לריצה, כמו גוף ההתראה. הוא מגיע ל-Claude עטוף בבלוק `<routine-fire-payload>` שמסמן אותו כמידע לא מהימן. לכן הפרומפט השמור צריך להתייחס אליו במפורש, למשל:
+
+```text
+Investigate the alert described in the routine-fire-payload block
+```
+
+בלי זה, ה-routine מתייחסת לטקסט כהקשר בלבד. התשובה מחזירה URL של הסשן החדש, שאפשר לפתוח ולצפות בריצה.
+
+### GitHub
+טריגר GitHub מפעיל סשן חדש על אירוע pull request או release. בכל אירוע נפתח סשן נפרד. צריך להתקין את Claude GitHub App על הריפו. ‏`/web-setup` לא מספיק: הוא נותן גישה לשכפול, אבל לא מפעיל webhooks.
+
+אפשר לסנן PRs לפי author,‏ title,‏ body,‏ base branch,‏ head branch,‏ labels,‏ is draft ו-is merged. כל התנאים חייבים להתקיים. לדוגמה, **is draft** שווה `false` מריץ את ה-routine רק על PRs שמוכנים ל-review.
+
+<Callout type="tip">
+האופרטור `matches regex` בודק את כל ערך השדה, לא חלק ממנו. כדי לתפוס כל כותרת שמכילה `hotfix`, כותבים `.*hotfix.*`. להתאמה פשוטה של חלק מהטקסט משתמשים ב-`contains`.
+</Callout>
+
+## למה חשוב לצמצם הרשאות?
+Routine רצה כסשן ענן אוטונומי מלא. אין בחירת מצב הרשאות: היא מריצה פקודות shell, משתמשת ב-skills שבריפו וקוראת ל-connectors בלי לעצור לאישור, למעט חלק מהפעולות על artifacts. מה שהיא יכולה להשיג נקבע רק לפי הריפו, הסביבה וה-connectors שבחרת.
+
+- **connectors:** כברירת מחדל כל ה-connectors שלך נכללים. מסירים את מה שלא צריך, כי Claude יכול להשתמש בכל כלי שלהם, כולל כתיבה.
+- **רשת:** בסביבת **Default** רק רשימת דומיינים מאושרת פתוחה. בקשה לדומיין אחר נכשלת עם `403`. connectors עוברים דרך השרתים של Anthropic ולא צריכים שינוי ברשימה.
+- **branches:** Claude דוחף ל-branches שמתחילים ב-`claude/`. דחיפה ל-branch אחר נדחית אם הוא מוגן, אם למישהו אחר יש ממנו PR פתוח, או אם יש בו commits של מישהו אחר.
+
+<Callout type="warning">
+Routine שייכת לחשבון claude.ai האישי שלך ופועלת בשמך. commits ו-PRs נושאים את משתמש ה-GitHub שלך, והודעות Slack או tickets ב-Linear יוצאים מהחשבונות המקושרים שלך. שמור את טוקן ה-API במקום מאובטח, כמו secret store של כלי ההתראות.
+</Callout>
+
+## איך מנהלים ובודקים ריצות?
+כל ריצה יוצרת סשן חדש, לצד הסשנים האחרים שלך. לוחצים על ריצה כדי לראות מה Claude עשה, לבדוק שינויים, ליצור PR או להמשיך את השיחה.
+
+סטטוס ירוק אומר רק שהסשן התחיל והסתיים בלי תקלת תשתית, לא שהמשימה הצליחה. תמיד קוראים את התמליל.
+
+בעמוד ה-routine אפשר גם להשהות ולהפעיל עם מתג, לערוך ולמחוק. מה-CLI:
+
+| פקודה | מה היא עושה |
+| --- | --- |
+| `/schedule list` | מציגה את כל ה-routines |
+| `/schedule update` | משנה routine קיימת |
+| `/schedule run` | מריצה routine מיד |
+
+אפשר גם לשאול על היסטוריית הריצות. זו הדוגמה מהתיעוד:
+
+```text
+/schedule why did my nightly review do nothing this morning?
+```
+
+Claude מציג את הריצות האחרונות וקורא את הלוג כדי להסביר מה קרה.
+
+## הצעד הבא
+- ← [Scheduled tasks ו-/goal: תזמון בתוך הסשן](/pro/scheduled)
+- שיעורים קשורים: [Claude Code באינטרנט](/pro/web) · [Connectors](/advanced/connectors) · [Projects](/pro/projects)
