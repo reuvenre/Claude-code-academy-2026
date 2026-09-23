@@ -1,0 +1,181 @@
+---
+title: "איך מריצים סשנים מקבילים של Claude Code עם git worktree?"
+description: "מריצים claude --worktree עם שם, ו-Claude Code פותח סשן מבודד ב-worktree של git עם branch משלו. כך מעתיקים קבצי .env, מנקים worktrees ומבודדים subagents."
+level: "pro"
+order: 41
+source: "https://code.claude.com/docs/en/worktrees"
+lastVerified: "2026-09-23"
+keywords: ["Claude Code", "worktree", "worktrees", "git worktree", "--worktree", ".worktreeinclude", "סשנים מקבילים", "סשן מקביל", "עבודה במקביל", "בידוד", "סשן מבודד", "isolation", "EnterWorktree", "WorktreeCreate"]
+canDo: "עכשיו אתה יכול להריץ כמה סשנים של Claude Code במקביל, כל אחד ב-worktree משלו, להעביר אליהם קבצי .env ולנקות אותם בסיום בלי לאבד עבודה."
+relatedSlugs: ["agents-overview", "cross-session", "subagents"]
+faq:
+  - q: "מה זה git worktree ולמה Claude Code משתמש בו?"
+    a: "git worktree הוא תיקיית עבודה נפרדת עם קבצים ו-branch משלה, שחולקת עם הריפו הראשי את אותה היסטוריה ואת אותו remote. כשכל סשן של Claude Code רץ ב-worktree משלו, עריכות בסשן אחד לא נוגעות בקבצים של סשן אחר."
+  - q: "איפה Claude Code יוצר את ה-worktree ובאיזה branch?"
+    a: "כברירת מחדל תחת .claude/worktrees/<name>/ בשורש הריפו, על branch חדש בשם worktree-<name>. ה-branch מתחיל מה-branch הראשי של הריפו ב-remote, אלא אם מגדירים worktree.baseRef ל-head."
+  - q: "למה קובץ ה-.env לא נמצא ב-worktree החדש?"
+    a: "worktree הוא checkout טרי, ולכן קבצים שלא במעקב של git לא מועתקים אליו. מוסיפים לשורש הפרויקט קובץ .worktreeinclude בתחביר של .gitignore, ו-Claude Code מעתיק כל קובץ שתואם לתבנית וגם נמצא ב-gitignore."
+  - q: "מה קורה ל-worktree כשיוצאים מהסשן?"
+    a: "ביציאה מסשן אינטראקטיבי Claude Code בודק אם יש ב-worktree שינויים, קבצים לא במעקב או commits חדשים. worktree נקי של סשן בלי שם נמחק אוטומטית יחד עם ה-branch. אם יש בו עבודה, Claude שואל אם לשמור או למחוק. בהרצה עם -p אין ניקוי אוטומטי."
+  - q: "אפשר להשתמש ב-worktrees בלי git?"
+    a: "worktrees דורשים ריפו של git. למערכות אחרות כמו SVN,‏ Perforce או Mercurial מגדירים hooks מסוג WorktreeCreate ו-WorktreeRemove שמחליפים את לוגיקת ה-git. במקרה כזה קובץ .worktreeinclude לא מעובד, ומעתיקים קבצים בתוך סקריפט ה-hook."
+---
+
+import { CommandBlock, Callout, StepList } from "@/components/lesson";
+
+מריצים `claude --worktree` עם שם (או בקיצור `-w`). Claude Code יוצר worktree של git תחת `.claude/worktrees/<name>/`, על branch חדש בשם `worktree-<name>`, ומתחיל בו סשן מבודד. בטרמינל אחר מריצים את אותה פקודה עם שם אחר, וכל סשן עורך קבצים משלו בלי להתנגש בשני.
+
+## למה זה חשוב
+שני סשנים שעורכים את אותה תיקייה דורכים זה על זה. worktree הוא תיקיית עבודה נפרדת עם קבצים ו-branch משלה, שחולקת עם הריפו הראשי את ההיסטוריה ואת ה-remote. כך סשן אחד בונה פיצ'ר בזמן שסשן שני מתקן באג, ואף אחד לא משנה קבצים של השני.
+
+worktrees מבודדים עריכות קבצים. הם אחת מכמה דרכים להריץ את Claude במקביל: [subagents](/advanced/subagents) מחלקים עבודה בתוך סשן אחד, ו-[cross-session messaging](/pro/cross-session) מעביר ממצאים בין הסשנים. השוואה בין הגישות נמצאת ב[סקירת הרצה מקבילה](/pro/agents-overview).
+
+## מה צריך לפני שמתחילים?
+- **ריפו של git.** worktrees דורשים git. למערכות אחרות יש פתרון עם hooks (ראה בהמשך).
+- **לפחות commit אחד.** כל worktree נוצר מ-commit קיים, ולכן בריפו בלי commits הפקודה נכשלת ([common workflows](https://code.claude.com/docs/en/common-workflows#run-parallel-sessions-with-worktrees)).
+- **workspace trust.** בהרצה אינטראקטיבית, אם עוד לא הרצת את Claude בתיקייה, מריצים שם `claude` פעם אחת ומאשרים את דיאלוג ה-trust. אחרת `--worktree` ייצא עם שגיאה. הרצה לא אינטראקטיבית עם `-p` מדלגת על הבדיקה.
+
+## איך מתחילים סשן ב-worktree?
+
+<StepList>
+
+1. בטרמינל הראשון, מתיקיית הריפו:
+   <CommandBlock>claude --worktree feature-auth</CommandBlock>
+2. בטרמינל שני, עם שם אחר:
+   <CommandBlock>claude --worktree bugfix-123</CommandBlock>
+3. אם לא נותנים שם, Claude מייצר אחד בעצמו, למשל `bright-running-fox`.
+
+</StepList>
+
+אפשר גם לבקש מ-Claude באמצע סשן "work in a worktree". הוא יוצר worktree עם הכלי `EnterWorktree`. כשהוא נכנס לנתיב מחוץ ל-`.claude/worktrees/` של הריפו, Claude Code מבקש קודם את אישורך.
+
+<Callout type="tip">
+מוסיפים את `.claude/worktrees/` ל-`.gitignore`, כדי שתוכן ה-worktrees לא יופיע כקבצים לא במעקב ב-checkout הראשי.
+</Callout>
+
+## איך מכינים את הסביבה ב-worktree?
+worktree הוא checkout טרי, ולכן צריך להכין בו את סביבת הפיתוח. מבקשים מ-Claude להתקין תלויות, או מריצים את ה-setup של הפרויקט בעצמך בתיקיית ה-worktree.
+
+קבצים שלא במעקב של git, כמו `.env` או `.env.local`, לא יהיו שם. כדי להעתיק אותם אוטומטית, יוצרים בשורש הפרויקט קובץ `.worktreeinclude`. הוא כתוב בתחביר של `.gitignore`, ו-Claude Code מעתיק רק קבצים שתואמים לתבנית **וגם** נמצאים ב-gitignore. קבצים במעקב לעולם לא משוכפלים.
+
+זו הדוגמה מהתיעוד הרשמי:
+
+```text
+.env
+.env.local
+config/secrets.json
+```
+
+הקובץ חל על כל worktree ש-Claude Code יוצר עם git: worktrees של `--worktree`, worktrees של subagents, וסשנים מקבילים באפליקציית הדסקטופ.
+
+## מאיזה branch ה-worktree מתחיל?
+כברירת מחדל, מה-branch הראשי של הריפו ב-remote (בדרך כלל `main`). ההגדרה `worktree.baseRef` ב-[settings](https://code.claude.com/docs/en/settings-reference#worktree) מקבלת שני ערכים:
+
+| ערך | מאיפה ה-worktree מתחיל | מתי מתאים |
+| --- | --- | --- |
+| `"fresh"` (ברירת מחדל) | ה-branch הראשי ב-remote | עבודה חדשה מעץ נקי |
+| `"head"` | ה-`HEAD` המקומי הנוכחי, כולל commits שלא נדחפו | subagents שעובדים על עבודה בתהליך |
+
+```json
+{
+  "worktree": {
+    "baseRef": "head"
+  }
+}
+```
+
+אי אפשר לתת ל-`baseRef` שם של branch. כדי להתחיל מ-branch קיים, יוצרים את ה-worktree ידנית עם git (ראה בהמשך).
+
+כדי להתחיל מ-pull request, מעבירים ל-`--worktree` את המספר עם `#` לפניו, או URL של pull request ב-GitHub או של merge request ב-GitLab. Claude Code מושך את ה-head commit של השינוי מ-`origin` ויוצר את ה-worktree ב-`.claude/worktrees/pr-<number>`. שמים את הארגומנט במרכאות, כדי שה-shell לא יתייחס ל-`#` כהערה:
+
+```bash
+claude --worktree "#1234"
+```
+
+## מה קורה כשיוצאים מהסשן?
+ביציאה מסשן אינטראקטיבי, Claude Code בודק אם יש ב-worktree עבודה שמחיקה תאבד: קבצים ששונו או לא במעקב, עבודה לא שמורה ב-submodules, ו-commits חדשים.
+
+| מצב ה-worktree | מה קורה |
+| --- | --- |
+| נקי, סשן בלי שם | Claude מוחק את ה-worktree ואת ה-branch שלו אוטומטית |
+| נקי, [סשן עם שם](/beginner-plus/sessions) | Claude שואל קודם, כדי שתוכל לשמור אותו להמשך |
+| יש בו עבודה | Claude שואל אם לשמור או למחוק |
+| אי אפשר לאמת את המצב | Claude שואל במקום למחוק, ומציין מה לא הצליח לבדוק |
+
+<Callout type="warning">
+בחירה במחיקה מוחקת את תיקיית ה-worktree ואת ה-branch שלו, יחד עם כל העבודה שבהם. אם יש שם משהו שעוד לא מוזג, בוחרים לשמור.
+</Callout>
+
+בהרצה עם `-p` אין דיאלוג יציאה, ולכן Claude לא מנקה את ה-worktree. מוחקים אותו ידנית:
+
+<CommandBlock>git worktree remove ../path/to/worktree</CommandBlock>
+
+אם git מסרב כי ה-worktree נעול, מריצים עליו קודם `git worktree unlock`. אם יש בו שינויים שלא נשמרו או קבצים לא במעקב, מוסיפים `--force` ל-`git worktree remove`.
+
+## איך חוזרים ל-worktree?
+- **resume:** כשממשיכים סשן שרץ בתוך worktree, Claude Code מחזיר אותו לאותו worktree. זה נכון גם ל-`--continue` ו-`--resume` עם `-p`.
+- **אותו שם:** הרצה של `--worktree` עם שם שהתיקייה שלו כבר קיימת פותחת את ה-worktree הקיים במקום ליצור חדש.
+- **worktree שנמחק:** אם התיקייה כבר לא קיימת, הסשן ממשיך בתיקייה שממנה הפעלת את Claude, ו-Claude Code מודיע על כך.
+
+## מה Claude Code חוסם בתוך worktree?
+כשסשן מבודד ב-worktree, Claude Code חוסם פעולות שיוצאות ממנו אל ה-checkout הראשי:
+
+- **עריכות קבצים:** `Edit`,‏ `Write` או `NotebookEdit` לנתיב ב-checkout הראשי.
+- **תיקיית עבודה של פקודה:** פקודת Bash,‏ PowerShell או Monitor שתיקיית העבודה שלה ב-checkout הראשי, או שאי אפשר לוודא שהיא מחוצה לו.
+- **הפניית git:** פקודה שמפנה את git ל-checkout הראשי, למשל עם `git -C` או `cd` לשם לפני git.
+- **צורת פקודה:** פקודה שממנה אי אפשר לוודא ש-git נשאר בתוך ה-worktree. את הבדיקה הזו אי אפשר לכבות.
+
+אותה אכיפה חלה על כל subagent שנוצר מהסשן המבודד. Claude מקבל כל חסימה כשגיאת כלי שמסבירה איך להמשיך.
+
+## איך מבודדים subagents ב-worktrees?
+subagents יכולים לרוץ כל אחד ב-worktree משלו, כדי שעריכות מקבילות לא יתנגשו. מבקשים מ-Claude "use worktrees for your agents", או מוסיפים `isolation: worktree` ל-frontmatter של [subagent מותאם](/advanced/subagents). הדוגמה מהתיעוד, ב-`.claude/agents/`:
+
+```markdown
+---
+name: refactorer
+description: Applies mechanical refactors across many files
+isolation: worktree
+---
+
+Apply the requested refactor across every affected file, then run the tests
+and report the results.
+```
+
+כל subagent מקבל worktree זמני. אם הוא מסיים בלי שינויים, Claude Code מוחק את ה-worktree אוטומטית. worktree עם שינויים נשאר על הדיסק, וניקוי תקופתי מוחק אותו אחרי [`cleanupPeriodDays`](https://code.claude.com/docs/en/settings-reference#cleanupperioddays) רק כשאין בו עבודה שתאבד.
+
+## מה ה-worktree חולק עם ה-checkout הראשי?
+- **תיקיית `.git`:** פקודות git ב-worktree כותבות לתיקייה המשותפת, ולכן `git commit` עובד מתוכו.
+- **plugins** שהותקנו ב-project scope מה-checkout הראשי נטענים גם ב-worktrees.
+- **אישורי הרשאות:** "Yes, and don't ask again" לפקודת Bash נשמר ב-`.claude/settings.local.json` של ה-checkout הראשי וחל על כל ה-worktrees. ב-Windows ובמקרים נוספים הכלל נשאר ב-worktree עצמו.
+- **skills,‏ agents ו-commands שלא במעקב:** אם ל-worktree אין תיקיית `.claude/skills` משלו, למשל כי היא ב-gitignore, נטענים ה-skills של ה-checkout הראשי. כך גם `.claude/agents` ו-`.claude/commands`.
+
+## איך יוצרים worktree ידנית?
+כשצריך branch קיים או מיקום מחוץ לריפו, יוצרים את ה-worktree עם git ומפעילים בו את Claude:
+
+```bash
+git worktree add ../project-bugfix fix-issue-456
+cd ../project-bugfix
+claude
+```
+
+`git worktree list` מציג את כל ה-worktrees, ו-`git worktree remove` מוחק אחד מהם. הרפרנס המלא ב[תיעוד של git worktree](https://git-scm.com/docs/git-worktree).
+
+## ומה אם הפרויקט לא ב-git?
+ל-SVN,‏ Perforce,‏ Mercurial או מערכות אחרות מגדירים hooks מסוג `WorktreeCreate` ו-`WorktreeRemove`, שמחליפים את לוגיקת ה-git ביצירה ובניקוי. ה-hook של היצירה מדפיס את נתיב התיקייה שיצר, ו-Claude Code משתמש בה כתיקיית העבודה של הסשן. כשה-hook מחליף את git, קובץ `.worktreeinclude` לא מעובד, ומעתיקים קבצי הגדרות בתוך סקריפט ה-hook. דוגמה מלאה עם SVN נמצאת ב[תיעוד הרשמי](https://code.claude.com/docs/en/worktrees#non-git-version-control), והסכמה ב[רפרנס ה-hooks](https://code.claude.com/docs/en/hooks#worktreecreate). על hooks באופן כללי: [שיעור ה-hooks](/advanced/hooks).
+
+## דוגמה מעשית
+צריך לבנות מסך התחברות, ובאותו זמן לתקן באג דחוף.
+
+<StepList>
+
+1. בשורש הפרויקט יוצרים `.worktreeinclude` עם השורה `.env`, ומוסיפים את `.claude/worktrees/` ל-`.gitignore`.
+2. בטרמינל אחד מריצים `claude --worktree feature-auth` ומתארים את הפיצ'ר.
+3. בטרמינל שני מריצים `claude --worktree bugfix-123` ומתארים את הבאג.
+4. כל סשן מתקין תלויות ועובד על branch משלו: `worktree-feature-auth` ו-`worktree-bugfix-123`.
+5. בסיום עושים commit ודוחפים מכל worktree. ביציאה בוחרים לשמור worktree שעוד יש בו עבודה.
+
+</StepList>
+
+## הצעד הבא
+- ← [חזרה לרמת המקצוען](/pro). השיעור הבא הוא Claude Code on the web
+- שיעורים קשורים: [הרצת סוכנים במקביל](/pro/agents-overview) · [Cross-session messaging](/pro/cross-session) · [Subagents](/advanced/subagents)
