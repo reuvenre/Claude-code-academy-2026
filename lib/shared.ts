@@ -6,8 +6,13 @@ export const docsRoute = '/';
 export const docsImageRoute = '/og/lessons';
 export const docsContentRoute = '/llms.mdx/lessons';
 
-// כתובת האתר הקנונית (sitemap, canonical, JSON-LD, llms.txt). מוגדרת ב-.env.local
-export const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
+// כתובת האתר הקנונית (sitemap, canonical, JSON-LD, llms.txt).
+// סדר עדיפות: NEXT_PUBLIC_SITE_URL (‎.env.local / Vercel) → כתובת הפרודקשן ש-Vercel חושף ב-build
+// (VERCEL_PROJECT_PRODUCTION_URL, בלי פרוטוקול) → localhost לפיתוח.
+const vercelProductionUrl = process.env.VERCEL_PROJECT_PRODUCTION_URL;
+export const siteUrl =
+  process.env.NEXT_PUBLIC_SITE_URL ??
+  (vercelProductionUrl ? `https://${vercelProductionUrl}` : 'http://localhost:3000');
 
 const getContentUrl = createGetUrl(docsContentRoute);
 
