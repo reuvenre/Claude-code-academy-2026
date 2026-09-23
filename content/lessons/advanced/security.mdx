@@ -1,0 +1,198 @@
+---
+title: "איך Claude Code מגן על הקוד שלך ואילו תוספי אבטחה יש לו?"
+description: "ב-Manual mode ‏Claude Code מבקש אישור לכל פעולה מסוכנת. מה ההגנות מפני prompt injection, ואיך security-guidance ו-Claude Security מוצאים חולשות בקוד."
+level: "advanced"
+order: 33
+source: "https://code.claude.com/docs/en/security"
+lastVerified: "2026-09-23"
+keywords: ["Claude Code", "אבטחה", "אבטחת מידע", "security", "prompt injection", "הזרקת פרומפט", "security-guidance", "Claude Security", "/security-review", "סריקת חולשות", "חולשות אבטחה", "תוסף אבטחה", "תוספי אבטחה", "הרשאות"]
+canDo: "עכשיו אתה יכול להסביר איך Claude Code מגן עליך מפני פעולות מסוכנות ו-prompt injection, ולהוסיף לעבודה שלך את security-guidance,‏ /security-review ו-Claude Security."
+relatedSlugs: ["permissions-sandbox", "plugins", "hooks"]
+faq:
+  - q: "האם Claude Code יכול לשנות קבצים או להריץ פקודות בלי אישור?"
+    a: "ב-Manual mode הוא מתחיל בהרשאות קריאה בלבד ומבקש אישור לפני עריכת קבצים, הרצת בדיקות או פקודות שמשנות את המערכת. פקודות קריאה מובנות כמו ls ו-git status רצות בלי שאלה. במצבים אחרים, כמו auto mode או Accept Edits, חלק מהפעולות מאושרות אוטומטית, והאחריות לבחור את המצב ולבדוק את מה שמאשרים היא שלך."
+  - q: "מה Claude Code עושה נגד prompt injection?"
+    a: "יש כמה שכבות: מערכת ההרשאות, ניתוח של הבקשה המלאה לזיהוי הוראות מזיקות, פקודות רשת כמו curl ו-wget שלא מאושרות אוטומטית, חלון הקשר נפרד ל-web fetch, ואימות אמון בהרצה ראשונה בפרויקט ובשרת MCP חדש. התיעוד מדגיש שאף מערכת לא חסינה לגמרי."
+  - q: "מה ההבדל בין security-guidance ל-Claude Security?"
+    a: "security-guidance רץ אוטומטית בזמן ש-Claude כותב קוד, ובודק את השינויים שלו בכל עריכה, בסוף כל תור ובכל commit ש-Claude מריץ. Claude Security הוא plugin שמריצים לפי דרישה עם הפקודה claude-security, והוא סורק את כל הריפו או סט שינויים עם צוות של agents ומציע patches."
+  - q: "האם security-guidance חוסם קוד לא בטוח?"
+    a: "לא. אף שכבה שלו לא חוסמת כתיבה או commit. הממצאים חוזרים ל-Claude כהוראות, והוא מתקן אותם בשיחה. מודל הבדיקה יכול לפספס, ולכן התיעוד ממליץ לראות בו שכבה אחת מתוך כמה. לאכיפה קשיחה משלבים hook שחוסם עריכה או בדיקה ב-CI."
+  - q: "איך מדווחים על פרצת אבטחה ב-Claude Code?"
+    a: "לא מפרסמים אותה בפומבי. מדווחים דרך תוכנית ה-HackerOne של Anthropic, עם צעדי שחזור מפורטים, ונותנים זמן לתקן לפני פרסום."
+---
+
+import { CommandBlock, Callout, StepList } from "@/components/lesson";
+
+Claude Code מגן עליך בשתי שכבות. הראשונה היא מערכת ההרשאות וההגנות המובנות: ב-Manual mode הוא מבקש אישור לפני עריכה או פקודה מסוכנת, ויש לו הגנות מפני prompt injection. השנייה היא כלים לבדיקת הקוד עצמו: התוסף security-guidance,‏ הפקודה `/security-review` והתוסף Claude Security.
+
+## למה זה חשוב
+Claude Code מריץ פקודות, עורך קבצים וקורא תוכן מהרשת. זה כוח אמיתי, ולכן התיעוד הרשמי קובע ש-Claude Code מקבל רק את ההרשאות שאתה נותן לו, והאחריות לבדוק קוד ופקודות לפני אישור היא שלך. בשיעור הזה נכיר את ההגנות שכבר קיימות, את מה שנשאר באחריותך, ואת הכלים שמוצאים חולשות בקוד ש-Claude כותב.
+
+## איך מערכת ההרשאות מגנה עליך?
+ב-Manual mode ‏Claude Code מתחיל בהרשאות קריאה בלבד. כשהוא צריך לערוך קבצים, להריץ בדיקות או פקודות, הוא שואל, ואתה מאשר פעם אחת או מאשר מכאן והלאה. פקודות קריאה מובנות כמו `ls`,‏ `cat` ו-`git status` רצות בלי שאלה.
+
+ההגנות המובנות לפי התיעוד:
+
+| הגנה | מה היא עושה |
+| --- | --- |
+| גבול תיקיית העבודה | ב-Manual mode ‏Claude כותב רק לתיקייה שבה הופעל ולתתי-התיקיות שלה, ושואל לפני קריאה מחוץ לה עם Read,‏ Grep ו-Glob |
+| Sandbox ל-Bash | בידוד מערכת קבצים ורשת לפקודות Bash. מגדירים עם `/sandbox` |
+| Allowlist לפקודות | אישור קבוע לפקודות בטוחות נפוצות, ברמת משתמש, פרויקט או ארגון, כדי להפחית עייפות מבקשות אישור |
+| Accept Edits mode | מאשר אוטומטית עריכות וסט קבוע של פקודות קבצים (כמו `mkdir`,‏ `mv`,‏ `rm`) בתוך תיקיית העבודה. כל השאר עדיין שואל |
+
+ב-[auto mode](https://code.claude.com/docs/en/permission-modes) מודל classifier נפרד בודק פעולות במקומך וחוסם את מה שהוא מעריך כלא בטוח. כללי ה-ask וה-deny שלך עדיין חלים, וארגון יכול לכבות את auto mode. באיזה מצב הסשן מתחיל תלוי בתוכנית, בממשק ובהגדרות שלך ושל הארגון. את ההגדרות עצמן מכסה השיעור [הרשאות ו-sandbox](/advanced/permissions-sandbox).
+
+## איך Claude Code מתגונן מפני prompt injection?
+Prompt injection הוא ניסיון של תוקף לעקוף או לשנות את ההוראות של עוזר AI באמצעות טקסט זדוני, למשל בקובץ או בדף אינטרנט ש-Claude קורא. Claude Code כולל כמה שכבות הגנה:
+
+- **מערכת ההרשאות:** ב-Manual mode פעולות רגישות דורשות אישור מפורש.
+- **ניתוח לפי הקשר:** מזהה הוראות שעלולות להזיק מתוך ניתוח הבקשה המלאה.
+- **פקודות רשת:** `curl` ו-`wget` לא מאושרות אוטומטית כברירת מחדל. כדי למנוע אותן לגמרי מוסיפים אותן ל-`permissions.deny`.
+- **חלון הקשר נפרד:** web fetch רץ בחלון הקשר משלו, כדי שפרומפטים זדוניים מהדף לא ייכנסו לשיחה.
+- **אימות אמון:** הרצה ראשונה בפרויקט ושרת MCP חדש דורשים אישור אמון.
+- **זיהוי הזרקת פקודות:** ב-Manual mode פקודת bash חשודה דורשת אישור ידני, גם אם היא ב-allowlist.
+- **Fail-closed:** ב-Manual mode פקודה שלא תואמת אף כלל דורשת אישור.
+- **הסבר בשפה טבעית:** פקודות bash מורכבות מגיעות עם הסבר.
+
+<Callout type="warning">
+אימות האמון מבוטל כשמריצים לא-אינטראקטיבית עם הדגל `-p`. ועוד פרט חשוב: כשמפעילים את Claude Code ישירות מתיקיית הבית, אישור האמון נשמר רק לסשן הנוכחי. התיעוד ממליץ להפעיל מתוך תיקיית פרויקט, שם האישור נשמר.
+</Callout>
+
+### איך עובדים בבטחה עם תוכן לא מהימן?
+ההמלצות מהתיעוד הרשמי:
+
+<StepList>
+
+1. בודקים פקודות מוצעות לפני שמאשרים.
+2. לא מעבירים תוכן לא מהימן ישירות ל-Claude ב-pipe.
+3. בודקים שינויים מוצעים בקבצים קריטיים.
+4. מריצים סקריפטים וקריאות לכלים במכונה וירטואלית (VM), במיוחד מול שירותי רשת חיצוניים.
+5. מדווחים על התנהגות חשודה עם `/feedback`.
+
+</StepList>
+
+<Callout type="note">
+ב-Windows התיעוד ממליץ לא להפעיל WebDAV ולא לתת ל-Claude Code גישה לנתיבים כמו `\\*`. לפי התיעוד, WebDAV עלול לאפשר בקשות רשת לשרתים מרוחקים שעוקפות את מערכת ההרשאות.
+</Callout>
+
+## לאן הנתונים שלך הולכים?
+התיעוד מציין כמה הגנות פרטיות: תקופות שמירה מוגבלות למידע רגיש, גישה מוגבלת לנתוני סשן, ושליטה של המשתמש בהעדפות אימון על הנתונים. משתמשים פרטיים יכולים לשנות את [הגדרות הפרטיות](https://claude.ai/settings/privacy) בכל רגע. מפתחות API וטוקנים נשמרים ב-Keychain של macOS כשהוא זמין, וב-Windows ו-Linux מוגנים בהרשאות קבצים.
+
+הנתונים עוברים במקומות שונים לפי איפה הסשן רץ:
+
+| איפה רץ | מה קורה |
+| --- | --- |
+| במחשב שלך | הקוד והפקודות רצים מקומית, תחת מערכת ההרשאות |
+| סשן ענן (Anthropic-hosted) | כל סשן רץ ב-VM מבודד, הגישה לרשת מוגבלת כברירת מחדל, `git push` מוגבל ל-branch הנוכחי, והפעולות נרשמות ביומן |
+| Remote Control | הקוד רץ במחשב שלך. תעבורת הסשן עוברת דרך ה-API של Anthropic ב-TLS, ובזמן החיבור התמליל נשמר בשרתי Anthropic כדי לסנכרן בין מכשירים |
+
+לפרטים המלאים על שמירת נתונים, התיעוד מפנה ל-[Privacy Center](https://privacy.anthropic.com/en/articles/10023548-how-long-do-you-store-my-data) ולתנאי השימוש.
+
+## מה צריך לדעת על שרתי MCP?
+שרת MCP נותן ל-Claude כלים חדשים, ולכן גם גישה חדשה. התיעוד ממליץ לכתוב שרתי MCP בעצמך או להשתמש בשרתים מספקים שאתה סומך עליהם. Anthropic בודקת connectors מול קריטריונים לפני שהם נכנסים ל-Directory שלה, אבל לא מבצעת ביקורת אבטחה על שרתי MCP ולא מנהלת אותם. אפשר להגדיר הרשאות גם לשרתי MCP. ראה [שרתי MCP](/advanced/mcp).
+
+## אילו כלים בודקים את הקוד עצמו?
+ההגנות שלמעלה שומרות על המחשב שלך. אבל גם קוד ש-Claude כותב יכול להכיל חולשות. התיעוד מציג כמה שכבות שמשלימות זו את זו:
+
+| שלב | כלי | מה הוא מכסה |
+| --- | --- | --- |
+| בתוך הסשן | [security-guidance](https://code.claude.com/docs/en/security-guidance) | חולשות נפוצות בקוד ש-Claude כותב, ומתקן אותן באותו סשן |
+| לפי דרישה, מעבר אחד | `/security-review` | מעבר אבטחה חד-פעמי על השינויים ב-branch הנוכחי |
+| לפי דרישה, סריקה עמוקה | [Claude Security](https://code.claude.com/docs/en/claude-security) | סריקה מרובת agents של ריפו או diff, עם ממצאים שנבדקו באופן עצמאי ו-patches |
+| ב-pull request | [Code Review](https://code.claude.com/docs/en/code-review) (Team ו-Enterprise) | בדיקת נכונות ואבטחה עם הקשר מלא של הקוד |
+| ב-CI | כלי ה-static analysis וסורקי התלויות שלך | כללים ספציפיים לשפה, שרשרת אספקה ואכיפת מדיניות |
+
+### מה עושה התוסף security-guidance?
+[security-guidance](https://code.claude.com/docs/en/security-guidance) גורם ל-Claude לבדוק את השינויים שלו בזמן העבודה ולתקן חולשות כמו injection,‏ unsafe deserialization ושימוש לא בטוח ב-DOM, עוד לפני שהקוד מגיע ל-PR. אחרי ההתקנה הוא רץ לבד, אין פקודה להפעיל. מתקינים מה-marketplace הרשמי:
+
+<CommandBlock>/plugin install security-guidance@claude-plugins-official</CommandBlock>
+
+הוא צריך Python 3.7 ומעלה על ה-`PATH` (בדיקת ה-commit ה-agentic צריכה 3.10 ומעלה). בדיקות סוף התור וה-commit צריכות ריפו git ומדלגות בשקט מחוץ לו, ובדיקת התבניות בכל עריכה עובדת בכל מקום. הוא בודק בשלוש נקודות:
+
+| מתי | מה נבדק | עלות |
+| --- | --- | --- |
+| בכל עריכת קובץ | התאמת תבניות מסוכנות, כמו `eval(`,‏ `pickle`,‏ `dangerouslySetInnerHTML` ועריכות תחת `.github/workflows/` | בלי קריאה למודל, בלי עלות |
+| בסוף כל תור | בדיקת מודל נפרדת ברקע על ה-diff של התור, למשל authorization bypass או SSRF. ממצאים חוזרים ל-Claude לתיקון | נספר בשימוש שלך |
+| בכל `git commit` או `git push` ש-Claude מריץ | בדיקה agentic עמוקה שקוראת גם קוד סביב השינוי | נספר בשימוש שלך |
+
+הבדיקות מבוססות המודל רצות כקריאה נפרדת עם הקשר נקי, ולא על ידי אותו Claude שכתב את הקוד. commits שאתה מריץ מה-shell שלך לא נבדקים. כדי להוסיף כללים לפרויקט, יוצרים קובץ `.claude/claude-security-guidance.md` ומתארים בו את מודל האיומים בשפה פשוטה. זו הדוגמה מהתיעוד:
+
+```markdown
+# Security guidance for this repo
+
+- Do not log `customer_id` or `account_number` at INFO level or above.
+- All routes under `/admin` must call `require_role("admin")` before any database read.
+- Use `crypto.timingSafeEqual` for token comparison instead of `===`.
+```
+
+כדי להפעיל אותו לכל הצוות, מצהירים עליו ב-`.claude/settings.json` של הפרויקט:
+
+```json
+{
+  "enabledPlugins": {
+    "security-guidance@claude-plugins-official": true
+  }
+}
+```
+
+<Callout type="warning">
+security-guidance לא חוסם כתיבה או commit, והמודל שבודק יכול לפספס. גם כלל בקובץ ההנחיות הוא הנחיה לבודק, לא אכיפה. לאכיפה קשיחה משלבים [hook](/advanced/hooks) שחוסם את העריכה, או בדיקה ב-CI.
+</Callout>
+
+### מתי משתמשים ב-/security-review?
+כשרוצים מעבר אבטחה חד-פעמי, לפי דרישה, על השינויים ב-branch הנוכחי. מריצים בתוך הסשן:
+
+<CommandBlock>/security-review</CommandBlock>
+
+הפקודה בודקת את ה-diff בין ה-branch שלך ל-branch ברירת המחדל של origin, ולכן צריך remote בשם `origin`. היא מכסה רק את השינויים ב-branch. כדי לבדוק קוד קיים, התיעוד מציע לבקש מ-Claude לבדוק קובץ או תיקייה ספציפיים, או להשתמש ב-Claude Security.
+
+### מה עושה התוסף Claude Security?
+[Claude Security](https://code.claude.com/docs/en/claude-security) מריץ בתוך הסשן סריקת חולשות עם צוות של agents: הם ממפים את הארכיטקטורה, בונים מודל איומים, מחפשים חולשות, ובודקים כל ממצא באופן עצמאי לפני שהוא נכנס לדוח. דורש תוכנית בתשלום, Python 3.9 ומעלה כ-`python3`, ו-git לסריקת שינויים ול-patches. מתקינים:
+
+<CommandBlock>/plugin install claude-security@claude-plugins-official</CommandBlock>
+
+ואז מריצים `/claude-security`, שפותח תפריט עם שלוש משימות: סריקת הקוד, סריקת סט שינויים (branch,‏ PR או commit בודד), והצעת patches.
+
+<StepList>
+
+1. בוחרים **Scan codebase** ואת ההיקף: כל הריפו או אזור ממוקד. בריפו גדול עדיף לסרוק אזור אחד בכל פעם.
+2. מאשרים את ההרצה. סריקה יכולה לקחת זמן ולצרוך הרבה טוקנים, וצריך להשאיר את Claude Code פתוח.
+3. קוראים את הדוח בתיקייה `CLAUDE-SECURITY-<timestamp>/` בריפו. כל ממצא מקבל מזהה כמו `F1`.
+4. מריצים שוב `/claude-security`, בוחרים **Suggest patches** ובוחרים ממצאים.
+5. מחילים כל patch בעצמך, כל אחד ב-PR נפרד. patches אף פעם לא מוחלים אוטומטית.
+
+</StepList>
+
+```bash
+git apply CLAUDE-SECURITY-<timestamp>/patches/F1.patch
+```
+
+התיעוד מציין שסריקות לא דטרמיניסטיות: שתי סריקות של אותו קוד יכולות להחזיר ממצאים שונים, ולכן כדאי לסרוק באופן קבוע. הפלאגין רץ מקומית בסשן, משתמש במודלים שיש לך גישה אליהם ב-Claude Code, וכל סריקה נספרת במגבלות השימוש של התוכנית שלך. ראה [model-config](https://code.claude.com/docs/en/model-config).
+
+## דוגמה מעשית
+אתה עובד על API בצוות ורוצה שכבות הגנה בלי להאט את העבודה:
+
+- מוסיפים את security-guidance ל-`.claude/settings.json` של הפרויקט, כך שכל חבר צוות מקבל אותו בסשנים מקומיים.
+- כותבים `.claude/claude-security-guidance.md` עם הכללים שלכם, למשל שכל route תחת `/admin` בודק הרשאה.
+- לפני merge של branch גדול מריצים `/security-review`, או `/claude-security` לסריקה עמוקה של ה-diff.
+- ב-repo רגיש עוברים מדי פעם על ההרשאות עם `/permissions`.
+
+<Callout type="tip">
+לצוותים התיעוד ממליץ גם לאכוף סטנדרטים עם managed settings, לשתף הגדרות הרשאות מאושרות דרך version control, ולבקר או לחסום שינויי הגדרות בזמן סשן עם hook מסוג `ConfigChange`.
+</Callout>
+
+## איך מדווחים על פרצת אבטחה?
+אם גילית חולשה ב-Claude Code עצמו:
+
+<StepList>
+
+1. לא מפרסמים אותה בפומבי.
+2. מדווחים דרך [תוכנית ה-HackerOne](https://hackerone.com/4f1f16ba-10d3-4d09-9ecc-c721aad90f24/embedded_submissions/new) של Anthropic.
+3. מצרפים צעדי שחזור מפורטים.
+4. נותנים זמן לתקן לפני פרסום.
+
+</StepList>
+
+## הצעד הבא
+- ← [Artifacts](/advanced/artifacts)
+- שיעורים קשורים: [הרשאות ו-sandbox](/advanced/permissions-sandbox) · [Plugins](/advanced/plugins) · [Hooks](/advanced/hooks)
