@@ -1,10 +1,10 @@
 ---
 title: "כותרת השיעור — נוסחו כשאלה אמיתית (50-60 תווים, כולל Claude Code)"
 description: "תיאור-תשובה של 140-160 תווים שעונה ישירות על שאלת העמוד."
-level: "beginner" # beginner | beginner-plus | advanced | pro
+level: "beginner" # beginner | beginner-plus | advanced | pro | product-family | fluency | enterprise
 order: 1
 source: "https://code.claude.com/docs/en/<page>" # המקור הרשמי לאימות
-lastVerified: "2026-06-17"
+lastVerified: "YYYY-MM-DD" # תאריך האימות האמיתי מול המקור
 keywords: ["Claude Code", "<מונח>", "<מונח עברי>"]
 canDo: "עכשיו אתה יכול <היכולת שנרכשה>"
 faq:
@@ -12,19 +12,20 @@ faq:
     a: "תשובה קצרה וישירה."
   - q: "שאלה נפוצה 2?"
     a: "תשובה קצרה וישירה."
+# בשיעור האחרון של הרמה בלבד (5-8 שאלות):
+# quiz:
+#   - q: "שאלה?"
+#     options: ["א", "ב", "ג"]
+#     answer: 0
 ---
 
-import { CommandBlock, Callout, StepList, FAQ, CanDo, Quiz, SourceBadge, LevelBadge, ReadingTime, LastVerified } from "@/components/lesson";
+import { CommandBlock, Callout, StepList } from "@/components/lesson";
 
-<LevelBadge level="beginner" />
-<ReadingTime />
-
-# {/* כותרת השיעור — תופיע מה-frontmatter או כאן */}
+{/* H1, LevelBadge, ReadingTime, SourceBadge, FAQ, CanDo, Quiz ו-LastVerified
+    מרונדרים אוטומטית מה-frontmatter בתבנית הדף — לא כותבים אותם כאן. */}
 
 {/* תשובה-קודם: עד ~50 מילים שעונות ישירות על שאלת העמוד, לפני כל הרחבה */}
 תשובה ישירה וקצרה לשאלת העמוד כאן.
-
-<SourceBadge href="https://code.claude.com/docs/en/<page>" />
 
 ## למה זה חשוב
 פסקה קצרה. המשפט הראשון עונה ישירות.
@@ -44,17 +45,6 @@ import { CommandBlock, Callout, StepList, FAQ, CanDo, Quiz, SourceBadge, LevelBa
 ## דוגמה מעשית
 תרחיש אמיתי קצר.
 
-## שאלות נפוצות
-<FAQ items={frontmatter.faq} />
-
-{/* "עכשיו אתה יכול…" — נקודת הביטחון / can-do */}
-<CanDo>{frontmatter.canDo}</CanDo>
-
 ## הצעד הבא
 - ← [השיעור הבא](/<level>/<next-slug>)
 - שיעורים קשורים: [א](/...), [ב](/...)
-
-{/* בשיעור האחרון של הרמה בלבד: מבחן קצר. השאלות ב-frontmatter.quiz */}
-{/* <Quiz items={frontmatter.quiz} /> */}
-
-<LastVerified date="2026-06-17" />

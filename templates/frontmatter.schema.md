@@ -2,24 +2,31 @@
 
 כל שיעור MDX מתחיל בבלוק frontmatter עם השדות הבאים.
 
+> **ה-frontmatter הוא מקור האמת של מסגרת העמוד.** תבנית הדף (page layout) מרנדרת אוטומטית
+> מתוכו את ה-H1, `LevelBadge`, `ReadingTime`, `SourceBadge`, סקשן השו"ת (`FAQ`), `CanDo`, `Quiz`
+> ו-`LastVerified`, ומייצרת ממנו את ה-JSON-LD. גוף ה-MDX מכיל רק את התוכן עצמו: **בלי `#` (H1)
+> ובלי הרכיבים האלה**. כך ה-HTML וה-schema תמיד תואמים. (את מנגנון הרינדור מאמתים מול תיעוד
+> Fumadocs בשלב 2.)
+
 | שדה | חובה | תיאור |
 |-----|------|-------|
-| `title` | ✓ | כותרת בנוסח שאלה אמיתית. 50-60 תווים, כולל "Claude Code". משמשת ל-`<title>` ול-H1. |
+| `title` | ✓ | כותרת בנוסח שאלה אמיתית. 50-60 תווים, כולל "Claude Code". משמשת ל-`<title>` ול-H1 היחיד בעמוד (התבנית מרנדרת אותו; אין `#` בגוף). |
 | `description` | ✓ | תיאור-תשובה 140-160 תווים. משמש ל-`<meta description>`. |
-| `level` | ✓ | `beginner` \| `beginner-plus` \| `advanced` \| `pro`. קובע ניווט ו-LevelBadge. |
+| `level` | ✓ | `beginner` \| `beginner-plus` \| `advanced` \| `pro` \| `product-family` \| `fluency` \| `enterprise`. תואם לראוטים ב-CONTENT_OUTLINE (`/<level>/<slug>`). קובע ניווט ו-LevelBadge. |
 | `order` | ✓ | מספר סדר בתוך הרמה (לסיידבר). |
 | `source` | ✓ | ה-URL הרשמי שממנו אומתה כל עובדה (`code.claude.com/docs/...`). מוצג ב-SourceBadge. |
-| `lastVerified` | ✓ | תאריך אימות אחרון מול המקור (YYYY-MM-DD). מוצג ב-LastVerified ומשמש את docs-syncer. |
+| `lastVerified` | ✓ | תאריך אימות אחרון מול המקור (YYYY-MM-DD). מוצג ב-LastVerified ומשמש את docs-syncer. בתבנית זה placeholder — ממלאים תאריך אימות אמיתי. |
 | `keywords` | ✓ | מערך מונחים (עברית+אנגלית) ל-SEO/GEO. |
-| `faq` | מומלץ | מערך `{q, a}` — מייצר את סקשן השו"ת ואת ה-JSON-LD מסוג FAQPage. |
-| `canDo` | מומלץ | משפט "עכשיו אתה יכול…" — היכולת שהלומד רכש (מוצג ברכיב `<CanDo>`). |
-| `quiz` | לעמוד סוף-רמה | מערך שאלות `{q, options, answer}` למבחן הקצר (רכיב `<Quiz>`). |
+| `faq` | מומלץ | מערך `{q, a}` — התבנית מרנדרת ממנו את סקשן השו"ת ואת ה-JSON-LD מסוג FAQPage. |
+| `canDo` | מומלץ | משפט "עכשיו אתה יכול…" — היכולת שהלומד רכש (התבנית מרנדרת ב-`<CanDo>`). |
+| `quiz` | לעמוד סוף-רמה | מערך שאלות `{q, options, answer}` למבחן הקצר (התבנית מרנדרת ב-`<Quiz>`, והטקסט נמצא ב-HTML). |
 | `fluency` | לשיעורי 4D | תג לשיעור בשכבת AI Fluency (Delegation/Description/Discernment/Diligence). |
 | `relatedSlugs` | אופציונלי | מערך slugs לקישורי "שיעורים קשורים". |
 | `draft` | אופציונלי | `true` מסתיר מהפרודקשן עד שמוכן. |
 
 ## כללים
 - `title` ו-`description` ייחודיים לכל עמוד (אסור שכפול).
+- אין `#` בגוף ה-MDX. ה-H1 מגיע רק מ-`title`, ומתחילים את הגוף בתשובה-קודם ואז `##`.
 - `source` תמיד מצביע לדף רשמי ספציפי, לא לעמוד הבית של התיעוד.
 - מעדכנים `lastVerified` רק אחרי אימות אמיתי מול המקור (ידני או דרך `/sync-docs`).
 - ה-`faq` הוא גם תוכן וגם מקור ל-schema — לכן חשוב שהתשובות יהיו עצמאיות וברורות.
