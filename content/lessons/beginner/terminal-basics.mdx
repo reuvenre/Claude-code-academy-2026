@@ -1,0 +1,91 @@
+---
+title: "לא מכיר טרמינל? איך מתחילים לעבוד עם Claude Code בטרמינל"
+description: "טרמינל הוא חלון שבו מקלידים פקודות. איך פותחים אותו ב-macOS, ב-Linux וב-Windows, מה ההבדל בין PowerShell ל-CMD, ומה צריך לדעת כדי לעבוד בו עם Claude Code."
+level: "beginner"
+order: 3
+source: "https://code.claude.com/docs/en/terminal-guide"
+lastVerified: "2026-09-23"
+keywords: ["Claude Code", "טרמינל", "מה זה טרמינל", "terminal", "PowerShell", "CMD", "שורת פקודה", "פתיחת טרמינל", "מתחילים"]
+canDo: "עכשיו אתה יכול לפתוח טרמינל במחשב שלך, לזהות אם אתה ב-PowerShell או ב-CMD, ולנווט בתוך Claude Code עם המקלדת."
+relatedSlugs: ["what-is-claude-code", "how-it-works"]
+faq:
+  - q: "האם אפשר להשתמש ב-Claude Code בלי טרמינל?"
+    a: "כן. אפליקציית הדסקטופ של Claude Code מאפשרת לעבוד בלי טרמינל בכלל. יש גם תוספים ל-VS Code ול-JetBrains וגרסת דפדפן בכתובת claude.ai/code."
+  - q: "איך יודעים אם אני ב-PowerShell או ב-CMD?"
+    a: "ב-PowerShell כל שורה מתחילה ב-PS, למשל PS C:\\Users\\YourName>. ב-CMD אותה שורה מופיעה בלי PS בהתחלה. הן נראות דומות אבל משתמשות בפקודות שונות."
+  - q: "למה אי אפשר ללחוץ עם העכבר בתוך Claude Code?"
+    a: "Claude Code בטרמינל עובד כולו בטקסט. מקלידים הודעה ולוחצים Enter כדי לשלוח, ומשתמשים במקשי החצים כדי לזוז בין אפשרויות."
+  - q: "האם צריך להתקין Git כדי להשתמש ב-Claude Code ב-Windows?"
+    a: "לא חובה. Git for Windows מספק את Git Bash, שמאפשר ל-Claude Code להשתמש בכלי Bash. בלעדיו Claude Code משתמש ב-PowerShell. התיעוד הרשמי ממליץ להתקין אותו."
+---
+
+import { CommandBlock, Callout } from "@/components/lesson";
+
+טרמינל הוא חלון שבו מקלידים פקודות במקום ללחוץ על כפתורים. כדי לעבוד עם Claude Code לא צריך לדעת לתכנת: פותחים טרמינל, מקלידים `claude`, לוחצים Enter ומתארים במילים מה רוצים. מי שמעדיף לעבוד בלי טרמינל יכול להשתמש באפליקציית הדסקטופ.
+
+## למה זה חשוב
+הטרמינל הוא המקום שבו Claude Code עובד בגרסה המלאה שלו. אם לא עבדת בו אף פעם, הוא נראה מאיים: חלון עם סמן מהבהב ובלי כפתורים. בפועל צריך לדעת רק כמה דברים בסיסיים, והשיעור הזה מכסה אותם.
+
+## איך פותחים טרמינל?
+זה תלוי במערכת ההפעלה:
+
+- **macOS:** לוחצים `Cmd + Space` כדי לפתוח את Spotlight, מקלידים `Terminal` ולוחצים `Enter`.
+- **Linux:** ברוב ההפצות לוחצים `Ctrl + Alt + T`, או מחפשים "Terminal" בתפריט האפליקציות.
+- **Windows:** לוחצים `Win + X` ובוחרים **Windows PowerShell** או **Terminal** מהתפריט. PowerShell מותקן בכל מחשב Windows.
+
+ייפתח חלון עם סמן מהבהב. כאן מקלידים פקודות.
+
+## PowerShell או CMD: במה אני נמצא?
+ב-Windows יש שתי תוכנות שורת פקודה: PowerShell ו-CMD. הן נראות דומות אבל משתמשות בפקודות שונות, ולכן חשוב לדעת באיזו אתה נמצא:
+
+| תוכנה | איך נראית תחילת השורה |
+| --- | --- |
+| PowerShell | `PS C:\Users\YourName>` |
+| CMD | `C:\Users\YourName>` (בלי `PS`) |
+
+פקודות ההתקנה של Claude Code שונות בין השתיים, ולכן נחזור לזה בשיעור ההתקנה.
+
+## איך מדביקים פקודה?
+הרבה פעמים תעתיק פקודה מהתיעוד ותדביק אותה בטרמינל. קיצור ההדבקה שונה בין המערכות:
+
+- **macOS:** `Cmd + V`
+- **Linux:** `Ctrl + Shift + V`
+- **Windows (PowerShell):** `Ctrl + V` או לחיצה ימנית
+
+אחרי ההדבקה לוחצים `Enter` כדי להריץ.
+
+## מה צריך לדעת בתוך Claude Code?
+אחרי ההתקנה וההתחברות מפעילים את Claude Code כך:
+
+<CommandBlock>claude</CommandBlock>
+
+מכאן הכול קורה בטקסט. מקלידים הודעה ולוחצים `Enter` כדי לשלוח. כמה דברים שכדאי לדעת:
+
+- אי אפשר ללחוץ עם העכבר על דברים בטרמינל. משתמשים במקשי החצים כדי לזוז.
+- `Esc` עוצר את Claude אם הוא באמצע עבודה.
+- מקלידים `exit`, או לוחצים `Ctrl + D` פעמיים על שורה ריקה, כדי לצאת מ-Claude Code.
+- מקלידים `/help` כדי לראות את הפקודות הזמינות.
+
+<Callout type="tip">
+לפני ש-Claude יוצר או משנה קבצים, הוא מבקש את אישורך. לוחצים `Enter` כדי לבחור **Yes** ולאשר.
+</Callout>
+
+## דוגמה מעשית
+אחרי שנכנסת ל-Claude Code, אפשר לבקש ממנו לבנות משהו מתיאור. זו דוגמה מהמדריך הרשמי:
+
+```text
+make me a simple webpage that says hello world
+```
+
+Claude יבקש אישור ליצור את הקבצים. אחרי שהוא מסיים, לוחצים פעמיים על קובץ ה-HTML כדי לפתוח אותו בדפדפן.
+
+<Callout type="note">
+ב-Windows מומלץ להתקין Git for Windows. הוא מספק את Git Bash, שמאפשר ל-Claude Code להשתמש בכלי Bash. בלי Git for Windows,‏ Claude Code משתמש ב-PowerShell. לא תצטרך ללמוד Git בשביל זה.
+</Callout>
+
+## לא רוצה טרמינל בכלל?
+אפשר לדלג עליו. Claude Code זמין גם באפליקציית דסקטופ שלא דורשת טרמינל, כתוסף ל-VS Code ול-JetBrains, ובדפדפן בכתובת claude.ai/code. הקורס מתמקד בטרמינל, אבל רוב מה שתלמד עובד בכל המשטחים.
+
+## הצעד הבא
+- ← [כל שיעורי רמה 0](/beginner): השיעור הבא הוא התקנת Claude Code לפי מערכת הפעלה.
+- שיעורים קשורים: [מה זה Claude Code](/beginner/what-is-claude-code) · [איך Claude Code עובד](/beginner/how-it-works)
