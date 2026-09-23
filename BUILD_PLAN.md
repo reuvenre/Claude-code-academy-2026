@@ -163,7 +163,7 @@ glossary, changelog, ו-What's New. טבלאות סורק-ידידותיות. ס
 
 **✅ הושלם — 11 עמודים** ב-`content/reference` (cli, commands, env-vars, tools, settings, hooks, plugins, channels, glossary, changelog, whats-new), collection נפרד עם `referenceSchema`, עמוד שער /reference, בחיפוש וב-llms.txt. /glossary מפנה ל-/reference/glossary.
 
-## שלב 8 — עמודי תשתית + ליטוש (עמודים ✅, ליטוש בתהליך)
+## שלב 8 — עמודי תשתית + ליטוש ✅ הושלם (ביצועי מובייל למדידה חוזרת אחרי פריסה)
 ```text
 בנה /start (אבחון רמה ב-3 שאלות), /about (Brand Hub עובדתי ל-AEO), /faq, /glossary.
 ואז ליטוש: Lighthouse ≥90 בכל הקטגוריות, Core Web Vitals, נגישות AA, ניווט מקלדת,
@@ -171,7 +171,7 @@ glossary, changelog, ו-What's New. טבלאות סורק-ידידותיות. ס
 ```
 קומיט: `feat: start, about, faq, glossary` + `chore: polish & a11y`
 
-**עמודים ✅:** /start, /about, /faq, /glossary (redirect). עיצוב: theme-factory "Tech Innovation" (כהה כברירת מחדל), רקע אחיד לכל האתר (`components/site/site-background.tsx`), ללא קישור ל-GitHub. **ליטוש:** בתהליך.
+**עמודים ✅:** /start, /about, /faq, /glossary (redirect). עיצוב: theme-factory "Tech Innovation" (כהה כברירת מחדל), רקע אחיד לכל האתר (`components/site/site-background.tsx`), ללא קישור ל-GitHub. **ליטוש:** Lighthouse מקומי — נגישות/Best Practices/SEO 100 בכל העמודים שנבדקו; ביצועים בדסקטופ 91–100, במובייל (סימולציית CPU איטי) 83–90 — הצוואר הוא JS של Next/Fumadocs; למדוד שוב על ה-URL החי. תוקנו: favicon, ניגודיות AA (הערות קוד, תווית הטרמינל), רקע קל יותר במובייל ו-prefers-reduced-motion. אין גלילה אופקית ב-375px.
 
 ## שלב 8.5 — בלוג ומחקרים ✅ הושלם
 ```text
