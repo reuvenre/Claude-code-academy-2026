@@ -224,3 +224,11 @@ html > body[data-scroll-locked] {
     opacity: 0.85;
   }
 }
+
+/* ניגודיות AA: הערות בקוד. shiki מגדיר את משתני הצבע inline על כל span, לכן דורסים את color עצמו */
+pre span[style*='--shiki-light:#6A737D'] {
+  color: #57606a !important;
+}
+.dark pre span[style*='--shiki-dark:#6A737D'] {
+  color: #9ca3af !important;
+}

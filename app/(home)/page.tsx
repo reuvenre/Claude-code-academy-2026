@@ -150,7 +150,7 @@ export default function HomePage() {
                 <span className="size-3 rounded-full bg-[#ff5f57]" />
                 <span className="size-3 rounded-full bg-[#febc2e]" />
                 <span className="size-3 rounded-full bg-[#28c840]" />
-                <span className="ms-3 font-mono text-xs text-white/40">~/your-project</span>
+                <span className="ms-3 font-mono text-xs text-white/70">~/your-project</span>
               </div>
               <ol className="space-y-3 p-5 font-mono text-sm">
                 {terminalLines.map((line) => (

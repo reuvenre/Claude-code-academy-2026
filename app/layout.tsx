@@ -19,6 +19,8 @@ const mono = JetBrains_Mono({
   subsets: ['latin'],
   display: 'swap',
   variable: '--font-mono',
+  // קוד לא מופיע בראש העמוד — לא טוענים מראש כדי לא להתחרות ב-LCP
+  preload: false,
 });
 
 // ברירות מחדל לכל האתר. canonical לא מוגדר כאן בכוונה — הוא עובר בירושה לכל עמוד שלא דורס אותו.
