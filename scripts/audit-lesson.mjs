@@ -73,7 +73,9 @@ async function audit(path) {
     .map((x) => x['@type']);
   for (const type of ['TechArticle', 'BreadcrumbList', 'FAQPage', 'Organization'])
     add(ld.includes(type) ? OK : RED, `JSON-LD ${type}`);
-  const faqCount = (fm.block.match(/^\s+- q:/gm) ?? []).length;
+  // רק בלוק faq (בלי quiz): מ-"faq:" ועד המפתח הבא ברמה העליונה
+  const faqBlock = fm.block.match(/^faq:\r?\n([\s\S]*?)(?=^\S|$(?![\s\S]))/m)?.[1] ?? '';
+  const faqCount = (faqBlock.match(/^\s+- q:/gm) ?? []).length;
   add(faqCount >= 3 && faqCount <= 5 ? OK : YELLOW, `שו"ת: ${faqCount} שאלות (3-5)`);
   add(/עכשיו אתה יכול/.test(html) ? OK : RED, 'CanDo');
 
@@ -89,10 +91,18 @@ async function audit(path) {
     add(re.test(html) ? OK : RED, name);
 
   // SSR: כל שאלות השו"ת נמצאות ב-HTML
-  const faqQs = [...fm.block.matchAll(/^\s+- q:\s*"(.*)"\s*$/gm)].map((m) => m[1]);
+  const faqQs = [...faqBlock.matchAll(/^\s+- q:\s*"(.*)"\s*$/gm)].map((m) => m[1]);
+  // שאלות ה-Quiz חייבות להיות ב-HTML (הרכיב אינטראקטיבי, אבל הטקסט מרונדר בשרת)
+  const quizBlock = fm.block.match(/^quiz:\r?\n([\s\S]*?)(?=^\S|$(?![\s\S]))/m)?.[1] ?? '';
+  const quizQs = [...quizBlock.matchAll(/^\s+- q:\s*"(.*)"\s*$/gm)].map((m) => m[1]);
   const text = stripTags(html);
   const missing = faqQs.filter((q) => !text.includes(q));
   add(missing.length ? RED : OK, missing.length ? `שו"ת לא ב-HTML: ${missing.join(' | ')}` : 'שו"ת מרונדר ב-HTML (SSR)');
+  if (quizQs.length) {
+    const missingQuiz = quizQs.filter((q) => !text.includes(q));
+    add(quizQs.length >= 5 && quizQs.length <= 8 ? OK : YELLOW, `Quiz: ${quizQs.length} שאלות (5-8)`);
+    add(missingQuiz.length ? RED : OK, missingQuiz.length ? `שאלות Quiz לא ב-HTML: ${missingQuiz.join(' | ')}` : 'שאלות Quiz מרונדרות ב-HTML (SSR)');
+  }
 
   // קישוריות פנימית: "הצעד הבא" + קישורים פנימיים תקינים
   // Fumadocs עוטף כותרות בקישור עוגן, ולכן בודקים את הטקסט של ה-h2 ולא את ה-markup

@@ -59,7 +59,8 @@ export function Quiz({ items, lessonId }: { items: QuizItem[]; lessonId: string 
                           setAnswers((prev) => prev.map((a, i) => (i === qi ? oi : a)))
                         }
                       />
-                      {option}
+                      {/* dir=auto: אפשרות שהיא פקודה (לטינית) מוצגת LTR ולא מתהפכת */}
+                      <span dir="auto">{option}</span>
                       {checked && isCorrect && <span className="ms-auto text-xs">תשובה נכונה</span>}
                     </label>
                   );
