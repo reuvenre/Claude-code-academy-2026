@@ -145,21 +145,25 @@ StepList, FAQ (מייצר FAQPage schema), Quiz (אינטראקטיבי - אבל
 - **פנייה:** לשון זכר יחיד ("אתה"), לפי הסקיל `lesson-authoring`.
 - הסוכנים והפקודות של `.claude/` נטענים רק בסשן שנפתח על `C:\dev\claude-code-academy`.
 
-## שלב 6 — תוכן רמה 1
+## שלב 6 — תוכן רמה 1 ✅ הושלם
 ```text
 אותו תהליך לשיעורים 10-20. דגש: workflow (10), CLAUDE.md (11), ומצבי הרשאות (14) —
 אמת מול המקור מהו מצב ברירת המחדל הנוכחי (הערכה מציינת auto mode). סיים ב-quiz לרמה.
 ```
 קומיט לכל שיעור: `content(beginner-plus): <slug>`
 
-## שלב 7 — מרכז הרפרנס החי
+**✅ הושלם — 11 שיעורים (10–20) + quiz רמה.** כל שיעור: סוכן כותב → סוכן מאמת (טענה-טענה מול code.claude.com) → build + `npm run audit` → קומיט.
+
+## שלב 7 — מרכז הרפרנס החי ✅ הושלם
 ```text
 בנה /reference: CLI reference, כל הפקודות, env vars, tools, settings-reference,
 glossary, changelog, ו-What's New. טבלאות סורק-ידידותיות. סמן lastVerified בכל עמוד.
 ```
 קומיט: `content(reference): live reference hub`
 
-## שלב 8 — עמודי תשתית + ליטוש
+**✅ הושלם — 11 עמודים** ב-`content/reference` (cli, commands, env-vars, tools, settings, hooks, plugins, channels, glossary, changelog, whats-new), collection נפרד עם `referenceSchema`, עמוד שער /reference, בחיפוש וב-llms.txt. /glossary מפנה ל-/reference/glossary.
+
+## שלב 8 — עמודי תשתית + ליטוש (עמודים ✅, ליטוש בתהליך)
 ```text
 בנה /start (אבחון רמה ב-3 שאלות), /about (Brand Hub עובדתי ל-AEO), /faq, /glossary.
 ואז ליטוש: Lighthouse ≥90 בכל הקטגוריות, Core Web Vitals, נגישות AA, ניווט מקלדת,
@@ -167,7 +171,9 @@ glossary, changelog, ו-What's New. טבלאות סורק-ידידותיות. ס
 ```
 קומיט: `feat: start, about, faq, glossary` + `chore: polish & a11y`
 
-## שלב 8.5 — בלוג ומחקרים
+**עמודים ✅:** /start, /about, /faq, /glossary (redirect). עיצוב: theme-factory "Tech Innovation" (כהה כברירת מחדל), רקע אחיד לכל האתר (`components/site/site-background.tsx`), ללא קישור ל-GitHub. **ליטוש:** בתהליך.
+
+## שלב 8.5 — בלוג ומחקרים ✅ הושלם
 ```text
 בנה ראוטים /blog ו-/research: עמוד רשימה ועמוד פוסט לפי templates/post.mdx.
 רק status: published מוצג ונכנס ל-sitemap ול-llms.txt; draft מוסתר בפרודקשן.
@@ -175,13 +181,17 @@ JSON-LD מסוג BlogPosting. הוסף פוסט דמו אחד.
 ```
 קומיט: `feat: blog & research`
 
-## שלבים 10–13 — שאר התוכן
+**✅ הושלם.** `postSchema` ב-`lib/lesson-schema.ts`, `blogSource`/`researchSource` ב-`lib/source.ts` (draft מסונן בפרודקשן), `components/posts/*`, JSON-LD BlogPosting/Article, sitemap + llms.txt. פוסט ראשון: סיכום What's New שבוע 37.
+
+## שלבים 10–13 — שאר התוכן ✅ הושלם (68/68)
 אותו תהליך בדיוק כמו בשלבים 5–6 (`/new-lesson` → `content-writer` → `/seo-audit` + `/rtl-check`,
 עצירה כל 3 שיעורים, קומיט לכל שיעור, quiz בסוף כל רמה):
 - **10:** רמה 2 מתקדמים (21–35).
 - **11:** רמה 3 מקצוענים (36–57). פריטים רבים מסומנים 🆕 — הרץ `/sync-docs` לפני שמתחילים.
 - **12:** משפחת המוצר (58–60) ו-Fluency (61). בשיעור 59 (Cowork) לאמת את ה-URL כפי שמסומן בערכה.
 - **13:** ארגוני (62–68), אופציונלי.
+
+**✅ הושלם — 68/68 שיעורים.** בוצע גם יישור מול Claude Academy: מופו כל הקורסים הרלוונטיים; שתי סתירות (`-p` מול `--bare`, tool search כברירת מחדל) — התיעוד הרשמי תומך בנו; פערים נסגרו בהרחבות ל-claude-md, skills, subagents, routines ובשיעורים 50/51/55. שיעור 59: ה-URL `academy.claude.com/products/cowork` אומת (200).
 
 ## שלב 14 — פריסה ל-Vercel (רק באישור מפורש)
 חיבור הריפו ב-GitHub, פרויקט ב-Vercel, דומיין (`NEXT_PUBLIC_SITE_URL`), ואימות JSON-LD
