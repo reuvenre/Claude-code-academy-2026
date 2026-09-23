@@ -29,7 +29,17 @@ Node ו-Git הותקנו, הריפו שוכפל ל-`C:\dev\claude-code-academy`,
 
 קומיט: `docs: align kit templates`
 
-## שלב 1 — Scaffold
+## שלב 1 — Scaffold ✅ הושלם
+נבנה עם `create-fumadocs-app` (template `+next+fuma-docs-mdx`), Next 16.3, Fumadocs 16.15 (Base UI),
+Tailwind 4, shadcn/ui (`base-nova`, `--rtl`). הערות להמשך:
+- `typescript` ננעל ל-`~6.0`, כי typescript-eslint עדיין לא תומך ב-TS 7 (בלעדיו `npm run lint` נכשל).
+- ה-template כלל `proxy.ts` (content negotiation: `Accept: text/markdown` → Markdown של השיעור).
+  לא הועבר, כי הדפוס שלו מניח `/docs` ולא שורש. **להחזיר בשלב 3** מותאם ל-baseUrl `/`.
+- `llms.txt`, `llms-full.txt`, `/llms.mdx/lessons/.../content.md` ו-OG (`/og/lessons/...`) כבר פעילים מה-template.
+  בשלב 3 מעשירים אותם לפי SEO_AEO_GEO.md.
+- מנוע החיפוש המובנה של Fumadocs הוא כיום ZBSearch (לא Orama). בשלב 4 בודקים תמיכה בעברית מול `/docs/search/orama`.
+- `next dev` מוסיף ל-CLAUDE.md בלוק `nextjs-agent-rules` כשסוכן מריץ אותו. משאירים אותו בקומיט.
+
 ```text
 הקם פרויקט Next.js (App Router) + Fumadocs + Tailwind + shadcn/ui, מוגדר RTL עברי.
 חשוב: אמת מול התיעוד העדכני של Fumadocs ו-Next לפני שתריץ פקודות (create-fumadocs-app או התקנה
