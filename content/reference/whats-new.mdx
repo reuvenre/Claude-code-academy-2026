@@ -1,0 +1,68 @@
+---
+title: "מה חדש ב-Claude Code? סיכום בעברית של העדכונים השבועיים"
+description: "סיכום בעברית של חמשת ה-digests השבועיים האחרונים של What's New ב-Claude Code: claude plugin eval, /design, /skill-doctor, /resume ב-Desktop, fork mode ועוד."
+order: 11
+source: "https://code.claude.com/docs/en/whats-new"
+lastVerified: "2026-09-23"
+keywords: ["Claude Code", "What's New", "מה חדש", "עדכונים שבועיים", "weekly digest", "changelog", "claude plugin eval", "/design", "/skill-doctor", "/resume", "fork mode", "Claude Code Desktop", "גרסאות"]
+faq:
+  - q: "מה ההבדל בין What's New ל-changelog?"
+    a: "What's New הוא digest שבועי שמדגיש את הפיצ'רים שהכי סביר שישנו את דרך העבודה שלך, עם דוגמאות וקישור לתיעוד. ה-changelog מפרט כל תיקון באג ושיפור קטן."
+  - q: "כל כמה זמן העמוד הרשמי מתעדכן?"
+    a: "העמוד הרשמי מתפרסם כ-digest שבועי. כל שבוע מופיע עם טווח תאריכים וטווח הגרסאות שיצאו בו."
+  - q: "למה אין בעמוד הזה שמות מודלים?"
+    a: "שמות ומספרי מודלים מתחלפים תדיר. כשעדכון שבועי עוסק במודל חדש, אנחנו מפנים לדף model-config הרשמי במקום לקבע את השם כאן."
+---
+
+העמוד מסכם בעברית את חמשת ה-digests השבועיים האחרונים של What's New ב-Claude Code, נכון ל-2026-09-23. כל שבוע מופיע עם טווח התאריכים והגרסאות כפי שהם במקור. לפרטים המלאים, לדוגמאות קוד ולשבועות קודמים ראה את [עמוד What's New הרשמי](https://code.claude.com/docs/en/whats-new).
+
+## Week 37 (September 7–11, 2026)
+
+גרסאות: v2.1.263–v2.1.269. [ה-digest המלא](https://code.claude.com/docs/en/whats-new/2026-w37).
+
+- **`claude plugin eval`**: מריץ את ה-plugin שלך מול סדרת מקרי בדיקה, נותן ציון לתוצאות ומשווה אותן לבסיס בלי ה-plugin. `claude plugin eval init` מנסח בשבילך את המקרים ואת ה-graders. רקע: [Plugins](/advanced/plugins).
+- **חלונות נפרדים ב-Claude Code Desktop**: אפשר להוציא כל pane לחלון משלו ולעגן אותו בחזרה אחר כך.
+- **`maxEffortLevel`**: הגדרה שמגבילה את רמת ה-effort בכל ספק. פרטים: [settings reference](https://code.claude.com/docs/en/settings-reference#maxeffortlevel).
+- **WebFetch**: דף ש-WebFetch לא סיים להוריד תוך חמש דקות נכשל במקום להיתקע.
+
+## Week 36 (August 31 – September 4, 2026)
+
+גרסאות: v2.1.251–v2.1.261. [ה-digest המלא](https://code.claude.com/docs/en/whats-new/2026-w36).
+
+- **מודל חדש**: מודל חדש זמין ב-Claude Code עם חלון הקשר של 1M טוקנים. לשם המודל ולפרטים ראה [model-config](https://code.claude.com/docs/en/model-config).
+- **Computer use ב-Desktop ברקע**: בתוכניות Pro ו-Max (בבטא), computer use באפליקציית Desktop עובד ברקע ב-macOS בזמן שאתה ממשיך לעבוד.
+- **`/diff` כפאנל חי**: ב-fullscreen rendering,‏ `/diff` פותח פאנל לצד השיחה שמתרענן בזמן ש-Claude עורך.
+- **`/skill-doctor`**: מציג כמה הקשר כל skill שלך צורך וכמה פעמים משתמשים בו. פרטים: [Find unused skills](https://code.claude.com/docs/en/skills#find-unused-skills); רקע על skills: [Skills](/advanced/skills).
+
+## Week 35 (August 24–28, 2026)
+
+גרסאות: v2.1.240–v2.1.250. [ה-digest המלא](https://code.claude.com/docs/en/whats-new/2026-w35).
+
+- **המשך סשני טרמינל ב-Desktop**: הקלדת `/resume` בתיבת הפרומפט של Claude Code Desktop ממשיכה כל סשן שהתחלת מה-CLI, עם השיחה וההקשר המלאים. פרטים: [Move between the CLI and Desktop](https://code.claude.com/docs/en/desktop#coming-from-the-cli); על `/resume` ב-CLI: [ניהול סשנים](/beginner-plus/sessions).
+- **משוב שמנוסח על ידי Claude**: כשמשהו משתבש בסשן, Claude כותב דוח משוב, ואתה בודק ושולח אותו מ-`/feedback`.
+- **`--restricted`**: מתחיל סשן בלי הכלים שמריצים פקודות ובלי הגדרות המשתמש והפרויקט שלך, עבור סביבות הערכה על מכונות משותפות.
+- **`modelPicker`**: הגדרה שקובעת אילו מודלים מוצגים בבורר `/model`.
+
+## Week 34 (August 17–21, 2026)
+
+גרסאות: v2.1.234–v2.1.239. [ה-digest המלא](https://code.claude.com/docs/en/whats-new/2026-w34).
+
+- **`/design`**: תצוגה מקדימה (research preview) שמביאה את תהליך ה-artboards של Claude Design ל-CLI ול-Claude Code Desktop. היא בנויה על artifacts:‏ Claude מנסח artboards ניתנים לעריכה לממשק שלך ומממש את זה שבחרת. רקע על artifacts, שעליהם `/design` בנוי: [Artifacts](/advanced/artifacts).
+- **סגנון הפלט Concise**: output style מובנה שגורם ל-Claude לפתוח בתוצאה ולדלג על ההקדמה. רקע: [Output styles](/advanced/output-styles).
+- **כרטיסי מכשיר בטלפון**: כל מכונה שמריצה `claude remote-control` מופיעה ככרטיס מכשיר בטלפון, ואפשר להתחיל עליה סשן מלשונית Code.
+- **`ANTHROPIC_DEFAULT_MODEL`**: משתנה סביבה שקובע באיזה מודל מתחילים סשנים חדשים.
+
+## Week 33 (August 10–14, 2026)
+
+גרסאות: v2.1.225–v2.1.233. [ה-digest המלא](https://code.claude.com/docs/en/whats-new/2026-w33).
+
+- **המשך אוטומטי אחרי מגבלת שימוש ב-Desktop**: כשמגיעים למגבלת הסשן ב-Claude Code Desktop, מסמנים **Auto-continue when limits reset** בכרטיס המגבלה, והאפליקציה מנסה שוב את התור שנקטע כשהמגבלה מתאפסת.
+- **fork mode כברירת מחדל**: בסשנים אינטראקטיביים Claude יכול להעביר משימת צד ל-subagent שיורש את כל השיחה. רקע: [Subagents](/advanced/subagents).
+- **תמיכה ב-GitLab**: כתובות merge request של GitLab עובדות עם `--worktree` ועם התצוגה `claude agents`, ו-marketplaces משכפלים גם כתובות `gitlab.com` בסיסיות.
+- **אזכור סשן עם `@`**: הקלדת `@` בפרומפט מאזכרת סשן Claude אחר לפי שמו.
+
+## איפה לומדים עוד?
+
+- [What's New הרשמי](https://code.claude.com/docs/en/whats-new): כל ה-digests השבועיים, כולל שבועות קודמים.
+- [Changelog הרשמי](https://code.claude.com/docs/en/changelog): כל תיקון באג ושיפור קטן, לפי גרסה.
+- [Plugins](/advanced/plugins) ו-[Skills](/advanced/skills): איך מרחיבים את Claude Code עם plugins ו-skills.
