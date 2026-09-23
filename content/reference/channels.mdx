@@ -1,0 +1,128 @@
+---
+title: "מדריך מהיר ל-channels ב-Claude Code: שדות, אירועים והגדרות"
+description: "רפרנס ל-channels ב-Claude Code: דגלי --channels, שדות capabilities בשרת MCP, פורמט notifications/claude/channel, שדות relay להרשאות והגדרות ארגוניות."
+order: 8
+source: "https://code.claude.com/docs/en/channels-reference"
+lastVerified: "2026-09-23"
+keywords: ["Claude Code", "channels", "ערוצים", "--channels", "MCP server", "שרת MCP", "notifications/claude/channel", "claude/channel", "permission relay", "webhook", "channelsEnabled", "allowedChannelPlugins", "research preview"]
+faq:
+  - q: "מה זה channel ב-Claude Code?"
+    a: "שרת MCP שרץ על אותו מחשב כמו Claude Code ודוחף אירועים לסשן פתוח, כמו הודעות צ'אט, התראות ניטור או webhooks, כדי ש-Claude יגיב להם. channel דו-כיווני חושף גם reply tool לשליחת תשובות."
+  - q: "למה ה-channel שבניתי לא נטען עם --channels?"
+    a: "בתקופת ה-research preview, channels מותאמים אישית לא נמצאים ב-allowlist המאושר. כדי לבדוק אותם מקומית מפעילים את Claude Code עם --dangerously-load-development-channels."
+  - q: "האם Claude Code מאשר קבלה של אירוע?"
+    a: "לא. ה-await על mcp.notification מסתיים כשההודעה נכתבת ל-transport. אם ה-channel לא נטען או חסום במדיניות הארגון, האירועים נזרקים בשקט בלי שגיאה."
+  - q: "למה חשוב לסנן שולחים ב-channel?"
+    a: "channel בלי סינון הוא פתח ל-prompt injection: כל מי שמגיע ל-endpoint יכול להכניס טקסט מול Claude. בודקים את זהות השולח מול allowlist לפני ששולחים notification."
+---
+
+העמוד מרכז את החוזה של channels ב-Claude Code: דגלי ההפעלה, שדות ה-`Server`,‏ פורמט האירועים, שדות ה-permission relay וההגדרות הארגוניות. משתמשים בו כשבונים channel משלכם או מגדירים אותו בארגון. הפירוט המלא ב-[Channels reference הרשמי](https://code.claude.com/docs/en/channels-reference).
+
+## מה זה channel?
+
+channel הוא שרת [MCP](/advanced/mcp) שרץ על אותו מחשב כמו Claude Code ודוחף אירועים לסשן פתוח, כדי ש-Claude יגיב לדברים שקורים מחוץ לטרמינל. Claude Code מפעיל אותו כתת-תהליך ומתקשר איתו ב-stdio. channel חד-כיווני מעביר התראות, webhooks או אירועי ניטור; channel דו-כיווני, כמו גשר צ'אט, חושף גם reply tool שדרכו Claude שולח תשובות. אירועים מגיעים רק כשהסשן פתוח. Telegram,‏ Discord,‏ iMessage ו-fakechat כלולים ב-research preview.
+
+> channels נמצאים ב-research preview. בארגוני Team ו-Enterprise צריך להפעיל אותם במפורש.
+
+## אילו דגלים מפעילים channels?
+
+| דגל / ערך | מה הוא עושה |
+| --- | --- |
+| `--channels` | מצרף channel לסשן הנוכחי; אפשר להעביר כמה plugins מופרדים ברווח |
+| `--dangerously-load-development-channels` | עוקף את ה-allowlist לרשומות מסוימות אחרי אישור, לבדיקה מקומית של channel בפיתוח |
+| `plugin:<name>@<marketplace>` | רשומה שמצביעה על channel שארוז כ-plugin |
+| `server:<name>` | רשומה שמצביעה על שרת מ-`.mcp.json` בלי עטיפת plugin |
+
+שני הדגלים לא מופיעים ב-`claude --help` בזמן ה-preview, אבל הם עובדים. העקיפה של דגל הפיתוח היא לכל רשומה בנפרד, ואינה מדלגת על מדיניות `channelsEnabled`. להיות רשום ב-`.mcp.json` לא מספיק: השרת חייב להופיע ב-`--channels`.
+
+```bash
+claude --channels plugin:fakechat@claude-plugins-official
+claude --dangerously-load-development-channels server:webhook
+```
+
+## אילו שדות מגדירים ב-constructor של Server?
+
+| שדה | סוג | תיאור |
+| --- | --- | --- |
+| `capabilities.experimental['claude/channel']` | `object` | חובה. תמיד `{}`. הנוכחות שלו רושמת את מאזין ה-notifications |
+| `capabilities.experimental['claude/channel/permission']` | `object` או `false` | אופציונלי. `{}` מצהיר שה-channel מקבל בקשות permission relay; כדי לוותר משמיטים את המפתח או מגדירים `false` |
+| `capabilities.tools` | `object` | לערוץ דו-כיווני בלבד. תמיד `{}`. יכולת tools רגילה של MCP לחשיפת reply tool |
+| `instructions` | `string` | מומלץ. נמסר ל-Claude כהקשר כשהשרת מתחבר: אילו אירועים לצפות, מה משמעות ה-attributes, והאם ואיך להשיב |
+
+ל-channel חד-כיווני משמיטים את `capabilities.tools`.
+
+## אילו notifications עוברים בין השרת ל-Claude Code?
+
+| method | כיוון | תפקיד |
+| --- | --- | --- |
+| `notifications/claude/channel` | מהשרת ל-Claude Code | דוחף אירוע לסשן |
+| `notifications/claude/channel/permission_request` | מ-Claude Code לשרת | מעביר בקשת אישור כלי ל-channel שהצהיר על יכולת permission |
+| `notifications/claude/channel/permission` | מהשרת ל-Claude Code | מחזיר החלטה (verdict) על בקשת אישור |
+
+## מה הפורמט של אירוע channel?
+
+הפרמטרים של `notifications/claude/channel`:
+
+| שדה | סוג | תיאור |
+| --- | --- | --- |
+| `content` | `string` | גוף האירוע; נמסר כגוף של תגית `<channel>` |
+| `meta` | `Record<string, string>` | אופציונלי. כל רשומה הופכת ל-attribute על תגית `<channel>`; מפתחות רק עם אותיות, ספרות וקו תחתון, ומפתחות אחרים נזרקים בשקט |
+
+ה-attribute `source` נקבע אוטומטית משם השרת:
+
+```text
+<channel source="your-channel" severity="high" run_id="1234">
+build failed on main: https://ci.example.com/run/1234
+</channel>
+```
+
+Claude Code לא מאשר קבלה של notifications. אירועים נכנסים לתור ומעובדים לפי הסדר; כמה אירועים שמגיעים בזמן ש-Claude עסוק נמסרים יחד בתור הבא.
+
+## אילו שדות יש ב-permission relay?
+
+הפרמטרים של `notifications/claude/channel/permission_request` (כולם מחרוזות):
+
+| שדה | תיאור |
+| --- | --- |
+| `request_id` | חמש אותיות קטנות מ-`a` עד `z` בלי `l`; צריך לכלול אותו בהודעה היוצאת כדי שיוחזר בתשובה |
+| `tool_name` | שם הכלי ש-Claude רוצה להפעיל, למשל `Bash` או `Write` |
+| `description` | תקציר קריא של הקריאה הספציפית, לא הפקודה עצמה |
+| `input_preview` | הארגומנטים של הכלי כטקסט בצורת JSON; ב-Bash זו הפקודה, ב-Write הנתיב והתוכן |
+
+הפרמטרים של ה-verdict ב-`notifications/claude/channel/permission`:
+
+| שדה | תיאור |
+| --- | --- |
+| `request_id` | מחזיר את ה-ID מהבקשה; Claude Code מחיל החלטה רק אם ה-ID תואם בקשה פתוחה |
+| `behavior` | `'allow'` מאפשר לקריאה להמשיך, `'deny'` דוחה אותה; ההחלטה לא משפיעה על קריאות עתידיות |
+
+ה-relay מכסה אישורי שימוש בכלים. אישור trust לפרויקט ואישור שרתי MCP מופיעים רק בטרמינל המקומי. הצהירו על היכולת רק אם ה-channel מאמת את השולח, כי כל מי שעונה דרכו יכול לאשר או לדחות שימוש בכלים.
+
+## אילו הגדרות ארגוניות שולטות ב-channels?
+
+שתי managed settings שמשתמשים לא יכולים לעקוף:
+
+| הגדרה | תפקיד | כשלא מוגדרת |
+| --- | --- | --- |
+| `channelsEnabled` | מתג ראשי; חייב להיות `true` כדי שערוץ כלשהו יעביר הודעות, כולל דגל הפיתוח | claude.ai Team ו-Enterprise: חסום. Console: מותר, אלא אם הארגון פורס managed settings, ואז חסום עד שמגדירים את המפתח |
+| `allowedChannelPlugins` | אילו plugins יכולים להירשם כ-channel; מחליף את הרשימה של Anthropic | חלה רשימת ברירת המחדל של Anthropic |
+
+כל רשומה ב-`allowedChannelPlugins` מציינת `marketplace` ו-`plugin`:
+
+```json
+{
+  "channelsEnabled": true,
+  "allowedChannelPlugins": [
+    { "marketplace": "claude-plugins-official", "plugin": "telegram" }
+  ]
+}
+```
+
+משתמשי Pro ו-Max בלי ארגון מדלגים לגמרי על הבדיקות האלה: channels זמינים להם, והם מפעילים אותם לכל סשן עם `--channels`.
+
+## איפה לומדים עוד?
+
+- [שרתי MCP](/advanced/mcp) — הפרוטוקול ש-channel מממש.
+- [Plugins](/advanced/plugins) — איך אורזים channel להתקנה עם `/plugin install`.
+- [Channels](https://code.claude.com/docs/en/channels) — התקנה של Telegram,‏ Discord,‏ iMessage ו-fakechat, והפעלה בארגון.
+- [Channels reference](https://code.claude.com/docs/en/channels-reference) — החוזה המלא ודוגמת webhook receiver.
