@@ -1,0 +1,130 @@
+---
+title: "איך שולטים ב-Claude Code מהטלפון עם Remote Control?"
+description: "אפליקציית Claude לנייד מתחברת לסשנים בענן או לסשן שרץ במחשב שלך דרך Remote Control. כך מתקינים, מתחברים עם QR, מקבלים התראות push ומבינים את המגבלות."
+level: "pro"
+order: 44
+source: "https://code.claude.com/docs/en/mobile"
+lastVerified: "2026-09-23"
+keywords: ["Claude Code", "mobile", "נייד", "טלפון", "מהטלפון", "אפליקציה", "Remote Control", "/remote-control", "claude remote-control", "שליטה מרחוק", "התראות push", "push notifications", "/mobile", "cloud sessions"]
+canDo: "עכשיו אתה יכול להמשיך סשן מקומי של Claude Code מהטלפון עם Remote Control, להתחיל משימות בענן מהאפליקציה ולקבל התראה כש-Claude מסיים או צריך החלטה."
+relatedSlugs: ["web", "channels", "cross-session"]
+faq:
+  - q: "יש אפליקציית מובייל נפרדת ל-Claude Code?"
+    a: "אין אפליקציה נפרדת. משתמשים באפליקציית Claude הרגילה ל-iOS או ל-Android. סשנים בענן וסשנים של Remote Control נמצאים בלשונית Code באפליקציה. הקוד עצמו לא רץ בטלפון: הטלפון הוא רק חלון לסשן שרץ בענן או במחשב שלך."
+  - q: "מה ההבדל בין Remote Control לסשן בענן?"
+    a: "סשן של Remote Control רץ על המחשב שלך, ולכן מערכת הקבצים, שרתי ה-MCP והכלים המקומיים זמינים בו. סשן בענן רץ על תשתית ענן, מנוהלת כברירת מחדל על ידי Anthropic, וממשיך לעבוד גם כשהמחשב כבוי. Remote Control מתאים להמשך עבודה מקומית, וסשן בענן מתאים למשימה חדשה בלי הכנה מקומית."
+  - q: "האם המחשב צריך להישאר דלוק כשעובדים עם Remote Control?"
+    a: "כן, תהליך claude במחשב חייב להמשיך לרוץ. אם סוגרים את הטרמינל או עוצרים את התהליך, הסשן יורד מהרשת. אם המחשב נכנס לשינה או שהרשת נופלת, Claude Code מתחבר מחדש לבד כשהמחשב חוזר לרשת. אם המחשב יהיה כבוי, עדיף סשן בענן."
+  - q: "אפשר להשתמש ב-Remote Control עם מפתח API?"
+    a: "לא. Remote Control דורש התחברות עם חשבון claude.ai במנוי Pro,‏ Max,‏ Team או Enterprise. הוא לא עובד עם מפתח API, עם Amazon Bedrock או עם ANTHROPIC_BASE_URL שמפנה לשרת אחר. ב-Team וב-Enterprise,‏ Owner צריך קודם להפעיל אותו בהגדרות הניהול."
+  - q: "איך מקבלים התראה לטלפון כש-Claude מסיים משימה?"
+    a: "מתקינים את אפליקציית Claude, מתחברים עם אותו חשבון ומאשרים התראות. אחר כך מריצים /config בטרמינל ומפעילים את Push when Claude decides, את Push when actions required או את שתיהן. אפשר גם לבקש בפרומפט, למשל notify me when the tests finish."
+---
+
+import { CommandBlock, Callout, StepList } from "@/components/lesson";
+
+אפליקציית Claude ל-iOS ול-Android היא חלון לסשנים של Claude Code, לא מקום שבו קוד רץ. מהלשונית **Code** מתחילים ומנווטים סשנים בענן, או מתחברים עם Remote Control לסשן שרץ במחשב שלך. מריצים `/remote-control` בסשן פתוח, סורקים את ה-QR, וממשיכים מהטלפון.
+
+## למה זה חשוב
+משימות ארוכות לא צריכות אותך מול המסך. אפשר להתחיל משימה ליד השולחן, לאשר הרשאות ולענות לשאלות של Claude מהספה, ולקבל התראה כשהוא מסיים. עם Remote Control הסשן ממשיך לרוץ במחשב שלך: מערכת הקבצים, [שרתי ה-MCP](/advanced/mcp) וההגדרות של הפרויקט נשארים זמינים, ורק השליטה עוברת לטלפון.
+
+## מה אפשר לעשות מהטלפון?
+האפליקציה זהה בכל המקרים. ההבדל הוא איפה העבודה רצה:
+
+| מה | למה מתחברים | מתי להשתמש |
+| --- | --- | --- |
+| [סשנים בענן](/pro/web) | סשן על תשתית ענן, מנוהלת כברירת מחדל על ידי Anthropic | הריפו ב-GitHub, והמשימה צריכה להמשיך גם כשהטלפון בכיס |
+| [Projects](/pro/projects) | שיחה שבה Claude מתאם כמה סשנים בענן במקביל | יש זרם של עבודה קשורה, לא משימה אחת |
+| Remote Control | סשן של Claude Code שרץ במחשב שלך | העבודה צריכה את הקבצים, הכלים או שרתי ה-MCP המקומיים |
+| [Dispatch](https://code.claude.com/docs/en/desktop#sessions-from-dispatch) | אפליקציית Desktop במחשב שלך | שולחים משימה בהודעה ונותנים ל-Dispatch להחליט איך להריץ. דורש Pro או Max |
+
+אם המחשב יהיה כבוי, בוחרים סשן בענן או Project. Remote Control ו-Dispatch מפעילים את המחשב שלך, ולכן הוא צריך להישאר דלוק עם Claude Code או אפליקציית Desktop פועלים.
+
+## איך מתקינים את האפליקציה ומתחברים?
+
+<StepList>
+
+1. מתקינים את אפליקציית Claude ל-iOS או ל-Android (באייפד מתקינים את אותה אפליקציית iOS). כדי להגיע לחנות הנכונה, מריצים בסשן של Claude Code:
+   <CommandBlock>/mobile</CommandBlock>
+   הפקודה מציגה QR ל-claude.ai/mobile. ‏`/ios` ו-`/android` עושות את אותו הדבר.
+2. מתחברים עם אותו חשבון claude.ai ואותו ארגון שבהם משתמשים ב-Claude Code. סשנים בענן ו-Remote Control לא זמינים עם מפתח API של Console או דרך ספק כמו Amazon Bedrock.
+3. לוחצים על **Code** בתפריט הניווט של האפליקציה. אם הלשונית לא מופיעה, ייתכן שהמנוי או הארגון שלך לא כוללים את הפיצ'רים האלה.
+
+</StepList>
+
+## איך ממשיכים סשן מקומי מהטלפון?
+מפעילים Remote Control במחשב, ומתחברים אליו מהאפליקציה. יש שלוש דרכים להפעיל אותו מה-CLI:
+
+| דרך | פקודה | מה מקבלים |
+| --- | --- | --- |
+| מתוך סשן פתוח | `/remote-control` (או `/rc`) | הסשן הנוכחי זמין מרחוק, כולל היסטוריית השיחה |
+| סשן אינטראקטיבי חדש | `claude --remote-control` (או `--rc`) | סשן רגיל בטרמינל שאפשר לשלוט בו גם מהטלפון |
+| מצב שרת | `claude remote-control` | תהליך שמחכה לחיבורים מרחוק ויכול להגיש כמה סשנים |
+
+אפשר לתת שם לסשן, והוא יופיע ברשימת הסשנים:
+
+<CommandBlock>/remote-control My Project</CommandBlock>
+
+בפעם הראשונה Claude Code מבקש אישור חד-פעמי. ב-`/remote-control` בוחרים **Enable Remote Control**, וב-`claude remote-control` עונים `y`.
+
+### איך מתחברים מהטלפון?
+- **סריקת QR:** ב-`claude remote-control` לוחצים על מקש הרווח כדי להציג QR, וסורקים אותו כדי לפתוח את הסשן באפליקציה. בסשן אינטראקטיבי מריצים שוב `/remote-control` כדי לפתוח את חלון הסטטוס עם הכתובת וה-QR.
+- **מרשימת הסשנים:** פותחים את האפליקציה, לוחצים **Code** ובוחרים את הסשן לפי השם. סשן של Remote Control מופיע עם אייקון מחשב ונקודה ירוקה כשהוא מחובר.
+- **מהדפדפן:** פותחים את כתובת הסשן בכל דפדפן, והיא מובילה לסשן ב-claude.ai/code.
+
+השיחה מסונכרנת בין כל המכשירים המחוברים. אפשר לשלוח הודעות מהטרמינל, מהדפדפן ומהטלפון לסירוגין.
+
+### מה קורה לתמונות וקבצים שמצרפים מהטלפון?
+הם מגיעים לסשן המקומי:
+- **תמונות:** Claude רואה אותן ישירות כחלק מההודעה. Claude Code גם שומר כל תמונה תחת `~/.claude/uploads/` ומוסר ל-Claude את הנתיב, כך שהוא יכול להעתיק אותה לקבצים שהוא יוצר.
+- **קבצים אחרים:** Claude Code מוריד אותם למחשב ומעביר אותם ל-Claude כהפניות `@` לקובץ.
+
+## מה צריך כדי ש-Remote Control יעבוד?
+לפי [דף Remote Control](https://code.claude.com/docs/en/remote-control), צריך:
+
+- **מנוי:** Pro,‏ Max,‏ Team או Enterprise. ב-Team וב-Enterprise הפיצ'ר כבוי עד ש-Owner מפעיל את **Remote Control** בהגדרות הניהול של Claude Code.
+- **התחברות דרך claude.ai:** מפתחות API לא נתמכים. אם עוד לא התחברת, מריצים `claude` ואז `/login`.
+- **חיבור ישיר ל-API של Anthropic:** לא עובד עם Amazon Bedrock,‏ Google Cloud's Agent Platform או Microsoft Foundry, וגם לא כש-`ANTHROPIC_BASE_URL` מפנה לשרת אחר, כמו gateway או proxy.
+- **בלי משתני סביבה שחוסמים feature flags:** `DISABLE_TELEMETRY`,‏ `DO_NOT_TRACK`,‏ `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC` ו-`DISABLE_GROWTHBOOK` מונעים את Remote Control.
+- **workspace trust:** מריצים `claude` בתיקיית הפרויקט לפחות פעם אחת ומאשרים את דיאלוג ה-trust. לא מתחילים Remote Control מתיקיית הבית, כי ה-trust לא נשמר שם.
+
+<Callout type="note">
+בדרך כלל Remote Control מופעל רק כשמריצים אחת משלוש הפקודות. כדי שכל סשן אינטראקטיבי יתחבר אוטומטית, מריצים `/config` ומגדירים את **Enable Remote Control for all sessions** ל-`true`.
+</Callout>
+
+## איך מקבלים התראות push לטלפון?
+כש-Remote Control פעיל, Claude יכול לשלוח התראה לטלפון. בדרך כלל זה קורה כשמשימה ארוכה מסתיימת או כשהוא צריך ממך החלטה. אפשר גם לבקש בפרומפט:
+
+```text
+notify me when the tests finish
+```
+
+<StepList>
+
+1. מתקינים את אפליקציית Claude ומתחברים עם אותו חשבון ואותו ארגון של Claude Code.
+2. מאשרים את בקשת ההרשאה להתראות של מערכת ההפעלה.
+3. בטרמינל מריצים `/config` ומפעילים **Push when Claude decides** (התראות יזומות), **Push when actions required** (הרשאות ושאלות), או את שתיהן.
+
+</StepList>
+
+אם `/config` מציג **No mobile registered**, פותחים את האפליקציה בטלפון כדי שתרענן את ה-push token. Claude Code לא שולח התראות בזמן שאתה מקליד בטרמינל המחובר או מתמקד בו.
+
+## דוגמה מעשית
+ביקשת מ-Claude לעשות refactor גדול ולהריץ את כל הבדיקות, וצריך לצאת. בסשן הפתוח מריצים `/remote-control`, סורקים את ה-QR ויוצאים. בדרך מגיעה התראה ש-Claude מבקש הרשאה להריץ פקודה. מאשרים מהטלפון, והבדיקות רצות במחשב. כשהן מסתיימות, בודקים את ה-diff מהאפליקציה ושולחים הוראה להמשך.
+
+## מה לא עובד מהטלפון?
+- **פקודות מקומיות בלבד:** פקודות שרצות רק בממשק הטרמינל, כמו `/plugin` ו-`/resume`, לא עובדות מהאפליקציה. פקודות כמו `/compact`,‏ `/clear` ו-`/context` כן עובדות. הרשימה המלאה נמצאת ב[מגבלות Remote Control](https://code.claude.com/docs/en/remote-control#limitations).
+- **מצבי הרשאה:** בסשנים בענן אפשר לבחור Accept edits,‏ Plan ו-Auto. בסשני Remote Control אפשר לבחור Manual,‏ Accept edits ו-Plan. אי אפשר לבחור Bypass permissions מהאפליקציה, ובסשן Remote Control אי אפשר לבחור גם Auto. עוד על המצבים ב[שיעור מצבי ההרשאה](/beginner-plus/permission-modes).
+- **סשן מרוחק אחד לכל תהליך:** מחוץ למצב שרת, כל תהליך של Claude Code תומך בסשן מרוחק אחד. לכמה סשנים במקביל מתהליך אחד משתמשים ב-`claude remote-control`.
+- **Dispatch:** דורש מנוי Pro או Max, ולא זמין ב-Team וב-Enterprise.
+
+<Callout type="warning">
+התהליך המקומי חייב להמשיך לרוץ. אם סוגרים את הטרמינל, סוגרים את VS Code או עוצרים את `claude`, הסשן יורד מהרשת. במכונה מרוחקת דרך SSH מריצים את הסשן בתוך `tmux` או `screen`, כדי שימשיך לרוץ אחרי ההתנתקות.
+</Callout>
+
+## האם Remote Control פותח פורטים במחשב?
+לא. הסשן המקומי שולח רק בקשות HTTPS יוצאות ולא פותח פורטים נכנסים. כל התעבורה עוברת דרך ה-API של Anthropic ב-TLS. בזמן החיבור, תמליל הסשן (ההודעות, התשובות ופעילות הכלים) נשמר בשרתי Anthropic כדי לסנכרן בין המכשירים. ההרצה והגישה לקבצים נשארות במחשב שלך. כדי לכבות את Remote Control לגמרי, משתמשים בהגדרה `disableRemoteControl`.
+
+## הצעד הבא
+- ← [Routines: משימות אוטומטיות בענן](/pro/routines)
+- שיעורים קשורים: [Claude Code בענן](/pro/web) · [Channels](/pro/channels) · [הודעות בין סשנים](/pro/cross-session)
