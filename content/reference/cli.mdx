@@ -1,0 +1,140 @@
+---
+title: "מדריך מהיר ל-CLI של Claude Code: פקודות ודגלים שימושיים"
+description: "רשימה נבחרת של פקודות ודגלי CLI ב-Claude Code: התחלה והמשך של סשנים, claude -p לסקריפטים, הרשאות, מודל והקשר, תיקיות והגדרות, פורמטי פלט ודיבאג."
+order: 1
+source: "https://code.claude.com/docs/en/cli-reference"
+lastVerified: "2026-09-23"
+keywords: ["Claude Code", "CLI", "שורת הפקודה", "דגלים", "CLI flags", "claude -p", "print mode", "claude --resume", "claude --continue", "--permission-mode", "--output-format", "claude mcp", "claude update", "סקריפטים"]
+faq:
+  - q: "מה ההבדל בין claude -c ל-claude -r?"
+    a: "claude -c ממשיך את השיחה האחרונה בתיקייה הנוכחית. claude -r ממשיך סשן מסוים לפי מזהה או שם, או פותח רשימה לבחירת סשן."
+  - q: "איך מריצים את Claude Code מתוך סקריפט?"
+    a: "עם הדגל -p (או --print): Claude Code מדפיס תשובה ויוצא, בלי מצב אינטראקטיבי. אפשר להוסיף --output-format json לפלט מובנה ו---max-turns כדי להגביל את מספר הסבבים."
+  - q: "האם claude --help מציג את כל הדגלים?"
+    a: "לא. לפי התיעוד הרשמי, claude --help לא מציג כל דגל, ולכן העובדה שדגל לא מופיע שם לא אומרת שהוא לא זמין."
+  - q: "מה ההבדל בין --system-prompt ל---append-system-prompt?"
+    a: "--system-prompt מחליף את כל ה-system prompt של ברירת המחדל. --append-system-prompt מוסיף טקסט לסופו ושומר על ההנחיות המובנות של Claude Code."
+---
+
+העמוד מרכז את פקודות ה-CLI של Claude Code (`claude`,‏ `claude -p`,‏ `claude update`,‏ `claude mcp`) ואת הדגלים השימושיים ביותר, לפי קטגוריות. זו רשימה נבחרת. הרשימה המלאה נמצאת ב-[CLI reference הרשמי](https://code.claude.com/docs/en/cli-reference).
+
+## אילו פקודות CLI יש?
+
+| פקודה | מה היא עושה | דוגמה |
+| --- | --- | --- |
+| `claude` | מתחיל סשן אינטראקטיבי | `claude` |
+| `claude "query"` | מתחיל סשן אינטראקטיבי עם פרומפט פתיחה | `claude "explain this project"` |
+| `claude -p "query"` | שולח שאילתה דרך ה-SDK ויוצא | `claude -p "explain this function"` |
+| `cat file \| claude -p "query"` | מעבד תוכן שמועבר ב-pipe | `cat logs.txt \| claude -p "explain"` |
+| `claude -c` | ממשיך את השיחה האחרונה בתיקייה הנוכחית | `claude -c` |
+| `claude -c -p "query"` | ממשיך את השיחה האחרונה דרך ה-SDK | `claude -c -p "Check for type errors"` |
+| `claude -r "<session>" "query"` | ממשיך סשן לפי מזהה או שם | `claude -r "auth-refactor" "Finish this PR"` |
+| `claude update` | מעדכן לגרסה האחרונה | `claude update` |
+| `claude install [version]` | מתקין או מתקין מחדש את הבינארי הנייטיבי; מקבל מספר גרסה, `stable` או `latest` | `claude install stable` |
+| `claude auth login` | מתחבר לחשבון Anthropic; `--console` מתחבר דרך Anthropic Console לחיוב לפי שימוש ב-API | `claude auth login --console` |
+| `claude auth logout` | מתנתק מחשבון Anthropic | `claude auth logout` |
+| `claude auth status` | מציג את מצב ההתחברות כ-JSON (`--text` לפלט קריא); קוד יציאה 0 אם מחובר, 1 אם לא | `claude auth status` |
+| `claude doctor` | מדפיס אבחון של ההתקנה וההגדרות בלי לפתוח סשן, לקריאה בלבד | `claude doctor` |
+| `claude mcp` | מגדיר שרתי MCP (Model Context Protocol) | ראה [תיעוד MCP](https://code.claude.com/docs/en/mcp) |
+| `claude mcp login <name>` | מריץ את תהליך ה-OAuth של שרת MCP מוגדר בלי לפתוח את הפאנל `/mcp` | `claude mcp login sentry` |
+| `claude plugin` | מנהל plugins (כינוי: `claude plugins`) | `claude plugin install code-review@claude-plugins-official` |
+| `claude agents` | פותח את agent view לניטור ושליחה של סשנים מקבילים ברקע | `claude agents --json` |
+| `claude setup-token` | מייצר OAuth token לטווח ארוך ל-CI ולסקריפטים ומדפיס אותו בלי לשמור; דורש מנוי Claude | `claude setup-token` |
+
+אם מקלידים תת-פקודה עם שגיאת כתיב, Claude Code מציע את ההתאמה הקרובה ויוצא בלי לפתוח סשן.
+
+## איך מתחילים וממשיכים סשנים?
+
+| דגל | מה הוא עושה | דוגמה |
+| --- | --- | --- |
+| `--continue`, `-c` | טוען את השיחה האחרונה בתיקייה הנוכחית | `claude --continue` |
+| `--resume`, `-r` | ממשיך סשן לפי מזהה או שם, או פותח רשימה לבחירה | `claude --resume auth-refactor` |
+| `--name`, `-n` | נותן לסשן שם תצוגה, שמופיע ב-`/resume` ובכותרת הטרמינל | `claude -n "my-feature-work"` |
+| `--fork-session` | בהמשך סשן, יוצר מזהה סשן חדש במקום להשתמש במקורי (עם `--resume` או `--continue`) | `claude --resume abc123 --fork-session` |
+| `--session-id` | משתמש במזהה סשן מסוים (חייב להיות UUID תקין) | `claude --session-id "550e8400-e29b-41d4-a716-446655440000"` |
+| `--from-pr` | פותח את בוחר הסשנים מסונן לסשנים שמקושרים ל-pull request מסוים | `claude --from-pr 123` |
+| `--worktree`, `-w` | מתחיל את Claude ב-git worktree מבודד תחת `<repo>/.claude/worktrees/<name>` | `claude -w feature-auth` |
+| `--bg`, `--background` | מתחיל את הסשן כ-background agent וחוזר מיד; לא משתלב עם `-p` | `claude --bg "investigate the flaky test"` |
+
+## איך מריצים בלי מצב אינטראקטיבי (סקריפטים)?
+
+| דגל | מה הוא עושה | דוגמה |
+| --- | --- | --- |
+| `--print`, `-p` | מדפיס תשובה בלי מצב אינטראקטיבי | `claude -p "query"` |
+| `--max-turns` | מגביל את מספר הסבבים האג'נטיים ויוצא עם שגיאה כשמגיעים למגבלה (print mode בלבד); אין מגבלה כברירת מחדל | `claude -p --max-turns 3 "query"` |
+| `--max-budget-usd` | סכום מקסימלי בדולרים לקריאות API לפני עצירה (print mode בלבד) | `claude -p --max-budget-usd 5.00 "query"` |
+| `--no-session-persistence` | לא שומר את הסשן לדיסק, כך שאי אפשר להמשיך אותו (print mode בלבד) | `claude -p --no-session-persistence "query"` |
+| `--bare` | מצב מינימלי: מדלג על גילוי אוטומטי של hooks,‏ skills,‏ פקודות מותאמות,‏ subagents,‏ plugins,‏ שרתי MCP,‏ auto memory ו-CLAUDE.md כדי שקריאות מסקריפט יתחילו מהר יותר | `claude --bare -p "query"` |
+| `--permission-prompts` | קובע מי עונה לבקשות הרשאה ב-print mode; `none` דוחה אותן כשאין מי שיענה | `claude -p --permission-prompts none "query"` |
+
+## אילו פורמטי פלט וקלט יש?
+
+| דגל | מה הוא עושה | דוגמה |
+| --- | --- | --- |
+| `--output-format` | פורמט הפלט ב-print mode: `text`,‏ `json` או `stream-json` | `claude -p "query" --output-format json` |
+| `--input-format` | פורמט הקלט ב-print mode: `text` או `stream-json` | `claude -p --output-format json --input-format stream-json` |
+| `--json-schema` | מחזיר פלט JSON מאומת לפי JSON Schema אחרי שהסוכן מסיים (print mode בלבד) | `claude -p --json-schema '{"type":"object","properties":{...}}' "query"` |
+| `--include-partial-messages` | כולל אירועי streaming חלקיים בפלט; דורש `--print` ו-`--output-format stream-json` | `claude -p --output-format stream-json --verbose --include-partial-messages "query"` |
+| `--replay-user-messages` | מחזיר את הודעות המשתמש מ-stdin ל-stdout לאישור; דורש `stream-json` בקלט ובפלט | `claude -p --input-format stream-json --output-format stream-json --verbose --replay-user-messages` |
+
+## איך שולטים בהרשאות?
+
+| דגל | מה הוא עושה | דוגמה |
+| --- | --- | --- |
+| `--permission-mode` | מתחיל ב-permission mode מסוים: `default`,‏ `acceptEdits`,‏ `plan`,‏ `auto`,‏ `dontAsk`,‏ `bypassPermissions` (או `manual` ככינוי ל-`default`) | `claude --permission-mode plan` |
+| `--allowedTools`, `--allowed-tools` | כלים שרצים בלי לבקש אישור | `"Bash(git log *)" "Bash(git diff *)" "Read"` |
+| `--disallowedTools`, `--disallowed-tools` | כללי חסימה: שם כלי לבד מסיר אותו מההקשר, וכלל מוגבל כמו `Bash(rm *)` חוסם רק קריאות תואמות | `"Bash(git log *)" "Bash(git diff *)" "Edit"` |
+| `--tools` | מגביל אילו כלים מובנים Claude יכול להשתמש בהם: `""` מבטל הכול, `"default"` לסט ברירת המחדל | `claude --tools "Bash,Edit,Read"` |
+| `--dangerously-skip-permissions` | מדלג על בקשות הרשאה; שקול ל-`--permission-mode bypassPermissions` | `claude --dangerously-skip-permissions` |
+| `--allow-dangerously-skip-permissions` | מוסיף את `bypassPermissions` למחזור `Shift+Tab` בלי להתחיל בו | `claude --permission-mode plan --allow-dangerously-skip-permissions` |
+| `--permission-prompt-tool` | מגדיר כלי MCP שמטפל בבקשות הרשאה במצב לא אינטראקטיבי | `claude -p --permission-prompt-tool mcp_auth_tool "query"` |
+
+## איך בוחרים מודל ומשנים את ההקשר?
+
+| דגל | מה הוא עושה | דוגמה |
+| --- | --- | --- |
+| `--model` | קובע את המודל לסשן לפי כינוי מודל או שם מלא; ראה [model-config](https://code.claude.com/docs/en/model-config) | — |
+| `--fallback-model` | מעבר אוטומטי למודל אחר (או רשימה מופרדת בפסיקים) כשהמודל הראשי עמוס או לא זמין; ראה [model-config](https://code.claude.com/docs/en/model-config) | — |
+| `--effort` | קובע effort level לסשן: `low`,‏ `medium`,‏ `high`,‏ `xhigh`,‏ `max` או `ultracode`; הרמות הזמינות תלויות במודל | `claude --effort high` |
+| `--autocompact` | קובע את חלון ה-auto-compact לסשן בלי לשנות את ההגדרות השמורות | `claude --autocompact 500k` |
+| `--system-prompt` | מחליף את כל ה-system prompt בטקסט מותאם | `claude --system-prompt "You are a Python expert"` |
+| `--system-prompt-file` | טוען system prompt מקובץ במקום ברירת המחדל | `claude --system-prompt-file ./custom-prompt.txt` |
+| `--append-system-prompt` | מוסיף טקסט לסוף ה-system prompt של ברירת המחדל | `claude --append-system-prompt "Always use TypeScript"` |
+| `--append-system-prompt-file` | מוסיף טקסט מקובץ לסוף ה-system prompt של ברירת המחדל | `claude --append-system-prompt-file ./extra-rules.txt` |
+| `--agent` | קובע agent לסשן הנוכחי (גובר על ההגדרה `agent`) | `claude --agent my-custom-agent` |
+| `--agents` | מגדיר subagents מותאמים באופן דינמי דרך JSON | ראה [תיעוד subagents](https://code.claude.com/docs/en/sub-agents) |
+
+`--system-prompt` ו-`--system-prompt-file` לא משתלבים זה עם זה. את דגלי ה-append אפשר לשלב עם כל אחד מהם.
+
+## איך מוסיפים תיקיות, הגדרות וכלים?
+
+| דגל | מה הוא עושה | דוגמה |
+| --- | --- | --- |
+| `--add-dir` | מוסיף תיקיות עבודה נוספות ש-Claude יכול לקרוא ולערוך בהן | `claude --add-dir ../apps ../lib` |
+| `--settings` | נתיב לקובץ הגדרות JSON או מחרוזת JSON; הערכים גוברים על אותם מפתחות ב-`settings.json` לסשן הזה | `claude --settings ./settings.json` |
+| `--setting-sources` | רשימה מופרדת בפסיקים של מקורות הגדרות לטעינה (`user`,‏ `project`,‏ `local`) | `claude --setting-sources user,project` |
+| `--mcp-config` | טוען שרתי MCP מקובצי JSON או ממחרוזות | `claude --mcp-config ./mcp.json` |
+| `--strict-mcp-config` | משתמש רק בשרתי MCP מ-`--mcp-config` ומתעלם מכל הגדרת MCP אחרת | `claude --strict-mcp-config --mcp-config ./mcp.json` |
+| `--plugin-dir` | טוען plugin מתיקייה או מארכיון `.zip` לסשן הזה בלבד | `claude --plugin-dir ./my-plugin` |
+| `--disable-slash-commands` | מבטל את כל ה-skills והפקודות לסשן הזה | `claude --disable-slash-commands` |
+| `--ide` | מתחבר אוטומטית ל-IDE בהפעלה, אם יש בדיוק IDE תקין אחד זמין | `claude --ide` |
+| `--chrome` | מפעיל את האינטגרציה עם דפדפן Chrome לאוטומציה ובדיקות ווב | `claude --chrome` |
+
+## איך מאבחנים בעיות?
+
+| דגל | מה הוא עושה | דוגמה |
+| --- | --- | --- |
+| `--debug` | מפעיל debug mode, עם סינון קטגוריות אופציונלי | `claude --debug='mcp,startup'` |
+| `--debug-file <path>` | כותב לוגי debug לקובץ מסוים ומפעיל debug mode | `claude --debug-file /tmp/claude-debug.log` |
+| `--verbose` | מפעיל לוגים מפורטים ומציג את הפלט המלא של כל סבב | `claude --verbose` |
+| `--safe-mode` | מתחיל עם כל ההתאמות האישיות כבויות (CLAUDE.md,‏ skills,‏ plugins,‏ hooks,‏ שרתי MCP ועוד) כדי לאתר הגדרה שבורה | `claude --safe-mode` |
+| `--version`, `-v` | מדפיס את מספר הגרסה | `claude -v` |
+
+`claude --help` לא מציג כל דגל, כך שדגל שלא מופיע שם עדיין יכול להיות זמין.
+
+## איפה לומדים עוד?
+
+- [הסשן הראשון](/beginner/first-session): איך מתחילים לעבוד עם `claude`.
+- [ניהול סשנים](/beginner-plus/sessions): המשך סשן קודם, מתן שם ופיצול.
+- [מצבי הרשאות](/beginner-plus/permission-modes): מה עושה כל permission mode.
+- [CLI reference הרשמי](https://code.claude.com/docs/en/cli-reference): הרשימה המלאה של הפקודות והדגלים.
