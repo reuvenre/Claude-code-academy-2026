@@ -1,0 +1,152 @@
+---
+title: "איך משנים את הטון והפורמט של Claude Code עם output styles?"
+description: "Output style קובע את התפקיד, הטון והפורמט של Claude Code לכל הסשן. אילו סגנונות מובנים יש, איך מחליפים עם /output-style, ואיך כותבים סגנון מותאם משלך."
+level: "advanced"
+order: 28
+source: "https://code.claude.com/docs/en/output-styles"
+lastVerified: "2026-09-23"
+keywords: ["Claude Code", "output styles", "output style", "/output-style", "outputStyle", "סגנון פלט", "סגנון תשובות", "Concise", "Explanatory", "Learning", "Proactive", "keep-coding-instructions", "סגנון מותאם"]
+canDo: "עכשיו אתה יכול להחליף בין סגנונות הפלט המובנים של Claude Code, לכתוב סגנון מותאם משלך, ולדעת מתי עדיף CLAUDE.md, skill או hook."
+relatedSlugs: ["skills", "hooks", "claude-md"]
+faq:
+  - q: "אילו output styles מובנים יש ב-Claude Code?"
+    a: "מלבד Default יש ארבעה סגנונות מובנים: Proactive מתחיל לעבוד מיד ומניח הנחות סבירות, Concise מקצר את התשובות, Explanatory מוסיף בלוקי Insight שמסבירים את הבחירות, ו-Learning גם משאיר לך קטעי קוד קטנים לכתוב בעצמך."
+  - q: "איך מחליפים output style?"
+    a: "מריצים /output-style ואחריו שם הסגנון, למשל /output-style concise, או פותחים /config ובוחרים Output style. אפשר גם לכתוב את השדה outputStyle בקובץ settings. הסגנון החדש חל החל מההודעה הבאה."
+  - q: "איפה שומרים output style מותאם?"
+    a: "קובץ Markdown בתיקייה ~/.claude/output-styles לשימוש אישי, או ב-.claude/output-styles בפרויקט. שם הקובץ הופך לשם הסגנון, אלא אם מגדירים name ב-frontmatter. בטרמינל צריך להפעיל מחדש את Claude Code אחרי יצירה או עריכה של קובץ."
+  - q: "מה עושה keep-coding-instructions?"
+    a: "סגנון מותאם מסיר כברירת מחדל את הוראות הנדסת התוכנה המובנות של Claude Code. כשמגדירים keep-coding-instructions: true ההוראות האלה נשמרות, ו-Claude ממשיך לכתוב קוד כרגיל בזמן שהסגנון משנה את אופן התקשורת."
+  - q: "מה ההבדל בין output style ל-CLAUDE.md?"
+    a: "CLAUDE.md מחזיק את מה ש-Claude צריך לדעת על הפרויקט: פקודות, מוסכמות ומבנה. output style קובע איך Claude עונה בכל תשובה בסשן: קול, אורך, פורמט או תפקיד. אפשר לשלב את שניהם, ו-CLAUDE.md נשאר טעון בכל סגנון."
+---
+
+import { CommandBlock, Callout, StepList } from "@/components/lesson";
+
+Output style הוא סט הוראות שקובע את התפקיד, הטון והפורמט של Claude בכל תשובה בסשן. Claude Code כולל ארבעה סגנונות מובנים מלבד Default: Proactive,‏ Concise,‏ Explanatory ו-Learning. מחליפים עם `/output-style`, ואפשר לכתוב סגנון מותאם כקובץ Markdown.
+
+## למה זה חשוב
+Output style חוסך לחזור על אותה בקשה בכל פרומפט. אם כל תשובה ארוכה מדי, אם אתה רוצה הסבר לכל שינוי, או אם Claude צריך לשמש כעוזר כתיבה ולא כמהנדס תוכנה, מגדירים את זה פעם אחת לכל הסשן.
+
+<Callout type="note">
+Output style הוא הוראה ש-Claude ממלא, לא הבטחה. דבר שחייב לקרות בכל פעם, כמו פרמוט אחרי כל עריכה, כותבים כ-[hook](/advanced/hooks).
+</Callout>
+
+## אילו סגנונות מובנים יש?
+Claude Code מתחיל בסגנון **Default**, ההוראות הרגילות שלו למשימות הנדסת תוכנה. כל אחד מארבעת הסגנונות האחרים שומר על ההוראות האלה ומוסיף משלו:
+
+| סגנון | מה משתנה | מתי מתאים |
+| --- | --- | --- |
+| Proactive | Claude מתחיל לעבוד מיד ומניח הנחות סבירות במקום לשאול על החלטות שגרתיות | אתה רוצה ש-Claude ימשיך לעבוד דרך החלטות שגרתיות, ותתקן כיוון אם הנחה מתבררת כשגויה |
+| Concise | התשובה נפתחת בתוצאה, בלי הקדמה, תיאור צעד-צעד וסיכום | תשובות ה-Default ארוכות לך מדי |
+| Explanatory | Claude מוסיף בלוקי `Insight` קצרים שמסבירים את הבחירות בקוד | אתה לומד codebase או רוצה את ההיגיון לצד השינוי |
+| Learning | Claude מסביר, ומשאיר לך קטעי קוד קטנים לכתוב בעצמך | אתה רוצה תרגול מעשי בזמן שהמשימה מתקדמת |
+
+### מה חשוב לדעת על כל סגנון?
+- **Proactive** לא משנה את ה-[permission mode](/beginner-plus/permission-modes). בקשות אישור מופיעות בדיוק כמו קודם. ההוראות שלו גם אומרות ל-Claude לבדוק איתך לפני פעולה שמוחקת נתונים או משנה מערכת משותפת או production.
+- **Concise** עדיין כותב באורך מלא כשאתה מבקש הסבר, ובדברים שנדרשים כדי לפעול בבטחה: שגיאות, בדיקות שנכשלו, אזהרות אבטחה ואישורים לפעולות הרסניות. העבודה ההנדסית עצמה יסודית כמו ב-Default.
+- **Explanatory** כותב את ההסברים בשיחה, לא כהערות בקבצים. כך נראה בלוק `Insight` בדוגמה מהתיעוד:
+
+```text
+★ Insight ─────────────────────────────────────
+- Every route in this repo goes through the withAuth wrapper, so the new endpoint gets session checks without its own middleware.
+- Rate limits are set per route in limits.ts, which is why this change adds an entry there rather than a global default.
+─────────────────────────────────────────────────
+```
+
+- **Learning** מסמן את המקום שלך בקובץ עם הערת `TODO(human)`, מסביר מה לכתוב ועוצר. כותבים את הקוד, אומרים ל-Claude שסיימת, והוא ממשיך את המשימה.
+
+## איך מחליפים סגנון?
+הדרך הישירה היא הפקודה:
+
+<CommandBlock>/output-style concise</CommandBlock>
+
+בלי ארגומנט, `/output-style` מציג את הסגנונות הזמינים ומסמן את הנוכחי. הפקודה מתעלמת מאותיות גדולות וקטנות. דרכים נוספות:
+
+- **תפריט בטרמינל:** מריצים `/config` ובוחרים **Output style**.
+- **VS Code:** פותחים את תפריט הפקודות עם `/` ובוחרים **Output styles**.
+- **קובץ settings:** כותבים את השדה `outputStyle`. זו גם הדרך באפליקציית ה-Desktop.
+
+הפקודה והתפריטים שומרים את הבחירה ב-`.claude/settings.local.json`. כך נראה השדה:
+
+```json
+{
+  "outputStyle": "Explanatory"
+}
+```
+
+<Callout type="warning">
+בקובץ settings הערך רגיש לאותיות: `Proactive`,‏ `Concise`,‏ `Explanatory`,‏ `Learning`. ערך כמו `explanatory` לא מתאים לאף סגנון, ומחזיר אותך ל-Default בלי שגיאה.
+</Callout>
+
+כדי שסגנון יהיה ברירת המחדל בכל הפרויקטים, מגדירים `outputStyle` ב-`~/.claude/settings.json`. קובצי ה-settings של פרויקט גוברים עליו. החלפה באמצע סשן חלה החל מההודעה הבאה.
+
+## איך יוצרים סגנון מותאם?
+סגנון מותאם הוא קובץ Markdown: frontmatter למטא-דאטה, ואחריו ההוראות ל-Claude.
+
+<StepList>
+
+1. יוצרים קובץ `.md` באחת משלוש רמות. שם הקובץ הופך לשם הסגנון, אלא אם מגדירים `name`.
+   - אישי: `~/.claude/output-styles`
+   - פרויקט: `.claude/output-styles`
+   - מדיניות מנוהלת: `.claude/output-styles` בתוך תיקיית ה-managed settings
+2. מוסיפים frontmatter והוראות. מחליטים אם לשמור את הוראות הנדסת התוכנה של Claude Code עם `keep-coding-instructions: true`.
+3. מפעילים עם `/output-style` ושם הסגנון, או דרך `/config`. בטרמינל, Claude Code קורא את קובצי הסגנון בעלייה, ולכן אחרי יצירה או עריכה של קובץ צריך להפעיל אותו מחדש.
+
+</StepList>
+
+זו הדוגמה מהתיעוד: סגנון שפותח כל הסבר בתרשים, ושומר על אופן כתיבת הקוד הרגיל:
+
+```markdown
+---
+name: Diagrams first
+description: Lead every explanation with a diagram
+keep-coding-instructions: true
+---
+
+When explaining code, architecture, or data flow, start with a Mermaid diagram showing the structure, then explain in prose.
+
+## Diagram conventions
+
+Use `flowchart TD` for control flow and `sequenceDiagram` for request paths. Keep diagrams under 15 nodes.
+```
+
+### אילו שדות יש ב-frontmatter?
+כל השדות אופציונליים. שדה עם שגיאת כתיב פשוט נשמט, בלי הודעת שגיאה.
+
+| שדה | מה הוא עושה | ברירת מחדל |
+| --- | --- | --- |
+| `name` | השם שמוצג בבורר של `/config` | שם הקובץ |
+| `description` | התיאור שמוצג בבורר של `/config` | — |
+| `keep-coding-instructions` | `true` שומר את הוראות הנדסת התוכנה המובנות לצד הסגנון | `false` |
+| `force-for-plugin` | לסגנונות של plugin בלבד: `true` מפעיל את הסגנון אוטומטית כשה-plugin מופעל, וגובר על הגדרת `outputStyle` של המשתמש | `false` |
+
+<Callout type="warning">
+בלי `keep-coding-instructions: true`, סגנון מותאם מסיר את ההוראות המובנות של Claude Code, כמו איך לתחום שינויים, לכתוב הערות ולוודא עבודה. זה מתאים לתפקיד שאינו קוד, כמו עוזר כתיבה. אם Claude עדיין כותב קוד, הוסף את השדה.
+</Callout>
+
+אם ה-YAML לא תקין, הסגנון נטען תחת שם הקובץ בלי אף שדה. מריצים `claude --debug` כדי לראות את שגיאת הניתוח. גם [plugins](/advanced/plugins) יכולים לכלול סגנונות בתיקיית `output-styles/`.
+
+## מתי output style ומתי פיצ'ר אחר?
+Output style חל על כל תשובה בסשן, ושום דבר לא אוכף אותו. כשמה שאתה צריך צר יותר או חייב לקרות תמיד, פיצ'ר אחר מתאים יותר:
+
+| אתה רוצה | משתמשים ב | למה |
+| --- | --- | --- |
+| קול, אורך או פורמט קבוע לכל תשובה, או תפקיד אחר ל-Claude | Output style | חל על כל הסשן ומוחלף בפקודה אחת |
+| ש-Claude יכיר את המוסכמות, הפקודות והמבנה של הפרויקט | [CLAUDE.md](/beginner-plus/claude-md) | נשאר טעון בכל סגנון שתבחר |
+| הוראות לסוג משימה אחד, כמו checklist לשחרור גרסה | [Skill](/advanced/skills) | נטען רק כשמפעילים אותו או כשהמשימה מתאימה |
+| פעולה שקורית בכל פעם בלי יוצא מן הכלל | [Hook](/advanced/hooks) | Claude Code מריץ אותו בעצמו, בלי תלות בהוראה |
+| עוזר עם הוראות, מודל וכלים משלו למשימה ממוקדת | [Subagent](/advanced/subagents) | רץ בהקשר נפרד עם system prompt משלו |
+
+הפיצ'רים משתלבים: CLAUDE.md למה ש-Claude צריך לדעת, output style לאיך שהוא עונה, ו-hook למה שחייב לקרות.
+
+<Callout type="note">
+סגנון חל על השיחה הראשית ועל fork שלה. subagents אחרים רצים עם system prompt משלהם, ולכן הסגנון לא משנה את התשובות שלהם.
+</Callout>
+
+## האם סגנון משפיע על צריכת טוקנים?
+כן, בשני כיוונים. ההוראות של הסגנון מוסיפות input tokens, אבל prompt caching מקטין את העלות אחרי הבקשה הראשונה בסשן. Explanatory ו-Learning מייצרים תשובות ארוכות יותר מ-Default, ו-Concise מקצר אותן. בסגנון מותאם, צריכת ה-output תלויה במה שההוראות שלך מבקשות.
+
+## הצעד הבא
+- ← [חזרה לעמוד הרמה המתקדמת](/advanced), השיעור הבא הוא Advisor tool
+- שיעורים קשורים: [Skills](/advanced/skills) · [Hooks](/advanced/hooks) · [CLAUDE.md](/beginner-plus/claude-md)
