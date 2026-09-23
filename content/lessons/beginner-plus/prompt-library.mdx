@@ -1,0 +1,246 @@
+---
+title: "איפה מוצאים פרומפטים מוכנים ל-Claude Code לפי סוג המשימה?"
+description: "ב-Prompt library הרשמית של Claude Code יש פרומפטים מוכנים להעתקה לפי משימה: הבנת קוד, תכנון, בדיקות, סקירה, דיבוג ו-Git. בוחרים פרומפט, מתאימים שדות ומדביקים."
+level: "beginner-plus"
+order: 18
+source: "https://code.claude.com/docs/en/prompt-library"
+lastVerified: "2026-09-23"
+keywords: ["Claude Code", "prompt library", "ספריית פרומפטים", "פרומפטים מוכנים", "פרומפט", "לכתוב פרומפט", "דוגמאות פרומפטים", "prompts", "prompt examples", "code review", "debug", "דיבוג", "בדיקות"]
+canDo: "עכשיו אתה יכול לבחור פרומפט מוכן מה-Prompt library לפי המשימה, להתאים אותו לפרויקט שלך, ולכתוב פרומפטים חדשים לפי אותם דפוסים."
+relatedSlugs: ["core-workflow", "common-workflows", "checkpointing"]
+faq:
+  - q: "מה זה ה-Prompt library של Claude Code?"
+    a: "דף בתיעוד הרשמי שמרכז פרומפטים מוכנים להעתקה ל-Claude Code, מתויגים לפי משימה ולפי תפקיד. הפרומפטים נאספו ממדריכים של Anthropic, כמו Common workflows ו-Best practices, והם נקודת פתיחה ולא תסריט קבוע."
+  - q: "איך מתאימים פרומפט מהספרייה לפרויקט שלי?"
+    a: "ברוב הפרומפטים יש שדות מסומנים עם ערכי דוגמה, כמו נתיב קובץ או שם של בדיקה. מחליפים אותם בפרטים מהפרויקט שלך, מעתיקים, ומדביקים בסשן של Claude Code."
+  - q: "למה חלק מהפרומפטים לא עובדים אצלי?"
+    a: "חלק מהפרומפטים דורשים כלי חיצוני, והדף מציין זאת תחת Needs. למשל, פרומפט שקורא issue ב-GitHub צריך gh CLI מחובר או את GitHub כ-connector, ופרומפט שיוצר tickets צריך את מערכת המשימות שלך כ-connector או כשרת MCP."
+  - q: "איך כותבים פרומפט טוב משלי?"
+    a: "לפי התיעוד הרשמי, מתארים את התוצאה ולא את הצעדים, נותנים ל-Claude דרך לבדוק את העבודה, מפנים לדוגמה קיימת בקוד, מגדירים יעד מדיד כשיש כזה, ומצרפים את הקובץ, השגיאה או צילום המסך עצמם."
+---
+
+import { Callout, StepList } from "@/components/lesson";
+
+בתיעוד הרשמי יש Prompt library: דף עם פרומפטים מוכנים להעתקה ל-Claude Code, מסודרים לפי משימה ולפי תפקיד. בוחרים פרומפט, מחליפים את ערכי הדוגמה בפרטים שלך ומדביקים בסשן. אלה נקודות פתיחה, לא תסריט: לכל פרומפט מוסבר למה הוא עובד, כדי שתוכל לכתוב פרומפטים משלך.
+
+## למה זה חשוב
+לפי התיעוד, הספרייה נועדה לגלות דרכי עבודה שעוד לא ניסית, ולעזור כשלא ברור מאיפה להתחיל. כל פרומפט בה מדגים דפוס שאפשר להעביר למשימות אחרות.
+
+## איך משתמשים בספרייה?
+
+<StepList>
+
+1. פותחים את [Prompt library](https://code.claude.com/docs/en/prompt-library) בתיעוד הרשמי.
+2. מתחילים מ-**Start here**: חמישה פרומפטים לנסות קודם. אפשר גם לסנן לפי תגית משימה (למשל Understand,‏ Test,‏ Review,‏ Debug) או לפי תפקיד (Product,‏ Design,‏ Marketing ועוד), או לחפש בתיבת החיפוש.
+3. מקלידים את הפרטים שלך בשדות המסומנים, במקום ערכי הדוגמה, ומעתיקים.
+4. פותחים את **Why this works** מתחת לפרומפט כדי להבין את הדפוס שמאחוריו.
+
+</StepList>
+
+בשיעור הזה הפרומפטים מופיעים כמו בדף, עם ערכי הדוגמה כבר בפנים. נתיב קובץ, שם בדיקה או שם פיצ'ר שמופיעים בהם הם השדות שמחליפים.
+
+<Callout type="note">
+הפרומפטים נאספו מכמה מדריכים של Anthropic, בהם [Common workflows](https://code.claude.com/docs/en/common-workflows),‏ [Best practices](https://code.claude.com/docs/en/best-practices) ו-How Anthropic teams use Claude Code. ליד כל פרומפט בדף מצוין מאיזה מקור הוא הגיע.
+</Callout>
+
+## אילו פרומפטים עוזרים להבין קוד שלא מכירים?
+כאן מתארים מה רוצים לדעת, לא אילו קבצים לקרוא. Claude חוקר את הפרויקט בעצמו.
+
+כשנכנסים לריפו חדש, מבקשים תמונה כללית:
+
+```text
+give me an overview of this codebase: architecture, key directories, and how the pieces connect
+```
+
+כדי להבין קובץ מסוים, מציינים אותו ואת הפורמט שנוח לך. במקום עמוד HTML אפשר לבקש תרשים, רשימת נקודות או כל פורמט אחר:
+
+```text
+explain what src/scheduler/queue.ts does and how data flows through it. write it up as an HTML page with a diagram, then open it in my browser
+```
+
+כשלא יודעים איך קוראים לקובץ, מחפשים לפי התנהגות:
+
+```text
+where do we validate uploaded file types?
+```
+
+לפני שמוחקים משהו, שואלים מה ישבר. רשימת הקוראים וההשפעות מראה אם זה ניקוי של שורה אחת או שינוי שדורש תיאום:
+
+```text
+what would break if I deleted the retryWithBackoff helper?
+```
+
+כשהשאלה היא "למה" ולא "מה", מפנים להיסטוריית ה-commits:
+
+```text
+look through the commit history of internal/auth/session.go and summarize how it evolved and why
+```
+
+## אילו פרומפטים עוזרים לתכנן לפני שכותבים קוד?
+המטרה היא לראות את הגישה לפני שקוד זז.
+
+תוכנית לשינוי בכמה קבצים, בלי לערוך כלום. התוספת "don't edit anything yet" מפרידה בין חקירה לשינוי. כדי שכל פרומפט יתחיל בתכנון, לוחצים `Shift+Tab` ל-[plan mode](/beginner-plus/permission-modes):
+
+```text
+plan how to refactor the payment module to support multiple currencies. list the files you would change, but don't edit anything yet
+```
+
+אפיון בשיטת ראיון. במקום לכתוב את האפיון בעצמך, Claude שואל אותך שאלות עד שהדרישות שלמות, ואז כותב אותו לקובץ:
+
+```text
+I want to build per-workspace rate limits. interview me about implementation, UX, edge cases, and tradeoffs until we have covered everything, then write the spec to SPEC.md
+```
+
+מקרי קצה שעיצוב של "המסלול המאושר" נוטה לפספס:
+
+```text
+list the error states, empty states, and edge cases for the file upload flow that the design needs to cover
+```
+
+## אילו פרומפטים עוזרים לממש ולשנות קוד?
+הכלל כאן: מפנים לדוגמה או מגדירים גבולות ברורים.
+
+לפי דפוס קיים. בלי דוגמה Claude הולך לפי best practices כלליים. עם דוגמה, הוא מתאים את עצמו למוסכמות של הפרויקט שלך:
+
+```text
+look at how the GitHub webhook handler is implemented to understand the pattern, then build a Stripe webhook handler the same way
+```
+
+פיצ'ר קטן ומוגדר. מתארים קלט ופלט, לא איך לבנות:
+
+```text
+add a /health endpoint that returns the app version and uptime
+```
+
+עדכון טקסט בכל הקוד. מבקשים גם ניסוחים דומים ומציינים מה לא לגעת בו:
+
+```text
+find every place we say "Sign up free" or a close variant, show me each one in context, then update them all to "Start free trial". leave tests and the changelog alone
+```
+
+מעבר מדפוס ישן לחדש. כש-Claude מזהה קודם את כל המקומות, הרשימה מופיעה בתשובה ואפשר לבדוק שלא פוספס אף אחד:
+
+```text
+migrate everything from the old logging API to the structured logger: identify every place that needs to change, then make the changes
+```
+
+## אילו פרומפטים עוזרים עם בדיקות וביצועים?
+נותנים ל-Claude הגדרה ברורה של "גמור", כך שהוא ממשיך עד שהיא מתקיימת.
+
+פיתוח מונחה בדיקות (TDD). הבדיקות קובעות מתי העבודה נגמרה:
+
+```text
+write tests for the password reset flow first, then implement it until they pass
+```
+
+השלמת כיסוי לפי דוח, במקום לנחש מה לא נבדק:
+
+```text
+read coverage/coverage-summary.json and add tests for the lowest-covered files until each is above 80%
+```
+
+אופטימיזציה מול יעד מדיד:
+
+```text
+optimize the search query to bring p95 latency from 2s down to under 500ms
+```
+
+## אילו פרומפטים עוזרים לסקור שינויים?
+סקירה מוקדמת תופסת בעיות כשעוד זול לתקן אותן.
+
+לפני commit. לפי התיעוד, Claude קורא את הקבצים שהשתנו במלואם, לא רק את שורות ה-diff. הדף מציע את [`/code-review`](https://code.claude.com/docs/en/commands) כדי להריץ את אותה בדיקה בפקודה אחת. הפקודה סוקרת את ה-diff הנוכחי ומחפשת באגים:
+
+```text
+review my uncommitted changes and flag anything that looks risky before I commit
+```
+
+סקירת אבטחה עם subagent. ה-subagent עובד בחלון הקשר משלו ומחזיר סיכום, כך שסקירה ארוכה לא ממלאת את הסשן הראשי. ה-subagent המובנה general-purpose מתאים לזה בלי הגדרות נוספות:
+
+```text
+use a subagent to review src/api/ for security issues and report what it finds
+```
+
+## איך מכוונים את Claude כשהוא טועה?
+מציינים את האילוץ שהוא פספס, לא רק שזה לא נכון. סיבה ספציפית נותנת לו משהו קונקרטי לעמוד בו בניסיון הבא:
+
+```text
+that is not right: the function signature needs to stay backward-compatible. try a different approach
+```
+
+כשהכיוון נכון אבל השינוי התרחב מדי, משאירים חלק ממנו במקום לחזור אחורה בהכול:
+
+```text
+that is too much. keep only the changes to the validation logic in src/forms/ and undo your other edits
+```
+
+כשאותה טעות חוזרת, הופכים את התיקון לכלל. תיקון בצ'אט לא עובר לצוות, אבל כלל ב-CLAUDE.md של הפרויקט משותף אחרי commit, ו-Claude קורא אותו בתחילת כל סשן:
+
+```text
+you keep using default exports when this project uses named exports. add a rule to CLAUDE.md so this stops happening
+```
+
+<Callout type="tip">
+כדי שהניסיון החדש יתחיל נקי, התיעוד מציע ללחוץ `Esc` פעמיים ולפתוח את תפריט ה-rewind, שמחזיר את הקוד ואת השיחה לנקודה קודמת. פירוט ב[שיעור על checkpointing](/beginner-plus/checkpointing).
+</Callout>
+
+## אילו פרומפטים עוזרים לדבג?
+מתארים את הסימפטום. לא צריך לדעת איזה קובץ שבור.
+
+בדיקה שנכשלת. Claude מריץ אותה, רואה את הכשל ומגיע ממנו לקוד:
+
+```text
+the UserAuth test is failing, find out why and fix it
+```
+
+שגיאה שמשתמשים מדווחים עליה. אם יש stack trace או לוגים, מדביקים אותם:
+
+```text
+users are seeing 500 errors on /api/settings. investigate and tell me what is going on
+```
+
+## אילו פרומפטים עוזרים עם Git ושחרור גרסה?
+אומרים מה המצב הרצוי, ומבקשים הסבר כדי שאפשר יהיה לבדוק את התוצאה.
+
+```text
+resolve the merge conflicts in this branch and explain what you kept from each side
+```
+
+הערות שחרור משתי נקודות ייחוס ב-Git:
+
+```text
+compare v2.3.0 to v2.4.0 and draft release notes grouped by feature, fix, and breaking change
+```
+
+## איך שומרים את מה שלמדת לסשן הבא?
+מבקשים מ-Claude לסכם ולהציע מה להוסיף ל-CLAUDE.md. הוא יודע מה הוא נאלץ לגלות בסשן הזה:
+
+```text
+summarize what we did this session and suggest what to add to CLAUDE.md
+```
+
+ומשימה שחוזרת על עצמה הופכים ל-skill שכל הצוות יכול להריץ:
+
+```text
+create a /ship skill for this project that runs the linter and tests, then drafts a commit message
+```
+
+<Callout type="warning">
+חלק מהפרומפטים בדף דורשים חיבור לכלי חיצוני, וזה מצוין תחת **Needs**. למשל, פרומפט שקורא issue או PR ב-GitHub צריך gh CLI מחובר או את GitHub כ-connector של claude.ai, ופרומפט שיוצר tickets צריך את מערכת המשימות שלך כ-connector או כ[שרת MCP](https://code.claude.com/docs/en/mcp). כדאי לחבר את הכלי לפני שמריצים פרומפט כזה.
+</Callout>
+
+## מה הופך פרומפט לטוב?
+לפי התיעוד הרשמי, לפרומפטים בספרייה יש כמה דפוסים משותפים. כשמזהים אותם, אפשר להתאים כל פרומפט למשימה שלך:
+
+| דפוס | דוגמה מהתיעוד |
+| --- | --- |
+| מתארים את התוצאה, לא את הצעדים | `add rate limiting to the public API and make sure existing tests still pass` |
+| נותנים דרך לבדוק את העבודה | `write the migration, run it against the dev database, and confirm the schema matches` |
+| מפנים לדוגמה קיימת | `add a settings page that follows the same layout as the profile page` |
+| מגדירים יעד מדיד | `get the bundle size under 200KB and show me what you removed` |
+| נותנים את החומר עצמו | `why is the build failing? @build.log` |
+
+בדפוס האחרון מדביקים שגיאות, לוגים וצילומי מסך ישירות בפרומפט, או מקלידים `@` כדי להפנות לקובץ. כך Claude קורא את המקור ולא את התיאור שלך שלו.
+
+## הצעד הבא
+- ← [עלויות וניהול context](/beginner-plus/costs-context)
+- שיעורים קשורים: [ה-workflow הנכון](/beginner-plus/core-workflow) · [workflows נפוצים](/beginner-plus/common-workflows) · [checkpointing](/beginner-plus/checkpointing)
