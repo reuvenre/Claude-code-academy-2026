@@ -1,0 +1,91 @@
+---
+title: "מה חדש ב-Claude Code? סיכום הגרסאות האחרונות מה-changelog"
+description: "סיכום בעברית של הגרסאות האחרונות של Claude Code לפי ה-changelog הרשמי: AGENTS.md, תמיכה בעכבר, auto mode, סנכרון skills ו-plugins, משתני סביבה חדשים ועוד."
+order: 10
+source: "https://code.claude.com/docs/en/changelog"
+lastVerified: "2026-09-23"
+keywords: ["Claude Code", "changelog", "מה חדש", "גרסאות", "release notes", "עדכונים", "claude update", "claude --version", "AGENTS.md", "auto mode", "plugins", "skills", "משתני סביבה"]
+faq:
+  - q: "איך בודקים איזו גרסה של Claude Code מותקנת אצלי?"
+    a: "מריצים claude --version בטרמינל. אחר כך אפשר להשוות לגרסה העליונה ב-changelog הרשמי."
+  - q: "איך מעדכנים את Claude Code לגרסה האחרונה?"
+    a: "מריצים claude update. הסבר מלא על התקנה ועדכונים נמצא בשיעור ההתקנה."
+  - q: "האם העמוד הזה מכסה את כל השינויים?"
+    a: "לא. זה סיכום נבחר של השינויים הרלוונטיים ביותר למשתמשים בגרסאות האחרונות. רוב תיקוני הבאגים והפרטים הטכניים נמצאים רק ב-changelog הרשמי."
+  - q: "למה חסרים כאן שמות של מודלים?"
+    a: "שמות ומספרי מודלים מתחלפים תדיר, ולכן אנחנו לא מקבעים אותם. את המודלים הזמינים וברירות המחדל בודקים בדף model-config הרשמי."
+---
+
+זהו סיכום בעברית של הגרסאות האחרונות של Claude Code, נכון לאימות ב-2026-09-23. לכל גרסה נבחרו השינויים השימושיים ביותר, בלי רוב תיקוני הבאגים. הרשימה המלאה נמצאת ב-[changelog הרשמי](https://code.claude.com/docs/en/changelog). כדי לבדוק איזו גרסה מותקנת אצלכם, הריצו `claude --version`.
+
+שינויים שנוגעים לשמות מודלים ולברירות מחדל של מודלים הושמטו. לפרטים עדכניים ראו [model-config](https://code.claude.com/docs/en/model-config).
+
+## גרסה 2.1.280 (22 בספטמבר 2026)
+
+- תמיכה בעכבר ברשימות נוספות במצב fullscreen: גלגלת גוללת את רשימת `/skills`, ואפשר ללחוץ על אפשרויות המצב של skill ב-`/plugin`.
+- משתנה סביבה חדש `CLAUDE_CODE_MAX_MCP_DESCRIPTION_LENGTH` משנה את מגבלת 2,048 התווים על תיאורי כלי MCP והוראות שרת, לכל שרתי ה-MCP בסשן.
+- רמת effort שנשמרה לפני ש-`/effort` הפך לפר-מודל כבר לא חלה על מודלים חדשים; הם מתחילים בברירת המחדל שלהם עד שבוחרים רמה.
+- marketplaces של plugins ששמם מחקה שם שמור נדחים בהוספה, ומפסיקים להיטען אם כבר נוספו.
+- hook מסוג agent לא רץ יותר ב-`PermissionRequest`, כי התשובה שלו לא יכלה לאשר או לדחות את הבקשה; מוצגת שגיאה שמפנה ל-command hooks או http hooks.
+- תוקן: כתיבה דרך נתיב symlink נבדקת לפי היעד האמיתי, כך ש-`acceptEdits`,‏ allow rules ו-auto mode לא מאשרים כתיבה שנוחתת מחוץ לפרויקט.
+
+## גרסה 2.1.278 (19 בספטמבר 2026)
+
+- ב-auto mode, למשתמשי Claude API ו-Enterprise, וב-Bedrock,‏ Vertex,‏ Foundry ו-gateways, ברירת המחדל היא classifier בצד השרת, שלא מחייב על תקורת ה-classifier. ב-Bedrock,‏ Vertex,‏ Foundry ו-gateways אפשר לבטל עם `CLAUDE_CODE_AUTO_MODE_SERVER=0`.
+- שורה חדשה `Auto mode server` ב-`/status` מראה אם ה-classifier של auto mode רץ בצד השרת בסשן הנוכחי.
+
+## גרסה 2.1.277 (18 בספטמבר 2026)
+
+- תמיכה ב-AGENTS.md: בפרויקט בלי CLAUDE.md, ‏Claude Code קורא את AGENTS.md במקומו. משנים זאת תחת "Project instructions" ב-`/config` (עדיין לא ב-Bedrock,‏ Vertex או Foundry).
+- כשמשימת רקע מסתיימת בזמן שפאנל כמו `/tasks` פתוח, מוצגת שורה שאומרת שעדכון ממתין.
+- תוצאות של subagents מגיעות לסוכן הראשי תחת כותרת שמסמנת אותן כפלט של subagent, כדי שטקסט בתוצאה לא ייחשב להוראות של הסשן עצמו.
+- `/ultrareview` בסשנים לא-אינטראקטיביים מסרב לרוץ כשאין לריפו branch בסיס או היסטוריה משותפת.
+- הכלי TaskOutput (שהוצא משימוש) הוסר; Claude קורא את קובץ הפלט של משימת רקע עם Read. ההגדרה `taskOutputMaxChars` והמשתנה `TASK_MAX_OUTPUT_LENGTH` כבר לא משפיעים.
+
+## גרסה 2.1.276 (18 בספטמבר 2026)
+
+- תיקון בודד: כל הבקשות נכשלו בשגיאת 400 כש-`ANTHROPIC_BASE_URL` הצביע על proxy או gateway (רגרסיה מ-2.1.275).
+
+## גרסה 2.1.275 (17 בספטמבר 2026)
+
+- מקש "שלח עכשיו" (ctrl+enter, או ctrl+x ctrl+s) קוטע את ה-turn הנוכחי ושולח את כל ההודעות שבתור בבת אחת.
+- ה-skills וה-plugins שמופעלים בחשבון claude.ai מסונכרנים לסשנים בטרמינל שמחוברים לאותו חשבון. ביטול: `syncClaudeAiSkills: false` או `syncClaudeAiPlugins: false`.
+- `/plugin install <plugin> --marketplace <source>` מציע להוסיף את ה-marketplace לפני התקנת ה-plugin.
+- plugins ממקור npm מורדים עם `npm pack --ignore-scripts` ונבדקים לשלמות, כך שסקריפטי ההתקנה של החבילה לא רצים.
+- אזהרה בהפעלה כש-`otelHeadersHelper` מוגדר נכשל, כדי לזהות סשנים שלא שולחים טלמטריה.
+
+## גרסה 2.1.274 (17 בספטמבר 2026)
+
+- אזהרה גלויה כשצריכת הזיכרון קריטית, עם צעדים לפינוי זיכרון או להפעלה מחדש בבטחה.
+- משתנה סביבה חדש `CLAUDE_CODE_MCP_STARTUP_WAIT_MS` מגביל כמה זמן התור הלא-אינטראקטיבי הראשון מחכה לשרתי MCP שמתחברים (`0` = לא לחכות).
+- לחיצה להרחבת הודעות מכווצות של teammates ו-agents במצב fullscreen.
+- `/code-review` משתמש בפרומפטים רזים של סקירה inline במקום להפעיל הרבה subagents, לכל מודל שאין לו הגדרות מותאמות משלו.
+- רשומות MCP מסוג `"type": "sdk"` ב-`.mcp.json`, בהגדרות, ב-plugins ובקבצי agents מדולגות עם אזהרה.
+- clones של plugins ו-marketplaces משאירים קבצי Git LFS כ-pointers; `git lfs pull` בתיקייה מוריד אותם.
+
+## גרסה 2.1.273 (15 בספטמבר 2026)
+
+- התראה כששרת MCP מתנתק באמצע סשן והחיבור האוטומטי מחדש מוותר, עם הפניה ל-`/mcp`.
+- אפשר לעשות fork לסשן שהתחיל עם `claude --remote-control` או `/remote-control` מתוך אפליקציית Claude; ה-fork רץ כסשן רקע במחשב שלכם.
+- כותרות בקשה חדשות ל-LLM gateways (למשל `x-claude-code-request-class`), בהפעלה עם `CLAUDE_CODE_GATEWAY_HINT_HEADERS=1`.
+- דיווחי `/bug` ו-`/feedback` כוללים רק פרמטרים של התנהגות המודל מהבקשה האחרונה, בלי metadata של הבקשה.
+
+## גרסה 2.1.272 (15 בספטמבר 2026)
+
+- תיקוני באגים ושיפורי אמינות.
+
+## גרסה 2.1.271 (14 בספטמבר 2026)
+
+- תמיכה בעכבר בפאנל `/config` במצב fullscreen: גלגלת גוללת את רשימת ההגדרות, ולחיצה על ערך משנה אותו.
+- `omitClaudeMd` ב-frontmatter של agent וב-JSON של `--agents` מאפשר ל-subagents לרוץ בלי קבצי CLAUDE.md של המשתמש, הפרויקט והתיקייה המקומית.
+- ב-auto mode, פקודות shell מסוג `!` בתוך skill או slash command פועלות לפי כללי ההרשאות של מצב ברירת המחדל ולא לפי ה-classifier.
+- ל-Monitor יש תמיד deadline (עד 30 דקות; 10 בריצות `-p`) במקום האפשרות `persistent` ללא timeout.
+- מחוון הבחירה מה-IDE בפרומפט הוא כעת תגית `[⧉ …]` שנשברת עם הטקסט; Backspace מוחק אותה ומשאיר את הבחירה בחוץ.
+- fast mode זמין בסשנים של Claude Code Remote (ענן ו-self-hosted runners), איפה שהארגון מאפשר.
+
+## איפה לומדים עוד?
+
+- [התקנה ועדכון של Claude Code](/beginner/installation) — איך מתקינים ומעדכנים לגרסה האחרונה.
+- [פקודות חיוניות](/beginner/essential-commands) — הפקודות שכדאי להכיר מהיום הראשון.
+- [Changelog הרשמי](https://code.claude.com/docs/en/changelog) — כל השינויים בכל הגרסאות.
+- [What's New](https://code.claude.com/docs/en/whats-new) — סיכום שבועי רשמי של החידושים.
