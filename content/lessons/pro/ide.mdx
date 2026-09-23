@@ -1,0 +1,190 @@
+---
+title: "איך עובדים עם Claude Code בתוך VS Code ו-JetBrains?"
+description: "מתקינים את התוסף ל-VS Code (או ל-Cursor) או את הפלאגין ל-JetBrains, ו-Claude Code רואה את הקוד שבחרת, מציג שינויים ב-diff של ה-IDE ונפתח בקיצור מקלדת."
+level: "pro"
+order: 53
+source: "https://code.claude.com/docs/en/vs-code"
+lastVerified: "2026-09-23"
+keywords: ["Claude Code", "VS Code", "JetBrains", "Cursor", "IDE", "תוסף", "תוסף VS Code", "להתקין תוסף", "התקנת תוסף", "IntelliJ", "PyCharm", "diff", "קיצורי מקלדת", "/ide"]
+canDo: "עכשיו אתה יכול להתקין את Claude Code ב-VS Code או ב-JetBrains, לשתף איתו קוד נבחר עם @-mention, לסקור את השינויים שלו ב-diff של ה-IDE ולהתאים את ההגדרות של התוסף."
+relatedSlugs: ["permission-modes", "checkpointing", "settings"]
+faq:
+  - q: "האם התוסף ל-VS Code מתקין גם את הפקודה claude בטרמינל?"
+    a: "לא. התוסף כולל עותק פרטי של ה-CLI בשביל חלון הצ'אט, אבל לא מוסיף את claude ל-PATH. כדי להריץ claude בטרמינל המשולב של VS Code צריך גם את ההתקנה העצמאית של ה-CLI. אחרי ההתקנה, ה-CLI מתחבר ל-IDE לבד לתצוגת diff ולשיתוף אבחונים."
+  - q: "האם התוסף עובד ב-Cursor ובעורכים אחרים שמבוססים על VS Code?"
+    a: "התיעוד הרשמי מספק קישור התקנה ישיר ל-Cursor, ומציין שהתוסף מותקן גם בעורכים אחרים שמבוססים על VS Code, כמו Kiro. מחפשים Claude Code ב-Extensions view של העורך, או מתקינים מ-Open VSX. אם העורך לא מצליח להתקין את התוסף, מריצים את ה-CLI בטרמינל המשולב שלו."
+  - q: "מה צריך כדי להשתמש ב-Claude Code ב-JetBrains?"
+    a: "צריך שני חלקים: ה-CLI של Claude Code והפלאגין Claude Code מה-JetBrains Marketplace. הפלאגין לא כולל עותק משלו של ה-CLI, אלא מריץ את claude בטרמינל המשולב של ה-IDE ומתחבר אליו. אחרי ההתקנה מפעילים מחדש את ה-IDE."
+  - q: "איך מונעים מ-Claude לראות קובץ רגיש כמו .env כשהוא פתוח בעורך?"
+    a: "מוסיפים כלל Read deny לנתיב של הקובץ. כלל כזה חוסם גם את הטקסט שבחרת בקובץ וגם את ההודעה על הקובץ הפתוח. בחלון הצ'אט של VS Code, טקסט נבחר מקבצים שתואמים ל-files.exclude, ל-search.exclude או ל-gitignore לא נשלח כברירת מחדל, אבל הסינון הזה לא חל על ה-CLI בטרמינל."
+  - q: "האם אפשר להמשיך בטרמינל שיחה שהתחלתי בתוסף?"
+    a: "כן. התוסף וה-CLI חולקים את אותה היסטוריית שיחות. מריצים claude --resume בטרמינל, ונפתח בורר שבו מחפשים ובוחרים את השיחה."
+---
+
+import { CommandBlock, Callout, StepList } from "@/components/lesson";
+
+ב-VS Code מתקינים את התוסף Claude Code (הוא עובד גם ב-Cursor), וב-JetBrains מתקינים את הפלאגין יחד עם ה-CLI. מעכשיו Claude רואה את הקובץ הפתוח ואת הקוד שבחרת, מציג כל עריכה ב-diff של ה-IDE, ונפתח בקיצור `Ctrl+Esc` (ב-Mac: ‏`Cmd+Esc`).
+
+## למה זה חשוב
+כשעובדים רק בטרמינל, מעתיקים קוד לפרומפט, מסבירים איפה הבעיה, וקוראים שינויים כטקסט. בתוך ה-IDE, ‏Claude יודע איזה קובץ פתוח ומה סימנת, ואתה סוקר כל שינוי ב-diff המוכר של העורך, מאשר או דוחה אותו. התיעוד הרשמי ממליץ על התוסף כדרך המועדפת להשתמש ב-Claude Code ב-VS Code.
+
+## איך מתקינים את התוסף ל-VS Code?
+צריך VS Code בגרסה 1.94.0 ומעלה, וחשבון Anthropic: כל מנוי Claude בתשלום או חשבון Claude Console. לא צריך מפתח API.
+
+<StepList>
+
+1. ב-VS Code לוחצים `Ctrl+Shift+X` (ב-Mac: ‏`Cmd+Shift+X`) כדי לפתוח את Extensions view.
+2. מחפשים "Claude Code" ולוחצים **Install**.
+3. פותחים קובץ כלשהו ולוחצים על אייקון ה-Spark ב-Editor Toolbar (הפינה העליונה של העורך).
+4. בפתיחה הראשונה לוחצים **Sign in** ומשלימים את ההרשאה בדפדפן.
+
+</StepList>
+
+ב-Cursor מחפשים את התוסף באותה דרך. התוסף מותקן גם בעורכים אחרים שמבוססים על VS Code, כמו Kiro, דרך Extensions view או מ-[Open VSX](https://open-vsx.org/extension/Anthropic/claude-code).
+
+<Callout type="note">
+התוסף כולל עותק פרטי של ה-CLI בשביל חלון הצ'אט, אבל **לא** מוסיף את `claude` ל-PATH. כדי להריץ `claude` בטרמינל המשולב צריך גם את ההתקנה העצמאית של ה-CLI.
+</Callout>
+
+אם האייקון לא מופיע אחרי ההתקנה, מריצים **Developer: Reload Window** מה-Command Palette. האייקון מופיע רק כשקובץ פתוח. אפשר לפתוח את Claude גם מה-Activity Bar (רשימת הסשנים) או מה-Command Palette עם "Claude Code".
+
+## איך Claude יודע על איזה קוד אתה מדבר?
+Claude רואה אוטומטית את הטקסט שסימנת בעורך ואת הקובץ שפתוח בו. שורת התחתית של תיבת הפרומפט מציגה כמה שורות נבחרו. כדי להוסיף הפניה מפורשת לקובץ ולשורות, לוחצים `Alt+K` (ב-Mac: ‏`Option+K`) כשהעורך בפוקוס, ונוצרת הפניה כמו `@app.ts#5-10`.
+
+אפשר גם להקליד `@` ואחריו שם קובץ או תיקייה. ההתאמה גמישה (fuzzy), כך שמספיק חלק מהשם:
+
+```text
+Explain the logic in @auth (fuzzy matches auth.js, AuthService.ts, etc.)
+What's in @src/components/ (include a trailing slash for folders)
+```
+
+עוד דרכים לתת הקשר:
+
+- **פלט טרמינל:** ‏`@terminal:name`, כש-`name` הוא הכותרת (title) של הטרמינל. Claude רואה את הפלט בלי העתק-הדבק.
+- **תמונות:** מדביקים מהלוח לתיבת הפרומפט.
+- **קבצים:** מחזיקים `Shift` וגוררים אותם לתיבת הפרומפט.
+
+כדי שהבחירה לא תישלח, לוחצים על ה-**X** בחיווי הבחירה. כדי לשלוח רק את הטקסט שנבחר בלי הקובץ הפתוח, מכבים את ההגדרה `attachOpenFile`.
+
+## איך סוקרים את השינויים ש-Claude מציע?
+מה שרואים תלוי ב[מצב ההרשאות](/beginner-plus/permission-modes), שמוצג בתחתית תיבת הפרומפט. לוחצים עליו כדי להחליף מצב:
+
+| מצב | מה קורה |
+| --- | --- |
+| Auto | classifier בודק את רוב הפעולות במקום לשאול אותך |
+| Manual | ‏Claude מבקש אישור לפני עריכת קבצים ולפני רוב פקודות ה-shell |
+| Plan | ‏Claude מתאר מה יעשה ומחכה לאישור. התוכנית נפתחת כמסמך Markdown שאפשר להוסיף לו הערות inline |
+| Edit automatically | ‏Claude עורך בלי לשאול |
+
+ב-Manual, כל עריכה נפתחת כהשוואה side-by-side של הקוד המקורי מול השינוי המוצע. אפשר לאשר, לדחות, או לכתוב ל-Claude מה לעשות במקום. אם ערכת בעצמך את התוכן המוצע ב-diff לפני האישור, Claude מקבל הודעה שהקובץ שונה ממה שהציע.
+
+כדי לסקור שינוי אחד בכל פעם, משתמשים בכפתורים **Accept this change** ו-**Reject this change** שמתחת לכל שינוי. diff עם יותר מ-100 שינויים נפתח בלי הכפתורים האלה, ומאשרים או דוחים את הקובץ כולו.
+
+<Callout type="tip">
+עבר Claude בכיוון לא נכון? מרחפים מעל הודעה ולוחצים על כפתור ה-rewind. **Rewind code to here** מחזיר את הקבצים לאותה נקודה ומשאיר את השיחה. פרטים בשיעור על [checkpoints](/beginner-plus/checkpointing).
+</Callout>
+
+## אילו קיצורי מקלדת כדאי להכיר ב-VS Code?
+חלק מהקיצורים תלויים בפאנל שבפוקוס: העורך או תיבת הפרומפט של Claude. ‏`Ctrl+Esc` מעביר ביניהם.
+
+| פעולה | Windows/Linux | Mac |
+| --- | --- | --- |
+| מעבר פוקוס בין העורך ל-Claude | `Ctrl+Esc` | `Cmd+Esc` |
+| שיחה חדשה כלשונית בעורך | `Ctrl+Shift+Esc` | `Cmd+Shift+Esc` |
+| הוספת @-mention לקובץ ולבחירה | `Alt+K` | `Option+K` |
+| פתיחה מחדש של לשונית Claude שנסגרה | `Ctrl+Shift+T` | `Cmd+Shift+T` |
+| הסתרה או הצגה של פעולות הכלים (Focus view) | `Ctrl+Alt+F` | `Ctrl+Option+F` |
+| שורה חדשה בלי לשלוח | `Shift+Enter` | `Shift+Enter` |
+
+כל הפקודות של התוסף זמינות ב-Command Palette (‏`Ctrl+Shift+P`, ב-Mac: ‏`Cmd+Shift+P`) כשמקלידים "Claude Code". למשל **Open in New Tab** ו-**Open in New Window** פותחים שיחות מקבילות, ולכל אחת היסטוריה והקשר משלה.
+
+## אילו הגדרות שולטות בתוסף?
+יש שני סוגים של הגדרות:
+
+- **הגדרות התוסף** ב-VS Code: פותחים עם `Ctrl+,` (ב-Mac: ‏`Cmd+,`) ועוברים ל-Extensions → Claude Code.
+- **הגדרות Claude Code** בקובץ `~/.claude/settings.json`: משותפות לתוסף ול-CLI. כאן מגדירים פקודות מותרות, משתני סביבה, hooks ושרתי MCP. ראה את השיעור על [הגדרות](/advanced/settings).
+
+הגדרות תוסף שימושיות:
+
+| הגדרה | ברירת מחדל | מה היא עושה |
+| --- | --- | --- |
+| `useTerminal` | `false` | מפעיל את Claude במצב טרמינל במקום בחלון הגרפי |
+| `initialPermissionMode` | לא מוגדר | מצב ההרשאות לשיחות חדשות: `default`,‏ `plan`,‏ `acceptEdits` או `bypassPermissions` |
+| `preferredLocation` | `panel` | איפה Claude נפתח: `sidebar` או `panel` (לשונית חדשה) |
+| `autosave` | `true` | שומר קבצים לפני ש-Claude קורא או כותב אותם |
+| `attachOpenFile` | `true` | מצרף להודעות את הקובץ הפתוח בעורך |
+| `useCtrlEnterToSend` | `false` | שליחה עם Ctrl/Cmd+Enter במקום Enter |
+| `respectGitIgnore` | `true` | מחריג דפוסי `.gitignore` מחיפוש קבצים ומהקשר הבחירה |
+
+<Callout type="tip">
+מוסיפים `"$schema": "https://json.schemastore.org/claude-code-settings.json"` לקובץ `settings.json` כדי לקבל ב-VS Code השלמה אוטומטית ובדיקת תקינות לכל ההגדרות.
+</Callout>
+
+## מה ההבדל בין התוסף ל-CLI?
+התוסף הוא ממשק גרפי, וה-CLI רץ בטרמינל. חלק מהיכולות קיימות רק ב-CLI:
+
+| יכולת | CLI | תוסף VS Code |
+| --- | --- | --- |
+| פקודות ו-skills | כולן | חלק (מקלידים `/` כדי לראות) |
+| הגדרת שרתי MCP | כן | כן, עם `/mcp` בחלון הצ'אט |
+| Checkpoints | כן | כן |
+| קיצור ה-Bash ‏`!` | כן | לא |
+| השלמה עם Tab | כן | לא |
+
+כשצריך יכולת של ה-CLI, מריצים `claude` בטרמינל המשולב של VS Code. ה-CLI מתחבר ל-IDE אוטומטית לתצוגת diff ולשיתוף אבחונים. מטרמינל חיצוני, מריצים בתוך Claude Code:
+
+<CommandBlock>/ide</CommandBlock>
+
+התוסף וה-CLI חולקים את אותה היסטוריית שיחות. כדי להמשיך בטרמינל שיחה שהתחלת בתוסף:
+
+<CommandBlock>claude --resume</CommandBlock>
+
+## איך עובדים עם Claude Code ב-JetBrains?
+ב-JetBrains, הפלאגין מריץ את `claude` בטרמינל המשולב של ה-IDE ומתחבר אליו. הוא לא כולל עותק משלו של ה-CLI, ולכן מתקינים שני חלקים. לפי [התיעוד של JetBrains](https://code.claude.com/docs/en/jetbrains):
+
+<StepList>
+
+1. מתקינים את ה-CLI של Claude Code (ראה [התקנה](/beginner/installation)). בלי `claude` ב-PATH, הפלאגין מציג את ההודעה "Cannot launch Claude Code".
+2. מתקינים את [הפלאגין Claude Code](https://plugins.jetbrains.com/plugin/27310-claude-code-beta-) מה-JetBrains Marketplace ומפעילים מחדש את ה-IDE.
+3. מריצים `claude` בטרמינל המשולב של ה-IDE, וכל יכולות האינטגרציה פעילות.
+
+</StepList>
+
+הפלאגין עובד עם רוב ה-IDEs של JetBrains, ביניהם IntelliJ IDEA,‏ PyCharm,‏ Android Studio,‏ WebStorm,‏ PhpStorm ו-GoLand. מה מקבלים:
+
+- **פתיחה מהירה:** ‏`Ctrl+Esc` (ב-Mac: ‏`Cmd+Esc`), או כפתור Claude Code בממשק.
+- **תצוגת diff:** שינויים נפתחים ב-diff viewer של ה-IDE במקום בטרמינל.
+- **הקשר הבחירה:** הבחירה או הלשונית הנוכחית משותפות עם Claude אוטומטית.
+- **הפניה לקובץ:** ‏`Alt+Ctrl+K` (ב-Mac: ‏`Cmd+Option+K`) מוסיף הפניה כמו `@src/auth.ts#L1-99`.
+- **אבחונים:** ‏Claude קורא שגיאות lint ותחביר מה-IDE כשהוא קורא לכלי `getDiagnostics`. הוא לא מבקש אותן לבד אחרי כל עריכה.
+
+מטרמינל חיצוני מתחברים עם `/ide`. אם Claude Code מזהה IDE פתוח בלי הפלאגין, ‏`/ide` מתקין אותו ומבקש להפעיל מחדש את ה-IDE. כדאי להפעיל את Claude Code מתיקיית השורש של הפרויקט הפתוח ב-IDE, כדי שיהיו לו אותם קבצים.
+
+### איפה מגדירים את JetBrains?
+- **איפה מוצג ה-diff:** מריצים `/config` ומגדירים את **Diff tool** ל-`auto` (diff ב-IDE) או ל-`terminal`. הפריט מופיע רק כש-Claude Code מחובר ל-IDE.
+- **הגדרות הפלאגין:** ‏**Settings → Tools → Claude Code [Beta]**. בשדה **Claude command** מגדירים נתיב מלא ל-`claude` אם ה-IDE לא מוצא אותו.
+- **ESC לא עוצר את Claude:** ב-**Settings → Tools → Terminal** מבטלים את "Move focus to the editor with Escape".
+
+<Callout type="note">
+עובדים עם WSL? מגדירים ב-**Claude command** את `wsl -d Ubuntu -- bash -lic "claude"` ומחליפים את `Ubuntu` בשם ההפצה שלך. ב-JetBrains Remote Development מתקינים את הפלאגין על המחשב המרוחק (host), לא על הלקוח המקומי.
+</Callout>
+
+## מה חשוב לדעת על אבטחה ב-IDE?
+כש-Claude עורך בלי לשאול, הוא יכול לשנות קובצי הגדרות שה-IDE עשוי להריץ אוטומטית. ב-VS Code אלה קבצים כמו `settings.json` או `tasks.json`. התיעוד של JetBrains מזהיר שבמצב `acceptEdits` זה עלול גם לאפשר עקיפה של בקשות האישור של Claude Code להרצת פקודות Bash.
+
+<Callout type="warning">
+בעבודה עם קוד שאתה לא סומך עליו, משתמשים במצב Manual ולא ב-Auto או ב-Edit automatically, ובודקים כל שינוי לפני האישור. ב-VS Code מפעילים גם [Restricted Mode](https://code.visualstudio.com/docs/editor/workspace-trust#_restricted-mode) ל-workspaces לא מהימנים.
+</Callout>
+
+כשה-IDE מחובר, Claude מקבל עם כל פרומפט את הבחירה שלך ואת נתיב הקובץ הפעיל. בתמליל מופיעה שורה `⧉ Selected N lines from <file>`. כדי להחריג קובץ רגיש כמו `.env`, מוסיפים לנתיב שלו [כלל `Read` deny](https://code.claude.com/docs/en/permissions#read-and-edit).
+
+## דוגמה מעשית
+בדיקה נכשלת בפונקציה ב-`src/auth.ts`. ב-VS Code מסמנים את הפונקציה ולוחצים `Alt+K`, וההפניה `@src/auth.ts#12-30` נכנסת לתיבת הפרומפט. מוסיפים `@terminal:name` עם שם הטרמינל שבו רצו הבדיקות, כדי ש-Claude יראה את השגיאה, ומבקשים תיקון. במצב Manual, התיקון נפתח ב-diff. מאשרים את השינוי הראשון, דוחים שינוי שלא קשור לבאג עם **Reject this change**, ומסיימים:
+
+```text
+commit my changes with a descriptive message
+```
+
+## הצעד הבא
+- ← [Claude Tag: ‏Claude Code בתוך Slack](/pro/claude-tag)
+- שיעורים קשורים: [מצבי הרשאות](/beginner-plus/permission-modes) · [Checkpoints](/beginner-plus/checkpointing) · [הגדרות](/advanced/settings)
