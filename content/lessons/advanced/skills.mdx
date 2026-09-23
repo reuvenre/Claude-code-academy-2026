@@ -1,0 +1,179 @@
+---
+title: "מה זה Skill ב-Claude Code ואיך יוצרים אחד עם קובץ SKILL.md?"
+description: "Skill הוא קובץ SKILL.md עם הוראות ש-Claude Code טוען כשצריך, או שמפעילים עם /skill-name. איפה שומרים אותו, אילו שדות חשובים ואיך מעבירים ארגומנטים."
+level: "advanced"
+order: 22
+source: "https://code.claude.com/docs/en/skills"
+lastVerified: "2026-09-23"
+keywords: ["Claude Code", "Skills", "סקיל", "סקילים", "SKILL.md", "ליצור סקיל", "יצירת skill", "/skill-name", "$ARGUMENTS", "disable-model-invocation", "bundled skills", "פקודות מותאמות", "custom commands", "ארגומנטים"]
+canDo: "עכשיו אתה יכול ליצור Skill עם SKILL.md, לבחור איפה לשמור אותו, לקבוע מי מפעיל אותו ולהעביר לו ארגומנטים."
+relatedSlugs: ["extend-overview", "subagents", "claude-md"]
+faq:
+  - q: "מה ההבדל בין Skill לבין CLAUDE.md?"
+    a: "CLAUDE.md נטען בכל סשן במלואו. מ-Skill נטען בהתחלה רק התיאור, והתוכן המלא נכנס להקשר רק כשמשתמשים בו. לכן חומר ארוך או תהליך של כמה שלבים מתאים ל-Skill, ועובדות קצרות על הפרויקט מתאימות ל-CLAUDE.md."
+  - q: "הקבצים שלי ב-.claude/commands עדיין עובדים?"
+    a: "הם ממשיכים לעבוד. פקודות מותאמות אוחדו לתוך Skills: קובץ ב-.claude/commands/deploy.md ו-Skill ב-.claude/skills/deploy/SKILL.md יוצרים את אותה פקודה /deploy. ל-Skill יש יתרונות נוספים, כמו תיקייה לקבצים תומכים."
+  - q: "איך מונעים מ-Claude להפעיל Skill לבד?"
+    a: "מוסיפים disable-model-invocation: true ל-frontmatter של SKILL.md. אחרי זה רק אתה יכול להפעיל אותו עם /skill-name. זה מתאים לתהליכים עם תופעות לוואי, כמו deploy או commit."
+  - q: "למה Claude לא משתמש ב-Skill שיצרתי?"
+    a: "בדרך כלל התיאור לא תואם את הבקשה. מוסיפים לתיאור מילים שמשתמשים באמת אומרים, מנסחים את הבקשה קרוב יותר לתיאור, או מפעילים את ה-Skill ישירות עם /skill-name. אם ה-YAML שבור, Claude לא יכול להתאים לפי התיאור. מריצים עם --debug כדי לראות את השגיאה."
+  - q: "מה זה bundled skills?"
+    a: "אלה Skills שמגיעים עם Claude Code, למשל /code-review,‏ /debug ו-/loop. מפעילים אותם כמו כל Skill אחר, עם / ושם ה-Skill. אפשר לכבות אותם עם ההגדרה disableBundledSkills."
+---
+
+import { CommandBlock, Callout, StepList } from "@/components/lesson";
+
+Skill הוא תיקייה עם קובץ `SKILL.md`: בראשו frontmatter עם תיאור, ומתחתיו הוראות ב-Markdown. Claude Code טוען את ה-Skill לבד כשהבקשה מתאימה לתיאור, או כשמקלידים `/skill-name`. שומרים אותו ב-`~/.claude/skills/` לכל הפרויקטים, או ב-`.claude/skills/` לפרויקט אחד.
+
+## למה זה חשוב
+יוצרים Skill כשמדביקים שוב ושוב את אותן הוראות, רשימת בדיקה או תהליך של כמה שלבים. זה מתאים גם כשחלק ב-CLAUDE.md הפך מעובדה לתהליך. ההבדל המרכזי: CLAUDE.md נטען במלואו בכל סשן, ומ-Skill נטען רק התיאור עד שמשתמשים בו. כך חומר ארוך כמעט לא עולה בהקשר עד שצריך אותו.
+
+פקודות מותאמות (custom commands) אוחדו לתוך Skills. קובץ ב-`.claude/commands/deploy.md` ו-Skill ב-`.claude/skills/deploy/SKILL.md` יוצרים את אותה פקודה `/deploy`, והקבצים הישנים ממשיכים לעבוד. ל-Skill יש עוד תיקייה לקבצים תומכים ושליטה על מי מפעיל אותו.
+
+## איך יוצרים Skill ראשון?
+זו הדוגמה מהתיעוד הרשמי: Skill שמסכם את השינויים שעוד לא נכנסו ל-commit ומסמן סיכונים.
+
+<StepList>
+
+1. יוצרים תיקייה בתיקיית ה-Skills האישית. שם התיקייה הופך לפקודה שמקלידים:
+   ```bash
+   mkdir -p ~/.claude/skills/summarize-changes
+   ```
+2. שומרים את התוכן הבא ב-`~/.claude/skills/summarize-changes/SKILL.md`:
+   ```yaml
+   ---
+   description: Summarizes uncommitted changes and flags anything risky. Use when the user asks what changed, wants a commit message, or asks to review their diff.
+   ---
+
+   ## Current changes
+
+   !`git diff HEAD`
+
+   ## Instructions
+
+   Summarize the changes above in two or three bullet points, then list any risks you notice such as missing error handling, hardcoded values, or tests that need updating. If the diff is empty, say there are no uncommitted changes.
+   ```
+3. פותחים פרויקט git, משנים קובץ כלשהו ומפעילים את Claude Code:
+   <CommandBlock>claude</CommandBlock>
+4. בודקים בשתי דרכים. שואלים שאלה שמתאימה לתיאור, ו-Claude מפעיל את ה-Skill לבד:
+   ```text
+   What did I change?
+   ```
+   או מפעילים אותו ישירות:
+   ```text
+   /summarize-changes
+   ```
+
+</StepList>
+
+השורה `` !`git diff HEAD` `` היא הזרקת הקשר דינמית: Claude Code מריץ את הפקודה ומחליף את השורה בפלט שלה לפני ש-Claude קורא את ה-Skill. כך Claude מקבל את ה-diff האמיתי, ולא מנחש מהקבצים הפתוחים.
+
+## איפה שומרים Skill?
+המיקום קובע באילו סשנים ה-Skill נטען:
+
+| סוג | נתיב | נטען ב- |
+| --- | --- | --- |
+| אישי | `~/.claude/skills/<skill-name>/SKILL.md` | כל הפרויקטים שלך במחשב הזה |
+| פרויקט | `.claude/skills/<skill-name>/SKILL.md` | סשנים בריפו הזה. מכניסים ל-git כדי שהצוות יקבל אותו |
+| Plugin | `<plugin>/skills/<skill-name>/SKILL.md` | בכל מקום שה-plugin מופעל, בשם `/plugin-name:skill-name` |
+| ארגוני | `.claude/skills/<skill-name>/SKILL.md` בתיקיית managed settings | כל המשתמשים במחשבים שבהם הארגון מפיץ אותו |
+
+כשיש שני Skills עם אותו שם: ארגוני גובר על אישי, ואישי גובר על פרויקט. Skill של plugin לא מתנגש, כי השם שלו כולל את שם ה-plugin.
+
+Claude Code מזהה שינויים בתיקיות ה-Skills בזמן הסשן, בלי הפעלה מחדש. יוצא מן הכלל: אם יצרת תיקיית skills ראשית שלא הייתה קיימת כשהסשן התחיל, צריך להפעיל מחדש.
+
+## אילו שדות ב-frontmatter הכי חשובים?
+כל השדות אופציונליים. רק `description` מומלץ, כדי ש-Claude ידע מתי להשתמש ב-Skill. אלה השדות שכדאי להכיר:
+
+| שדה | מה הוא עושה |
+| --- | --- |
+| `description` | מה ה-Skill עושה ומתי להשתמש בו. Claude מחליט לפיו מתי לטעון אותו. שמים את מקרה השימוש העיקרי בהתחלה |
+| `name` | שם תצוגה ברשימות. ב-Skill אישי או של פרויקט, הפקודה עדיין נקבעת לפי שם התיקייה |
+| `disable-model-invocation` | `true` אומר שרק אתה מפעיל, עם `/name`. Claude לא יטען אותו לבד |
+| `user-invocable` | `false` אומר שרק Claude מפעיל. ה-Skill לא מופיע בתפריט `/` |
+| `argument-hint` | רמז שמוצג בהשלמה האוטומטית, למשל `[issue-number]` |
+| `allowed-tools` | כלים ש-Claude יכול להשתמש בהם בלי לבקש אישור, בתור שבו ה-Skill הופעל |
+| `context` | `fork` מריץ את ה-Skill ב-subagent נפרד |
+
+<Callout type="warning">
+שם שדה חייב להיות מדויק, כולל המקפים. Claude Code מתעלם משדה שהוא לא מכיר, בלי להציג שגיאה. בנוסף, ה-frontmatter נקרא רק אם ה-`---` הפותח נמצא בשורה הראשונה של הקובץ.
+</Callout>
+
+`allowed-tools` רק מאשר מראש, הוא לא מגביל: כל הכלים נשארים זמינים, והגדרות ההרשאות שלך חלות על השאר. ה-Skill יכול לתת לעצמו גישה רחבה, לכן כדאי לבדוק את `allowed-tools` של Skills בריפו לפני שמריצים שם את Claude Code.
+
+## מי מפעיל את ה-Skill: אתה או Claude?
+כברירת מחדל, שניכם. אתה מקליד `/skill-name`, ו-Claude טוען אותו לבד כשהשיחה מתאימה לתיאור. שני שדות משנים את זה:
+
+| frontmatter | אתה מפעיל | Claude מפעיל | מה נטען להקשר |
+| --- | --- | --- | --- |
+| ברירת מחדל | כן | כן | התיאור תמיד, התוכן המלא כשמפעילים |
+| `disable-model-invocation: true` | כן | לא | התיאור לא נטען. התוכן המלא נטען כשאתה מפעיל |
+| `user-invocable: false` | לא | כן | התיאור תמיד, התוכן המלא כשמפעילים |
+
+`disable-model-invocation: true` מתאים לתהליכים עם תופעות לוואי, כמו `/commit` או `/deploy`. לא רוצים ש-Claude יחליט לבד לעשות deploy כי הקוד נראה מוכן. `user-invocable: false` מתאים לידע רקע, למשל הסבר על מערכת ישנה, שאין טעם להפעיל כפקודה.
+
+אחרי שה-Skill הופעל, התוכן שלו נכנס לשיחה כהודעה אחת ונשאר שם בתורות הבאות. Claude Code לא קורא את הקובץ מחדש, ולכן כותבים הוראות שתקפות לכל המשימה. שומרים את `SKILL.md` תמציתי: כיוון שהתוכן נשאר בהקשר, כל שורה היא עלות טוקנים חוזרת.
+
+## איך מעבירים ארגומנטים ל-Skill?
+כותבים אחרי שם ה-Skill, והטקסט מחליף את `$ARGUMENTS` בתוכן. זו הדוגמה מהתיעוד:
+
+```yaml
+---
+name: fix-issue
+description: Fix a GitHub issue
+disable-model-invocation: true
+---
+
+Fix GitHub issue $ARGUMENTS following our coding standards.
+
+1. Read the issue description
+2. Understand the requirements
+3. Implement the fix
+4. Write tests
+5. Create a commit
+```
+
+<CommandBlock>/fix-issue 123</CommandBlock>
+
+Claude מקבל את ההוראה עם `123` במקום `$ARGUMENTS`. אם העברת ארגומנטים ואין בתוכן placeholder שמקבל אותם, Claude Code מוסיף בסוף `ARGUMENTS: <הקלט שלך>`, כך ש-Claude עדיין רואה מה כתבת.
+
+כדי לגשת לארגומנט לפי מיקום, משתמשים ב-`$ARGUMENTS[N]` או בקיצור `$N`, החל מ-0:
+
+```yaml
+---
+name: migrate-component
+description: Migrate a component from one language to another
+---
+
+Migrate the $0 component from $1 to $2.
+Preserve all existing behavior and tests.
+```
+
+`/migrate-component SearchBar JavaScript TypeScript` מציב את `SearchBar` ב-`$0`, את `JavaScript` ב-`$1` ואת `TypeScript` ב-`$2`. ערך של כמה מילים עוטפים במרכאות כדי שייחשב ארגומנט אחד. `$ARGUMENTS` עצמו תמיד מקבל את כל הטקסט כפי שהוקלד.
+
+## אפשר להוסיף ל-Skill קבצים נוספים?
+כן. התיקייה יכולה להכיל קבצי עזר, ו-`SKILL.md` נשאר מרוכז בעיקר. Claude קורא את הקבצים האחרים רק כשצריך:
+
+```text
+my-skill/
+├── SKILL.md (required - overview and navigation)
+├── reference.md (detailed API docs - loaded when needed)
+├── examples.md (usage examples - loaded when needed)
+└── scripts/
+    └── helper.py (utility script - executed, not loaded)
+```
+
+מזכירים כל קובץ ב-`SKILL.md`, כדי ש-Claude ידע מה יש בו ומתי לפתוח אותו. התיעוד ממליץ לשמור את `SKILL.md` מתחת ל-500 שורות.
+
+## מה זה bundled skills?
+Claude Code מגיע עם Skills מובנים, כמו `/code-review`,‏ `/debug`,‏ `/batch`,‏ `/loop` ו-`/claude-api`. הם מבוססי prompt: נותנים ל-Claude הוראות מפורטות, והוא מבצע את העבודה עם הכלים שלו. לעומתם, רוב הפקודות המובנות מריצות לוגיקה קבועה.
+
+מפעילים אותם כמו כל Skill, עם `/` ושם ה-Skill. חלקם Claude מפעיל לבד כשזה רלוונטי, ואחרים, כמו `/verify`, רצים רק כשאתה מפעיל. אם יצרת Skill בשם של bundled skill, ה-Skill שלך מחליף את הפקודה, אבל לא את הכינויים (aliases) שלה: Skill בשם `code-review` מחליף את `/code-review`, אבל `/review` ממשיך להריץ את המובנה. כדי לכבות את כל ה-bundled skills משתמשים בהגדרה `disableBundledSkills`. הרשימה המלאה נמצאת ב[מדריך הפקודות הרשמי](https://code.claude.com/docs/en/commands), מסומנת **Skill**.
+
+<Callout type="tip">
+Claude לא משתמש ב-Skill שיצרת? בודקים שהתיאור כולל מילים שאנשים באמת אומרים, ושה-Skill מופיע כשמבקשים `What skills are available?`. אם ה-YAML שבור, `/skill-name` עדיין עובד אבל Claude לא יכול להתאים לפי התיאור. מריצים עם `--debug` כדי לראות את שגיאת הניתוח.
+</Callout>
+
+## הצעד הבא
+- ← [Subagents: איך מאצילים משימות לסוכני משנה](/advanced/subagents)
+- שיעורים קשורים: [סקירת דרכי ההרחבה](/advanced/extend-overview) · [Plugins](/advanced/plugins) · [CLAUDE.md](/beginner-plus/claude-md)
