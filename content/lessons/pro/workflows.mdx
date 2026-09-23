@@ -1,0 +1,170 @@
+---
+title: "מה זה dynamic workflow ב-Claude Code ואיך מריצים אחד?"
+description: "Dynamic workflow הוא סקריפט JavaScript ש-Claude Code כותב ומריץ ברקע כדי לתזמר subagents רבים. איך מריצים /deep-research, עוקבים ב-/workflows ושומרים סקריפט."
+level: "pro"
+order: 40
+source: "https://code.claude.com/docs/en/workflows"
+lastVerified: "2026-09-23"
+keywords: ["Claude Code", "dynamic workflows", "workflow", "תזמור סוכנים", "תזמור subagents", "סקריפט", "/workflows", "/deep-research", "ultracode", ".claude/workflows", "סוכנים מקבילים", "הרצה ברקע", "עלות טוקנים"]
+canDo: "עכשיו אתה יכול להריץ workflow מובנה, לבקש מ-Claude Code לכתוב workflow למשימה גדולה, לעקוב אחריו ב-/workflows, לשמור אותו כפקודה ולשלוט בעלות שלו."
+relatedSlugs: ["agents-overview", "agent-teams", "subagents"]
+faq:
+  - q: "מה ההבדל בין dynamic workflow ל-subagents רגילים?"
+    a: "עם subagents, Claude מחליט בכל תור מה להפעיל, וכל תוצאה נכנסת לחלון ההקשר שלו. ב-workflow התוכנית כתובה בסקריפט: הסקריפט מחזיק את הלולאה, ההסתעפויות והתוצאות הביניים, ו-Claude מקבל רק את התשובה הסופית. זה מתאים לעשרות עד מאות סוכנים בריצה אחת."
+  - q: "איך מבקשים מ-Claude Code לכתוב workflow?"
+    a: "כותבים בפרומפט את מילת המפתח ultracode, או מבקשים במילים שלך, למשל use a workflow. Claude כותב סקריפט workflow למשימה במקום לעבוד עליה תור אחרי תור. אפשר גם להפעיל /effort ultracode כדי ש-Claude יתכנן workflow לכל משימה משמעותית בסשן."
+  - q: "איפה נשמרים workflows לשימוש חוזר?"
+    a: "ב-/workflows בוחרים ריצה ולוחצים s. אפשר לשמור ב-.claude/workflows/ בפרויקט, שמשותף עם כל מי שמשכפל את הריפו, או ב-~/.claude/workflows/ בתיקיית הבית, שזמין רק לך בכל הפרויקטים. ה-workflow רץ אחר כך כפקודה בשם שלו."
+  - q: "כמה עולה הרצה של workflow?"
+    a: "workflow מפעיל סוכנים רבים, ולכן ריצה אחת יכולה לצרוך הרבה יותר טוקנים מאשר עבודה על אותה משימה בשיחה, והיא נספרת במגבלות השימוש של התוכנית. התיעוד ממליץ להריץ קודם על חלק קטן, לעקוב אחרי צריכת הטוקנים ב-/workflows ולעצור את הריצה אם צריך."
+  - q: "איך מכבים את dynamic workflows?"
+    a: "מכבים את השורה Dynamic workflows ב-/config, או מגדירים disableWorkflows עם הערך true ב-~/.claude/settings.json, או מגדירים את משתנה הסביבה CLAUDE_CODE_DISABLE_WORKFLOWS=1. ארגון יכול לכבות את הפיצ'ר לכולם דרך managed settings."
+---
+
+import { CommandBlock, Callout, StepList } from "@/components/lesson";
+
+Dynamic workflow הוא סקריפט JavaScript ש-Claude Code כותב עבורך כדי לתזמר הרבה subagents בבת אחת. הסקריפט רץ ברקע והסשן נשאר פנוי. מתחילים עם `/deep-research` המובנה, או מבקשים מ-Claude "use a workflow". עוקבים ב-`/workflows`, ושומרים ריצה טובה כפקודה לשימוש חוזר.
+
+## למה זה חשוב
+workflow מעביר את התוכנית לקוד. עם subagents,‏ skills ו-agent teams, ‏Claude הוא המתזמר: הוא מחליט בכל תור מה להפעיל, וכל תוצאה נכנסת לחלון ההקשר. ב-workflow הסקריפט מחזיק את הלולאה, ההסתעפויות והתוצאות הביניים, ולחלון ההקשר של Claude מגיעה רק התשובה הסופית.
+
+| | Subagents | Agent teams | Workflows |
+| --- | --- | --- | --- |
+| מי מחליט מה רץ הלאה | Claude, תור אחרי תור | סוכן מוביל, תור אחרי תור | הסקריפט |
+| איפה נשמרות תוצאות ביניים | חלון ההקשר של Claude | רשימת משימות משותפת | משתנים בסקריפט |
+| היקף | כמה משימות בכל תור | קומץ עמיתים לאורך זמן | עשרות עד מאות סוכנים בריצה |
+| הפרעה | התור מתחיל מחדש | חברי הצוות ממשיכים | אפשר להמשיך באותו סשן |
+
+מתי זה מתאים: סריקת באגים בכל הקוד, מיגרציה של מאות קבצים, מחקר שדורש הצלבת מקורות, או תוכנית קשה שכדאי לנסח מכמה זוויות. הסקריפט יכול גם להפעיל דפוס איכות קבוע, למשל סוכנים שבודקים זה את הממצאים של זה לפני הדיווח.
+
+<Callout type="note">
+Dynamic workflows זמינים בכל התוכניות בתשלום, עם גישה ל-Anthropic API, וב-Amazon Bedrock,‏ Google Cloud's Agent Platform ו-Microsoft Foundry. בתוכנית Pro מפעילים אותם מהשורה Dynamic workflows ב-`/config`.
+</Callout>
+
+## איך מריצים workflow מובנה?
+Claude Code כולל workflow מובנה אחד: `/deep-research`. הוא פורש חיפושי web על השאלה מכמה זוויות, מביא ומצליב את המקורות, מצביע על כל טענה ומחזיר דוח עם ציטוטים. טענות שלא עמדו בהצלבה מסוננות. הוא דורש שכלי WebSearch יהיה זמין.
+
+<StepList>
+
+1. מריצים את הפקודה עם שאלה:
+   ```text
+   /deep-research What changed in the Node.js permission model between v20 and v22?
+   ```
+2. Claude Code שואל אם לאשר את ה-workflow. בוחרים **Yes**. הנוסח המדויק תלוי במצב ההרשאות.
+3. הריצה מתחילה ברקע. כדי לראות התקדמות מריצים את הפקודה הבאה, בוחרים את הריצה בחיצים ולוחצים Enter:
+   <CommandBlock>/workflows</CommandBlock>
+4. בסיום הדוח מופיע בסשן. טענה שסוכני האימות לא הצליחו לבדוק, למשל בגלל rate limit, מסומנת כלא מאומתת ולא כמופרכת.
+
+</StepList>
+
+שורת התקדמות מופיעה גם בפאנל המשימות מתחת לתיבת הקלט. חץ למטה מתמקד בה, ו-Enter מרחיב אותה.
+
+## איך מבקשים מ-Claude לכתוב workflow?
+כותבים את מילת המפתח `ultracode` בפרומפט, או מבקשים במילים שלך ("use a workflow", "run a workflow"). Claude כותב סקריפט workflow למשימה במקום לעבוד עליה תור אחרי תור. הדוגמה מהתיעוד:
+
+```text
+ultracode: audit every API endpoint under src/routes/ for missing auth checks
+```
+
+מילת המפתח קובעת רק את מבנה העבודה. פעולות הסוכנים עוברות את אותן בדיקות הרשאה ו-sandboxing כמו כל פעולה אחרת בסשן. אם הפעלת בטעות, `Alt+W` ב-Windows וב-Linux, או `Option+W` ב-macOS, מבטל את ההדגשה לפרומפט הזה.
+
+עוד דוגמאות פרומפט מהתיעוד:
+
+```text
+use a workflow to run npx tsc --noEmit and keep fixing the reported errors until the type check passes or two rounds in a row make no progress
+```
+
+```text
+use a workflow to migrate every component under src/components/ from JavaScript to TypeScript, working on each file in its own isolated copy
+```
+
+### מה זה ultracode?
+`ultracode` היא הגדרה שמשלבת reasoning effort ברמת `xhigh` עם תזמור workflow אוטומטי. כשהיא פעילה, Claude מחליט לבד מתי משימה מצדיקה workflow, ובקשה אחת יכולה להפוך לכמה workflows ברצף.
+
+<CommandBlock>/effort ultracode</CommandBlock>
+
+זה חל על כל משימה בסשן, ולכן כל בקשה צורכת יותר טוקנים ולוקחת יותר זמן. חוזרים לעבודה רגילה עם `/effort high`. פרטים על רמות effort ב-[model-config](https://code.claude.com/docs/en/model-config).
+
+### מה מאשרים לפני הריצה?
+ב-CLI חלון האישור מציג את השלבים המתוכננים ואת האפשרויות:
+
+- **Yes, run it**: מתחילים את הריצה.
+- **Yes, and don't ask again**: מתחילים ולא שואלים שוב על ה-workflow הזה בפרויקט. מוצע רק ל-workflow מובנה, שמור או מ-plugin, לא לסקריפט ש-Claude כתב למשימה הנוכחית.
+- **View raw script**: קוראים את הסקריפט לפני ההחלטה.
+- **No**: מבטלים.
+
+אם החלון מופיע תלוי במצב ההרשאות: ב-auto mode רק בהפעלה הראשונה, ב-Manual וב-accept edits בכל ריצה, וב-bypass permissions בכלל לא. ה-subagents שה-workflow מפעיל משתמשים בכללי ההרשאות שלך. בריצה ארוכה כדאי להוסיף מראש לכללי ה-allow את הכלים שהסוכנים צריכים, כדי למנוע עצירות.
+
+## איך עוקבים אחרי ריצה?
+מריצים `/workflows` בכל רגע כדי לראות ריצות פעילות וגמורות, ובוחרים ריצה. תצוגת ההתקדמות מציגה כל שלב עם מספר הסוכנים, סך הטוקנים והזמן שעבר. המקשים העיקריים:
+
+| מקש | פעולה |
+| --- | --- |
+| `↑` / `↓` | בחירת שלב או סוכן |
+| `Enter` או `→` | כניסה לשלב, ואז לפרטי סוכן |
+| `Esc` או `←` | חזרה רמה אחת אחורה |
+| `p` | השהיה או המשך של הריצה |
+| `x` | עצירת הסוכן הנבחר, או של כל ה-workflow כשהפוקוס על הריצה |
+| `s` | שמירת הסקריפט של הריצה כפקודה |
+
+פרטי הסוכן מציגים את הפרומפט שלו, קריאות הכלים האחרונות והתוצאה.
+
+אפשר להמשיך ריצה באותו סשן: בוחרים ריצה מושהית ב-`/workflows` ולוחצים `p`. לריצה שנעצרה מבקשים מ-Claude להפעיל מחדש את ה-workflow עם אותו סקריפט. סוכנים שסיימו מחזירים את התוצאה השמורה שלהם ולא רצים שוב, כל עוד אף סוכן שהתחיל לפניהם לא נכשל ולא קיבל פרומפט שונה. אחרת הם רצים מחדש.
+
+## איפה נשמרים סקריפטי workflow?
+יש שני סוגי קבצים: הסקריפט של כל ריצה, ו-workflow ששמרת לשימוש חוזר.
+
+| מה | איפה | הערה |
+| --- | --- | --- |
+| הסקריפט של ריצה בודדת | תחת תיקיית הסשן ב-`~/.claude/projects/` | Claude מקבל את הנתיב כשהריצה מתחילה, ואפשר לקרוא או לערוך אותו |
+| workflow שמור בפרויקט | `.claude/workflows/` | משותף עם כל מי שמשכפל את הריפו |
+| workflow שמור אישי | `~/.claude/workflows/` | זמין רק לך, בכל הפרויקטים |
+
+כדי לשמור: ב-`/workflows` בוחרים את הריצה, לוחצים `s`, עוברים בין שני המיקומים עם Tab ולוחצים Enter. בסשנים הבאים ה-workflow רץ כ-`/<name>` ומופיע בהשלמה האוטומטית של `/`. אם ל-workflow בפרויקט ול-workflow אישי יש אותו שם, זה של הפרויקט רץ. כדי לשתף workflow בין צוותים אפשר לארוז אותו ב-[plugin](/advanced/plugins), בתיקיית `workflows/`.
+
+## איך נראה סקריפט שמור?
+הקובץ מכיל בלוק `meta` ואחריו גוף שמתזמר subagents. בדרך כלל לא צריך לערוך אותו, אבל כדאי לזהות את המבנה. זו הדוגמה מהתיעוד:
+
+```javascript
+export const meta = {
+  name: 'audit-routes',
+  description: 'Audit every route handler for missing auth checks',
+}
+
+const found = await agent('List every .ts file under src/routes/.', {
+  schema: { type: 'object', required: ['files'], properties: { files: { type: 'array', items: { type: 'string' } } } },
+})
+
+const audits = await pipeline(found.files, file =>
+  agent(`Audit ${file} for missing authentication checks.`, { label: file }),
+)
+
+return audits.filter(Boolean)
+```
+
+- `agent()` מפעיל subagent אחד. עם `schema` הוא מחזיר JSON בצורה הזו במקום טקסט חופשי.
+- `pipeline()` מפעיל סוכן לכל פריט ברשימה.
+- `parallel()` מריץ קבוצת משימות במקביל ומחכה לכולן.
+- `agent()` מחזיר `null` אם עצרת אותו או אם הייתה שגיאת API בלתי הפיכה, ולכן הדוגמה מסתיימת ב-`.filter(Boolean)`.
+
+הסקריפט עצמו לא ניגש לקבצים או ל-shell. הסוכנים קוראים, כותבים ומריצים פקודות, והסקריפט רק מתאם ביניהם. אין גם קלט מהמשתמש באמצע ריצה: אם צריך אישור בין שלבים, מריצים כל שלב כ-workflow נפרד. לעריכת סקריפט שמור, התיעוד ממליץ להריץ קודם את ה-skill המובנה `/workflow-authoring`.
+
+## כמה זה עולה, ואיך שומרים על שליטה?
+workflow מפעיל סוכנים רבים, ולכן ריצה אחת יכולה לצרוך הרבה יותר טוקנים מאשר עבודה על אותה משימה בשיחה. הריצות נספרות במגבלות השימוש וה-rate limits של התוכנית שלך.
+
+<Callout type="warning">
+לפני משימה גדולה, הרץ את ה-workflow על חלק קטן: תיקייה אחת במקום כל הריפו, או שאלה צרה במקום רחבה. עקוב אחרי צריכת הטוקנים של כל סוכן ב-`/workflows`, ועצור את הריצה אם צריך. בדרך כלל עבודה שהושלמה לא הולכת לאיבוד.
+</Callout>
+
+כלים נוספים לשליטה בעלות:
+
+- **אזהרת Large workflow:** כש-workflow מתזמן יותר מ-25 סוכנים, או שסך הטוקנים הצפוי עובר 1.5 מיליון, שורת ההתקדמות מציגה אזהרה. היא רק מייעצת ולא עוצרת את הריצה.
+- **הנחיית גודל:** ב-`/config` בוחרים ערך ל-Dynamic workflow size. ‏`small` מכוון לפחות מ-5 סוכנים, `medium` לפחות מ-10, ‏`large` לפחות מ-50, ו-`unrestricted` משאיר ל-Claude להחליט. ברירת המחדל היא `medium`, או `small` למי שמחובר עם תוכנית Pro בגרסה עדכנית של Claude Code (בגרסאות ישנות ברירת המחדל שונה). זו עצה ל-Claude, לא תקרה.
+- **תקרות קשיחות:** עד 16 סוכנים במקביל כברירת מחדל, ועד 1,000 סוכנים בריצה אחת.
+- **מודל:** אם בדרך כלל אתה עובר למודל קטן יותר לעבודה שגרתית, בדוק את `/model` לפני ריצה גדולה. אפשר גם לבקש מ-Claude מודל קטן יותר לשלבים שלא צריכים את החזק ביותר. ראה [model-config](https://code.claude.com/docs/en/model-config).
+
+כדי לכבות workflows: מכבים את Dynamic workflows ב-`/config`, או מגדירים `"disableWorkflows": true` ב-`~/.claude/settings.json`.
+
+## הצעד הבא
+- ← [Worktrees: סשנים מקבילים מבודדים](/pro/worktrees)
+- שיעורים קשורים: [סקירת עבודה עם סוכנים](/pro/agents-overview) · [Agent teams](/pro/agent-teams) · [Subagents](/advanced/subagents)
