@@ -1,0 +1,156 @@
+---
+title: "מדריך מהיר ל-plugins ב-Claude Code: מבנה, plugin.json ו-CLI"
+description: "רפרנס מהיר ל-plugins ב-Claude Code: מבנה התיקיות והקבצים, שדות plugin.json, משתני נתיב, scopes להתקנה ופקודות claude plugin ו-/plugin לניהול מלא."
+order: 7
+source: "https://code.claude.com/docs/en/plugins-reference"
+lastVerified: "2026-09-23"
+keywords: ["Claude Code", "plugin", "plugins", "תוסף", "תוספים", "plugin.json", "מבנה plugin", "manifest", "claude plugin install", "claude plugin validate", "/plugin", "/reload-plugins", "CLAUDE_PLUGIN_ROOT", "marketplace"]
+faq:
+  - q: "האם חובה ליצור קובץ plugin.json?"
+    a: "לא. ה-manifest אופציונלי. בלעדיו Claude Code מגלה את הרכיבים בתיקיות ברירת המחדל וגוזר את שם ה-plugin משם התיקייה. אם יוצרים manifest, השדה היחיד שחובה הוא name."
+  - q: "איפה שמים את התיקיות skills ו-agents בתוך plugin?"
+    a: "בשורש ה-plugin. רק plugin.json נמצא בתוך .claude-plugin. תיקיות כמו skills,‏ agents,‏ hooks ו-commands שנמצאות בתוך .claude-plugin לא ייטענו."
+  - q: "איך בודקים plugin לפני שמפרסמים אותו?"
+    a: "מריצים claude plugin validate עם נתיב לתיקיית ה-plugin, או /plugin validate מתוך סשן. הדגל --strict הופך אזהרות לשגיאות, וזה שימושי ב-CI."
+  - q: "מה ההבדל בין plugin disable ל-plugin uninstall?"
+    a: "disable מכבה את ה-plugin בלי להסיר אותו, ואפשר להפעיל אותו שוב עם enable. uninstall מסיר את ה-plugin, ובהסרה מה-scope האחרון גם מוחק את תיקיית הנתונים הקבועה שלו, אלא אם מוסיפים --keep-data."
+---
+
+העמוד מרכז את מה שצריך כדי לבנות ולנהל plugin: מבנה התיקיות, השדות של `.claude-plugin/plugin.json`, משתני הנתיב, ה-scopes להתקנה ופקודות `claude plugin`. זו רשימה נבחרת. הפירוט המלא, כולל פורמט כל רכיב, נמצא ב-[Plugins reference הרשמי](https://code.claude.com/docs/en/plugins-reference).
+
+## מה יכול להיות בתוך plugin?
+
+כל התיקיות נמצאות בשורש ה-plugin. רק `plugin.json` נמצא בתוך `.claude-plugin/`.
+
+| רכיב | מיקום ברירת מחדל | מה הוא מכיל |
+| --- | --- | --- |
+| Manifest | `.claude-plugin/plugin.json` | מטא-דאטה והגדרות של ה-plugin (אופציונלי) |
+| Skills | `skills/` | skills במבנה `<name>/SKILL.md` |
+| Commands | `commands/` | skills כקובצי Markdown שטוחים; ל-plugins חדשים משתמשים ב-`skills/` |
+| Agents | `agents/` | קובצי Markdown של subagents; תת-תיקיות הן חלק משם ה-agent |
+| Workflows | `workflows/` | קובצי סקריפט של workflows |
+| Output styles | `output-styles/` | הגדרות של output styles |
+| Themes | `themes/` | ערכות צבעים שמופיעות ב-`/theme` (רכיב ניסיוני) |
+| Hooks | `hooks/hooks.json` | הגדרות hooks |
+| MCP servers | `.mcp.json` | הגדרות של שרתי MCP |
+| LSP servers | `.lsp.json` | הגדרות של language servers |
+| Monitors | `monitors/monitors.json` | monitors ברקע שמתחילים אוטומטית כשה-plugin פעיל (רכיב ניסיוני) |
+| Executables | `bin/` | קבצי הרצה שמתווספים ל-`PATH` של כלי Bash כל עוד ה-plugin מופעל |
+| Settings | `settings.json` | הגדרות ברירת מחדל כשה-plugin מופעל; נתמכים רק המפתחות `agent` ו-`subagentStatusLine` |
+
+קובץ `CLAUDE.md` בשורש ה-plugin לא נטען כהקשר. כדי שהוראות ייכנסו להקשר של Claude, שמים אותן ב-skill.
+
+## אילו שדות יש ב-plugin.json?
+
+אם יש manifest, `name` הוא השדה היחיד שחובה. Claude Code מתעלם משדות ברמה העליונה שהוא לא מכיר, ו-`claude plugin validate` מדווח עליהם כאזהרה.
+
+| שדה | מה הוא קובע | דוגמה |
+| --- | --- | --- |
+| `name` | מזהה ייחודי ב-kebab-case, בלי רווחים; משמש כ-namespace לרכיבים (חובה) | `"deployment-tools"` |
+| `displayName` | שם קריא שמוצג ב-`/plugin` ובממשק; יכול לכלול רווחים ולא משמש ל-namespace | `"Deployment Tools"` |
+| `version` | גרסה סמנטית; כשהיא מוגדרת, משתמשים מקבלים עדכון רק כשמעלים אותה (יש חריגים; ראה Version management במקור) | `"2.1.0"` |
+| `description` | הסבר קצר על מטרת ה-plugin | `"Deployment automation tools"` |
+| `author` | פרטי היוצר (אובייקט) | `{"name": "Dev Team", "email": "dev@company.com"}` |
+| `homepage` | כתובת התיעוד | `"https://docs.example.com"` |
+| `repository` | כתובת קוד המקור | `"https://github.com/user/plugin"` |
+| `license` | מזהה הרישיון | `"MIT"` |
+| `keywords` | תגיות לגילוי (מערך) | `["deployment", "ci-cd"]` |
+| `metadata` | אובייקט חופשי לנתונים שלך; Claude Code לא קורא אותו | `{"catalogId": "cat-123"}` |
+| `defaultEnabled` | האם ה-plugin מתחיל מופעל כשהמשתמש לא קבע אחרת; ברירת המחדל `true` | `false` |
+| `$schema` | כתובת JSON Schema להשלמה אוטומטית בעורך; Claude Code מתעלם ממנו בטעינה | `"https://json.schemastore.org/claude-code-plugin-manifest.json"` |
+
+## אילו שדות מגדירים רכיבים ונתיבים?
+
+כל הנתיבים יחסיים לשורש ה-plugin ומתחילים ב-`./` (השדה `skills` מקבל גם `"."`). רוב השדות מקבלים מחרוזת או מערך של נתיבים.
+
+| שדה | מה הוא מגדיר | דוגמה |
+| --- | --- | --- |
+| `skills` | תיקיות skills נוספות; **מתווסף** לסריקה של `skills/` | `"./custom/skills/"` |
+| `commands` | קובצי `.md` או תיקיות של commands; **מחליף** את `commands/` | `"./custom/cmd.md"` |
+| `agents` | קובצי agents; **מחליף** את `agents/` | `"./custom/agents/reviewer.md"` |
+| `workflows` | קובצי או תיקיות workflows; **מחליף** את `workflows/` | `"./custom/workflows/"` |
+| `hooks` | נתיבים להגדרות hooks או הגדרה inline | `"./my-extra-hooks.json"` |
+| `mcpServers` | נתיבים להגדרות MCP או הגדרה inline | `"./my-extra-mcp-config.json"` |
+| `outputStyles` | קבצים או תיקיות של output styles; **מחליף** את `output-styles/` | `"./styles/"` |
+| `lspServers` | הגדרות Language Server Protocol ל-code intelligence | `"./.lsp.json"` |
+| `experimental.themes` | קבצים או תיקיות של ערכות צבעים; **מחליף** את `themes/` | `"./themes/"` |
+| `experimental.monitors` | הגדרות monitors שמתחילים אוטומטית כשה-plugin פעיל; **מחליף** את `monitors/monitors.json` | `"./monitors.json"` |
+| `experimental.evals` | תיקייה מתחת לשורש ה-plugin עם eval cases, במקום `evals/` | `"quality/evals"` |
+| `userConfig` | ערכים שהמשתמש מתבקש למלא כשהוא מפעיל את ה-plugin | |
+| `channels` | הצהרות channels להזרקת הודעות (בסגנון Telegram,‏ Slack,‏ Discord) | |
+| `dependencies` | plugins אחרים שה-plugin צריך, אופציונלית עם אילוץ גרסה semver | `[{ "name": "secrets-vault", "version": "~2.1.0" }]` |
+
+ל-hooks,‏ MCP servers ו-LSP servers יש כללי מיזוג משלהם. הפירוט נמצא ב-[Path behavior rules](https://code.claude.com/docs/en/plugins-reference#path-behavior-rules).
+
+## אילו משתני נתיב אפשר להשתמש בהם?
+
+| משתנה | למה הוא מצביע | שימוש |
+| --- | --- | --- |
+| `${CLAUDE_PLUGIN_ROOT}` | נתיב מוחלט לתיקיית ההתקנה של ה-plugin | סקריפטים, קבצי הרצה וקובצי הגדרות שמגיעים עם ה-plugin |
+| `${CLAUDE_PLUGIN_DATA}` | תיקייה קבועה ששורדת עדכוני plugin, ונוצרת בהפניה הראשונה | תלויות מותקנות כמו `node_modules`, קוד שנוצר ו-caches |
+| `${CLAUDE_PROJECT_DIR}` | שורש הפרויקט | סקריפטים וקובצי הגדרות של הפרויקט |
+
+המשתנים מיוצאים לתהליכי hooks ולשרתי MCP ו-LSP, אבל לא לפקודות ש-Claude מריץ דרך כלי Bash. בתוכן ה-plugin כותבים את ה-placeholder, ו-Claude Code מחליף אותו בנתיב.
+
+## באילו scopes אפשר להתקין plugin?
+
+| Scope | קובץ ההגדרות | מתי משתמשים |
+| --- | --- | --- |
+| `user` | `~/.claude/settings.json` | plugins אישיים בכל הפרויקטים (ברירת מחדל) |
+| `project` | `.claude/settings.json` | plugins של הצוות, משותפים דרך version control |
+| `local` | `.claude/settings.local.json` | plugins לפרויקט מסוים שלא משותפים עם הצוות |
+| `managed` | managed settings | plugins מנוהלים (קריאה בלבד, עדכון בלבד) |
+
+## אילו פקודות CLI מנהלות plugins?
+
+| פקודה | מה היא עושה | דוגמה |
+| --- | --- | --- |
+| `claude plugin init <name>` | יוצר שלד של plugin חדש ב-`~/.claude/skills/<name>/`, שנטען כ-`<name>@skills-dir` בלי התקנה (כינוי: `plugin new`) | `claude plugin init my-helper --with skills hooks` |
+| `claude plugin install <plugin>` | מתקין plugin מ-marketplace | `claude plugin install formatter@my-marketplace` |
+| `claude plugin uninstall <plugin>` | מסיר plugin מותקן (כינויים: `remove`,‏ `rm`) |  |
+| `claude plugin enable <plugin>` | מפעיל plugin מכובה |  |
+| `claude plugin disable [plugin]` | מכבה plugin בלי להסיר אותו | `claude plugin disable my-tool@skills-dir` |
+| `claude plugin update <plugin>` | מעדכן plugin לגרסה האחרונה |  |
+| `claude plugin list` | מציג plugins מותקנים עם גרסה, marketplace מקור ומצב הפעלה |  |
+| `claude plugin details <name>` | מציג את רשימת הרכיבים של plugin והערכה של עלות ה-tokens שלו |  |
+| `claude plugin validate <path>` | בודק plugin או marketplace לשגיאות תחביר וסכמה לפני פרסום | `claude plugin validate ./my-plugin --strict` |
+| `claude plugin prune` | מסיר תלויות שהותקנו אוטומטית ואף plugin כבר לא צריך (כינוי: `autoremove`) |  |
+| `claude plugin eval [target]` | מריץ את ה-eval cases של plugin ומדווח תוצאות עם ציון |  |
+| `claude plugin eval init [name]` | יוצר חבילת evals ל-plugin שבתיקייה הנוכחית |  |
+| `claude plugin tag [path]` | יוצר git tag של release ל-plugin |  |
+
+## אילו דגלים כדאי להכיר?
+
+| דגל | פקודות | מה הוא עושה |
+| --- | --- | --- |
+| `-s, --scope <scope>` | `install`,‏ `uninstall`,‏ `enable`,‏ `disable`,‏ `update`,‏ `prune` | בוחר scope: `user`,‏ `project` או `local` (ב-`update` גם `managed`) |
+| `--config <key=value>` | `install` | קובע ערך `userConfig` שמוגדר ב-manifest; אפשר לחזור על הדגל |
+| `--json` | `install`,‏ `uninstall`,‏ `enable`,‏ `disable`,‏ `update`,‏ `list`,‏ `validate` | מדפיס את התוצאה כ-JSON לשימוש בסקריפטים |
+| `--keep-data` | `uninstall` | שומר את תיקיית הנתונים הקבועה של ה-plugin |
+| `--prune` | `uninstall` | מסיר גם תלויות שהותקנו אוטומטית ואף plugin אחר לא צריך |
+| `-a, --all` | `disable` | מכבה את כל ה-plugins המופעלים; לא משתלב עם `--scope` |
+| `--available` | `list` | כולל plugins זמינים מ-marketplaces; דורש `--json` |
+| `--strict` | `validate` | מתייחס לאזהרות כשגיאות ויוצא עם קוד 1 |
+| `--with <components...>` | `init` | יוצר גם תיקיות לרכיבים: `skills`,‏ `agents`,‏ `hooks`,‏ `mcp`,‏ `lsp`,‏ `output-style`,‏ `channel` |
+| `-f, --force` | `init`,‏ `tag` | ב-`init` דורס `.claude-plugin/` קיים ביעד; ב-`tag` יוצר tag גם כשה-working tree מלוכלך או שה-tag כבר קיים |
+| `--dry-run` | `prune`,‏ `tag` | מציג מה יקרה בלי לבצע |
+| `--push` | `tag` | דוחף את ה-tag ל-remote אחרי שהוא נוצר |
+
+## אילו פקודות עוזרות בתוך הסשן ובדיבוג?
+
+| פקודה | מה היא עושה |
+| --- | --- |
+| `/plugin` | פותח את ממשק ניהול ה-plugins |
+| `/plugin list` | מציג רשימה של plugins שהותקנו מ-marketplace; מקבל `--enabled` או `--disabled` |
+| `/plugin validate <path>` | מריץ את אותן בדיקות כמו `claude plugin validate` |
+| `/plugin update` | מעדכן plugin אם הגרסה המחושבת שונה מזו שמותקנת |
+| `/reload-plugins` | טוען מחדש שינויים ב-hooks,‏ agents,‏ MCP ורכיבים אחרים בלי להפעיל מחדש את Claude Code |
+| `claude --plugin-dir` | טוען plugin מתיקייה לסשן הנוכחי בלבד |
+| `claude --debug` | מציג פרטי טעינה: אילו plugins נטענו, שגיאות ב-manifest ואתחול שרתי MCP |
+
+## איפה לומדים עוד?
+
+- [מה זה plugin ואיך מתקינים, בונים ובודקים אותו?](/advanced/plugins)
+- [Skills ב-Claude Code](/advanced/skills)
+- [Hooks ב-Claude Code](/advanced/hooks)
+- [Plugins reference (התיעוד הרשמי)](https://code.claude.com/docs/en/plugins-reference)
