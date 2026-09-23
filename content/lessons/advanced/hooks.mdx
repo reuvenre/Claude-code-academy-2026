@@ -1,0 +1,217 @@
+---
+title: "מה זה hooks ב-Claude Code ואיך מריצים פקודה בכל אירוע?"
+description: "Hooks הם פקודות shell ש-Claude Code מריץ תמיד באירועים קבועים: אחרי עריכה, לפני פקודה, כשהוא מחכה לך. איפה מגדירים אותם, איך חוסמים פעולה ומה לבדוק לפני."
+level: "advanced"
+order: 24
+source: "https://code.claude.com/docs/en/hooks-guide"
+lastVerified: "2026-09-23"
+keywords: ["Claude Code", "hooks", "הוקים", "hook", "/hooks", "אוטומציה", "אירועים", "PreToolUse", "PostToolUse", "Notification", "settings.json", "exit code", "לחסום פקודה", "חסימת פעולה"]
+canDo: "עכשיו אתה יכול להוסיף hook לקובץ settings, לוודא שהוא רשום עם /hooks, ולכתוב סקריפט שחוסם פעולה עם exit 2."
+relatedSlugs: ["extend-overview", "skills", "subagents"]
+faq:
+  - q: "מה ההבדל בין hook להוראה ב-CLAUDE.md?"
+    a: "הוראה ב-CLAUDE.md היא הקשר ש-Claude מנסה למלא, בלי הבטחה. Hook הוא פקודת shell ש-Claude Code עצמו מריץ בכל פעם שהאירוע קורה, כך שהפעולה קורית תמיד ולא תלויה בהחלטה של המודל."
+  - q: "איך רואים אילו hooks מוגדרים?"
+    a: "מקלידים /hooks בתוך Claude Code. נפתח דפדפן לקריאה בלבד שמציג כל אירוע עם מספר ה-hooks שלו, ולכל hook את ה-matcher, הסוג, קובץ ההגדרות שממנו הגיע והפקודה. כדי להוסיף או לשנות hook עורכים את קובץ ה-JSON או מבקשים מ-Claude."
+  - q: "איך hook חוסם פעולה?"
+    a: "הסקריפט כותב סיבה ל-stderr ויוצא עם קוד 2. ב-PreToolUse זה חוסם את קריאת הכלי, והסיבה מגיעה ל-Claude כמשוב. Exit 0 אומר שאין התנגדות, ותהליך ההרשאות הרגיל ממשיך."
+  - q: "איך מכבים את כל ה-hooks זמנית?"
+    a: "מגדירים disableAllHooks עם הערך true בקובץ ההגדרות. אין דרך לכבות hook בודד ולהשאיר אותו בהגדרות; כדי להסיר hook מוחקים את הרשומה שלו מה-JSON. hooks שמנהל הגדיר ב-managed settings ממשיכים לרוץ אלא אם הכיבוי הוגדר גם שם."
+  - q: "האם hook יכול לבטל פעולה שכבר קרתה?"
+    a: "PostToolUse רץ אחרי שהכלי כבר רץ, ולכן אי אפשר לבטל בו את הפעולה. כדי למנוע פעולה משתמשים ב-PreToolUse, שרץ לפני הכלי ויכול לחסום אותו."
+---
+
+import { Callout, StepList } from "@/components/lesson";
+
+Hooks הם פקודות shell שמגדירים בקובץ settings, ו-Claude Code מריץ אותן אוטומטית בנקודות קבועות: אחרי עריכת קובץ, לפני הרצת כלי, כש-Claude מחכה לך. בניגוד להוראה ב-CLAUDE.md, ה-hook רץ תמיד. משתמשים בהם לפירמוט, התראות, חסימת פעולות ואכיפת כללי פרויקט.
+
+## למה זה חשוב
+Hooks נותנים שליטה דטרמיניסטית: פעולות מסוימות קורות תמיד, ולא תלויות בכך שהמודל יבחר להריץ אותן. הוראה כמו "תריץ Prettier אחרי כל עריכה" ב-CLAUDE.md היא בקשה. Hook של `PostToolUse` הוא התחייבות. לפי התיעוד הרשמי, משתמשים בהם כדי:
+
+- לאכוף כללי פרויקט, למשל לחסום עריכה של `.env`.
+- לבצע אוטומטית פעולות חוזרות, כמו פירמוט קוד.
+- לחבר את Claude Code לכלים קיימים, כמו התראות שולחן עבודה או לוג.
+
+## איך מגדירים hook ראשון?
+מוסיפים בלוק `hooks` לקובץ settings. הדוגמה מהתיעוד מקפיצה התראה כש-Claude מחכה לקלט שלך:
+
+<StepList>
+
+1. פותחים את `~/.claude/settings.json` (אם אין קובץ, יוצרים אותו) ומוסיפים hook של `Notification`. זו גרסת macOS:
+
+   ```json
+   {
+     "hooks": {
+       "Notification": [
+         {
+           "matcher": "",
+           "hooks": [
+             {
+               "type": "command",
+               "command": "osascript -e 'display notification \"Claude Code needs your attention\" with title \"Claude Code\"'"
+             }
+           ]
+         }
+       ]
+     }
+   }
+   ```
+
+2. מקלידים `/hooks` ובוחרים `Notification` כדי לוודא שה-hook מופיע. בחירה ב-hook מציגה את האירוע, ה-matcher, הסוג, קובץ המקור והפקודה.
+3. חוזרים עם `Esc`, לוחצים `Shift+Tab` עד שבשורת הסטטוס מופיע `⏸ manual mode on`, מבקשים מ-Claude משהו שדורש הרשאה ועוברים לחלון אחר. אמורה להגיע התראה.
+
+</StepList>
+
+ב-Linux ו-Windows מחליפים רק את הערך של `command`. אלה הערכים מהתיעוד, בדיוק כפי שהם נכתבים בתוך ה-JSON:
+
+```text
+Linux:   notify-send 'Claude Code' 'Claude Code needs your attention'
+Windows: powershell.exe -Command \"[System.Reflection.Assembly]::LoadWithPartialName('System.Windows.Forms'); [System.Windows.Forms.MessageBox]::Show('Claude Code needs your attention', 'Claude Code')\"
+```
+
+ב-Windows זו חלונית דיאלוג ולא התראה בפינת המסך, והיא עלולה להיפתח מאחורי חלון הטרמינל. `matcher` ריק תופס את כל סוגי ההתראות. אפשר לצמצם, למשל ל-`permission_prompt` (בקשת אישור) או ל-`idle_prompt` (Claude סיים ואתה לא הקלדת בערך 60 שניות).
+
+<Callout type="tip">
+אם כבר יש בקובץ מפתח `hooks`, מוסיפים את האירוע החדש כמפתח נוסף בתוך אותו אובייקט, ולא מחליפים את כולו. אפשר גם פשוט לתאר ל-Claude את ה-hook שאתה רוצה ולבקש שיכתוב אותו.
+</Callout>
+
+## איך מפרמטים קוד אוטומטית אחרי כל עריכה?
+משתמשים באירוע `PostToolUse` עם matcher של `Edit|Write`, כך שה-hook רץ רק אחרי כלי עריכת קבצים. הפקודה שולפת את נתיב הקובץ עם `jq` ומעבירה אותו ל-Prettier. מוסיפים ל-`.claude/settings.json` בשורש הפרויקט:
+
+```json
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path' | xargs npx prettier --write"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+כשה-hook מצליח, Claude Code לא מציג כלום בשיחה. בודקים שהקובץ אכן פורמט מחדש. הדוגמה דורשת `jq` מותקן.
+
+<Callout type="note">
+Claude יכול לשנות קבצים גם דרך פקודות shell, ואז `Edit|Write` לא יתפוס את השינוי. אם ה-hook חייב לראות כל שינוי, התיעוד מציע hook של `Stop` שסורק את העץ פעם בתור, או `FileChanged` לקובץ ספציפי.
+</Callout>
+
+## באילו אירועים אפשר להשתמש?
+יש אירועים רבים. אלה הנפוצים, מתוך הטבלה במדריך הרשמי:
+
+| אירוע | מתי הוא רץ |
+| --- | --- |
+| `SessionStart` | כשסשן מתחיל או מתחדש |
+| `UserPromptSubmit` | כששולחים פרומפט, לפני ש-Claude מעבד אותו |
+| `PreToolUse` | לפני שקריאת כלי רצה. יכול לחסום אותה |
+| `PermissionRequest` | כשקריאת כלי צריכה החלטת הרשאה |
+| `PostToolUse` | אחרי שקריאת כלי הצליחה |
+| `Notification` | כש-Claude Code שולח התראה |
+| `Stop` | כש-Claude מסיים להגיב |
+| `PreCompact` / `PostCompact` | לפני ואחרי דחיסת ההקשר |
+| `SessionEnd` | כשסשן מסתיים |
+
+הרשימה המלאה, עם הקלט של כל אירוע, נמצאת ב-[Hooks reference](https://code.claude.com/docs/en/hooks#hook-lifecycle). כשאירוע קורה, Claude Code מריץ את כל ה-hooks שמתאימים לו במקביל.
+
+ה-`matcher` מצמצם מתי ה-hook רץ. באירועי כלים הוא מסנן לפי שם הכלי (`Bash`, `Edit|Write`, `mcp__.*`), ב-`SessionStart` לפי אופן תחילת הסשן (`startup`, `resume`, `compact` ועוד). ה-matcher רגיש לאותיות גדולות וקטנות. בלי matcher, ה-hook רץ בכל פעם שהאירוע קורה.
+
+## איפה מגדירים hooks?
+המיקום קובע את ההיקף:
+
+| מיקום | היקף | משותף? |
+| --- | --- | --- |
+| `~/.claude/settings.json` | כל הפרויקטים שלך | לא, רק במחשב שלך |
+| `.claude/settings.json` | פרויקט אחד | כן, אפשר לעשות לו commit |
+| `.claude/settings.local.json` | פרויקט אחד | לא |
+| Managed policy settings | כל הארגון | כן, בשליטת מנהל |
+| `hooks/hooks.json` של [plugin](/advanced/plugins) | כשה-plugin מופעל | כן, ארוז עם ה-plugin |
+| frontmatter של [skill](/advanced/skills) | משארית הסשן, מרגע שה-skill הופעל | כן, בתוך קובץ ה-skill |
+| frontmatter של [subagent](/advanced/subagents) | כל עוד ה-subagent רץ | כן, בתוך קובץ ה-subagent |
+
+עריכה ישירה של קובץ ההגדרות נקלטת בדרך כלל אוטומטית בזמן ריצה. אם ה-hook לא מופיע ב-`/hooks` אחרי כמה שניות, מפעילים את הסשן מחדש ובודקים שה-JSON תקין: בלי פסיקים מיותרים בסוף ובלי הערות.
+
+## איך hook מחליט אם לחסום?
+Claude Code מעביר ל-hook את נתוני האירוע כ-JSON ב-stdin, וה-hook עונה דרך קוד היציאה:
+
+| קוד יציאה | מה קורה |
+| --- | --- |
+| `0` | אין התנגדות. ב-`PreToolUse` זה **לא** אישור: תהליך ההרשאות הרגיל ממשיך |
+| `2` | Claude Code חוסם את הפעולה. הסיבה נכתבת ל-stderr, ובחלק מהאירועים מגיעה ל-Claude כמשוב |
+| כל קוד אחר | ברוב האירועים, שגיאה שלא חוסמת: הפעולה ממשיכה ומופיעה הודעת `hook error`. חריג: אם ה-hook הדפיס ל-stdout JSON תקין, ה-JSON הוא שקובע את התוצאה |
+
+לא כל אירוע אפשר לחסום. למשל ב-`SessionStart`, exit 2 רק מציג את ה-stderr למשתמש וההרצה ממשיכה. הפירוט לכל אירוע נמצא ב-[Hooks reference](https://code.claude.com/docs/en/hooks#exit-code-2-behavior-per-event). לשליטה עדינה יותר, כמו לדחות פעולה עם הסבר מובנה, ה-hook יוצא עם 0 ומדפיס JSON; הפורמט מפורט באותו דף.
+
+### דוגמה: חסימת עריכה של קבצים רגישים
+זה הסקריפט מהתיעוד. שומרים אותו ב-`.claude/hooks/protect-files.sh`:
+
+```bash
+#!/bin/bash
+# protect-files.sh
+
+INPUT=$(cat)
+FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty')
+
+# Normalize Windows backslash separators so the patterns below match
+FILE_PATH="${FILE_PATH//\\//}"
+
+PROTECTED_PATTERNS=(".env" "package-lock.json" ".git/")
+
+for pattern in "${PROTECTED_PATTERNS[@]}"; do
+  if [[ "$FILE_PATH" == *"$pattern"* ]]; then
+    echo "Blocked: $FILE_PATH matches protected pattern '$pattern'" >&2
+    exit 2
+  fi
+done
+
+exit 0
+```
+
+ב-macOS וב-Linux הופכים אותו לבר-הרצה עם `chmod +x .claude/hooks/protect-files.sh`. אחר כך רושמים אותו כ-`PreToolUse` ב-`.claude/settings.json`:
+
+```json
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/protect-files.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+כדי לבדוק, מבקשים מ-Claude להוסיף הערה ל-`.env`. Claude Code חוסם את העריכה לפני שהיא רצה ומעביר ל-Claude את הודעת ה-`Blocked:`, כדי שישנה גישה.
+
+## יש hooks שלא מריצים פקודת shell?
+כן. רוב ה-hooks הם `"type": "command"`, אבל יש עוד סוגים: `http` שולח את נתוני האירוע ב-POST לכתובת, `mcp_tool` קורא לכלי בשרת MCP מחובר, `prompt` מבקש ממודל Claude החלטה אחת, ו-`agent` מפעיל subagent שיכול לקרוא קבצים ולהריץ פקודות לפני שהוא מחליט. לפי התיעוד, agent hooks עדיין ניסיוניים. הפרטים ב-[Hooks reference](https://code.claude.com/docs/en/hooks).
+
+## מה צריך לבדוק לפני שמוסיפים hook?
+Command hooks רצים עם כל ההרשאות של המשתמש שלך. הם יכולים לשנות, למחוק ולגשת לכל קובץ שהחשבון שלך יכול לגשת אליו. לכן [התיעוד](https://code.claude.com/docs/en/hooks#security-considerations) ממליץ:
+
+- לקרוא ולבדוק כל פקודת hook לפני שמוסיפים אותה.
+- לא לסמוך על הקלט בעיוורון, ולחסום נתיבים עם `..`.
+- לשים משתני shell במרכאות: `"$VAR"` ולא `$VAR`.
+- להשתמש בנתיבים מלאים לסקריפטים, למשל עם `$CLAUDE_PROJECT_DIR`.
+- להתרחק מקבצים רגישים כמו `.env`, `.git/` ומפתחות.
+
+<Callout type="warning">
+בסשן אינטראקטיבי, Claude Code לא מריץ hooks מאף קובץ settings, כולל `~/.claude/settings.json` שלך, עד שמאשרים את דיאלוג ה-workspace trust של התיקייה. אבל ב-`claude -p` או דרך ה-SDK הדיאלוג לא מוצג, והתיקייה נחשבת מהימנה. לכן hooks שמישהו עשה להם commit ל-`.claude/settings.json` ירוצו גם בריפו שלא בדקת. לפני שמריצים `claude -p` על ריפו שלא אתה כתבת, בודקים את קובצי `.claude/`, או מכבים hooks לאותה הרצה עם `--settings '{"disableAllHooks": true}'`.
+</Callout>
+
+גם hook שמאשר פעולה לא עוקף הכול: `"allow"` לא גובר על כללי deny בהגדרות. Hooks יכולים להדק הגבלות, אבל לא לשחרר אותן מעבר למה שכללי ההרשאות מתירים.
+
+## הצעד הבא
+- ← [MCP: איך מחברים את Claude Code לכלים חיצוניים](/advanced/mcp)
+- שיעורים קשורים: [מפת ההרחבות](/advanced/extend-overview) · [Skills](/advanced/skills) · [Subagents](/advanced/subagents)
