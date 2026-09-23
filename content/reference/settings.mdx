@@ -1,0 +1,157 @@
+---
+title: "מדריך מהיר ל-settings.json ב-Claude Code: המפתחות החשובים"
+description: "רשימה נבחרת של מפתחות settings.json ב-Claude Code לפי נושא: הרשאות, מודל, זיכרון, hooks,‏ MCP, ממשק, עדכונים והתחברות, וגם איפה נמצא כל קובץ ומי גובר."
+order: 5
+source: "https://code.claude.com/docs/en/settings-reference"
+lastVerified: "2026-09-23"
+keywords: ["Claude Code", "settings.json", "הגדרות", "מפתחות הגדרות", "settings.local.json", "managed settings", "הרשאות", "permissions", "hooks", "MCP", "סדר עדיפויות", "precedence"]
+faq:
+  - q: "באיזה קובץ לשים הגדרה אישית שתחול על כל הפרויקטים?"
+    a: "בקובץ ~/.claude/settings.json בתיקיית הבית. הוא חל עליך בכל פרויקט במחשב הזה."
+  - q: "מה קורה כשאותו מפתח מוגדר בכמה קבצים?"
+    a: "Claude Code לוקח את הערך מהרמה הגבוהה ביותר: managed, אחר כך דגלי שורת הפקודה, אחר כך settings.local.json, אחר כך settings.json של הפרויקט ולבסוף הגדרות המשתמש. רשימות כמו permissions.allow מתמזגות במקום לדרוס זו את זו."
+  - q: "האם settings.local.json נכנס ל-git?"
+    a: "לא אמור. Claude Code משאיר אותו מחוץ ל-git כשהוא יוצר את הקובץ. אם יצרת אותו ידנית, הוסף אותו ל-.gitignore בעצמך."
+  - q: "למה המפתח model לא מציג כאן ערכים?"
+    a: "שמות המודלים מתחלפים לעיתים קרובות. את הערכים העדכניים בודקים בדף model-config הרשמי."
+---
+
+כאן תמצא רשימה נבחרת של 60 מפתחות `settings.json` שימושיים ב-Claude Code, מסודרים לפי נושא, ולפניהם תזכורת קצרה: איפה יושב כל קובץ הגדרות ומי גובר כשיש התנגשות. הרשימה המלאה (מאות מפתחות) נמצאת ב[דף הרשמי](https://code.claude.com/docs/en/settings-reference).
+
+## איפה נמצאים קבצי ההגדרות?
+
+| קובץ | היקף | למי זה חל |
+| --- | --- | --- |
+| `~/.claude/settings.json` | User | לך, בכל פרויקט במחשב הזה. |
+| `.claude/settings.json` | Shared project | לכל מי שעובד בתיקייה. ב-git מבצעים לו commit כדי שהצוות יקבל אותו. |
+| `.claude/settings.local.json` | Project local | לך, בפרויקט הזה בלבד. Claude Code משאיר אותו מחוץ ל-git כשהוא יוצר אותו. |
+| `managed-settings.json` ומקורות managed אחרים | Managed | לכל מי שהארגון פורס אליו; הגדרות שלך לא דורסות אותו, מלבד כמה חריגים אבטחתיים. |
+
+בנוסף, כמה מפתחות נשמרים ב-`~/.claude.json` (global config) ולא בקבצי ההגדרות.
+
+## מי גובר כשאותו מפתח מוגדר בכמה מקומות?
+
+מהגבוה לנמוך:
+
+1. **Managed settings** — מה שהארגון פורס.
+2. **ארגומנטים בשורת הפקודה** — דגלים לסשן אחד, כולל `--settings`.
+3. **`.claude/settings.local.json`** — הגדרות אישיות לפרויקט.
+4. **`.claude/settings.json`** — הגדרות הפרויקט המשותפות.
+5. **`~/.claude/settings.json`** — הגדרות המשתמש.
+
+מפתחות מסוג רשימה, כמו `permissions.allow`, מתמזגים בין הקבצים במקום לדרוס זה את זה (עם כמה חריגים, כמו `fallbackModel`). משתני סביבה אינם רמה בסדר הזה; ההכרעה ביניהם לבין מפתח מקביל נעשית לכל זוג בנפרד.
+
+בעמודת "היקף" בטבלאות: **כל קובץ** = user,‏ project,‏ local ו-managed; **Managed** = רק בהגדרות מנוהלות של הארגון.
+
+## הרשאות ו-sandbox
+
+| מפתח | מה הוא עושה | היקף |
+| --- | --- | --- |
+| `permissions.allow` | מאשר שימושים בכלים שברשימה בלי לשאול. | כל קובץ |
+| `permissions.ask` | תמיד שואל לפני שימושים בכלים שברשימה. | כל קובץ |
+| `permissions.deny` | חוסם שימושים בכלים שברשימה, כולל קריאה של קבצים עם סודות. | כל קובץ |
+| `permissions.additionalDirectories` | נותן ל-Claude גישה לתיקיות מחוץ לתיקייה הנוכחית. | כל קובץ |
+| `permissions.defaultMode` | קובע באיזה permission mode סשן חדש מתחיל (`default`,‏ `acceptEdits`,‏ `plan`,‏ `auto`,‏ `dontAsk`,‏ `bypassPermissions`). | כל קובץ |
+| `permissions.disableBypassPermissionsMode` | מונע מכל אחד להיכנס למצב `bypassPermissions`. | כל קובץ |
+| `disableAutoMode` | מסיר את auto mode ממחזור מצבי ההרשאות. | כל קובץ |
+| `allowManagedPermissionRulesOnly` | הופך את ה-managed settings למקור היחיד של כללי הרשאות. | Managed |
+| `skipDangerousModePermissionPrompt` | מדלג על חלון האישור לפני כניסה ל-`bypassPermissions`. | User, local או managed |
+| `sandbox.enabled` | מפעיל sandbox לפקודות Bash ב-macOS,‏ Linux ו-WSL2. | כל קובץ |
+| `sandbox.network.allowedDomains` | מאשר מראש דומיינים כדי שפקודות ב-sandbox לא ישאלו עליהם. | כל קובץ |
+
+כתיבת כללים ומצבי הרשאות מוסברים בשיעור [מצבי הרשאות](/beginner-plus/permission-modes) ובשיעור [הרשאות ו-sandbox](/advanced/permissions-sandbox).
+
+## מודל והתנהגות
+
+| מפתח | מה הוא עושה | היקף |
+| --- | --- | --- |
+| `model` | משנה את המודל ש-Claude Code מתחיל איתו. ערכים: ראה [model-config](https://code.claude.com/docs/en/model-config). | כל קובץ |
+| `availableModels` | מגביל אילו מודלים אפשר לבחור. | כל קובץ |
+| `fallbackModel` | מגדיר מודלי גיבוי למקרה שהמודל הראשי עמוס או לא זמין. | כל קובץ |
+| `effortLevel` | קובע effort level ברירת מחדל למודלים שאין להם רמה שמורה משלהם. | כל קובץ |
+| `alwaysThinkingEnabled` | ערך `false` מכבה extended thinking בכל הסשנים. | כל קובץ |
+| `fastMode` | מפעיל fast mode בסשנים שבהם הוא זמין. | כל קובץ |
+| `outputStyle` | משנה את התפקיד, הטון ופורמט הפלט של Claude באמצעות output style. | כל קובץ |
+| `language` | גורם ל-Claude לענות בשפה אחרת מאנגלית. | כל קובץ |
+
+## זיכרון, הקשר והוראות
+
+| מפתח | מה הוא עושה | היקף |
+| --- | --- | --- |
+| `autoMemoryEnabled` | מכבה או מדליק את auto memory. | כל קובץ |
+| `autoMemoryDirectory` | שומר את ה-auto memory בתיקייה שתבחר. | כל קובץ |
+| `claudeMdExcludes` | מדלג על קובצי `CLAUDE.md` מסוימים (glob או נתיב מלא) כשהזיכרון נטען. | כל קובץ |
+| `claudeMd` | מזריק הוראות `CLAUDE.md` ארגוניות מתוך managed settings. | Managed |
+| `env` | מגדיר משתני סביבה לכל סשן ולתהליכים שהוא מפעיל. | כל קובץ |
+| `autoCompactEnabled` | מכבה או מדליק דחיסה (compaction) אוטומטית של ההקשר. | כל קובץ |
+| `fileCheckpointingEnabled` | מכבה או מדליק את צילומי הקבצים ש-`/rewind` משחזר. | כל קובץ |
+| `plansDirectory` | בוחר לאן plan mode כותב קובצי תוכנית. | כל קובץ |
+| `cleanupPeriodDays` | כמה ימים לשמור תמלילי סשנים לפני מחיקה (ברירת מחדל: `30`). | כל קובץ |
+
+על `CLAUDE.md` ועל auto memory: [CLAUDE.md](/beginner-plus/claude-md) ו-[auto memory](/beginner-plus/auto-memory).
+
+## Hooks
+
+| מפתח | מה הוא עושה | היקף |
+| --- | --- | --- |
+| `hooks` | מריץ פקודות משלך כ-hooks בנקודות במחזור החיים של Claude Code. | כל קובץ |
+| `disableAllHooks` | מכבה בבת אחת hooks,‏ status line מותאם ופקודת הצעות `@` מותאמת. | כל קובץ |
+| `allowManagedHooksOnly` | מריץ רק hooks שהארגון פורס. | Managed |
+| `allowedHttpHookUrls` | מגביל לאילו כתובות HTTP hooks יכולים לפנות. | כל קובץ |
+| `httpHookAllowedEnvVars` | מגביל אילו משתני סביבה HTTP hooks יכולים לשים ב-headers. | כל קובץ |
+
+הסבר מלא בשיעור [Hooks](/advanced/hooks).
+
+## MCP
+
+| מפתח | מה הוא עושה | היקף |
+| --- | --- | --- |
+| `enableAllProjectMcpServers` | מאשר כל שרת בקובצי `.mcp.json` של הפרויקט בלי לשאול. | כל קובץ |
+| `enabledMcpjsonServers` | מאשר שרתים מסוימים מתוך `.mcp.json` של הפרויקט. | כל קובץ |
+| `disabledMcpjsonServers` | דוחה שרתים מסוימים מתוך `.mcp.json` של הפרויקט. | כל קובץ |
+| `allowedMcpServers` | רשימת היתר של שרתי MCP שמשתמשים יכולים להוסיף. | כל קובץ |
+| `deniedMcpServers` | חוסם שרתי MCP מסוימים לפי URL, פקודה או שם. | כל קובץ |
+| `allowManagedMcpServersOnly` | הופך את רשימת ההיתר המנוהלת לרשימה היחידה שחלה. | Managed |
+| `disableClaudeAiConnectors` | מכבה את ה-connectors של claude.ai כך ש-Claude Code לא טוען אותם. | כל קובץ |
+
+## ממשק ופלט
+
+| מפתח | מה הוא עושה | היקף |
+| --- | --- | --- |
+| `theme` | בוחר ערכת צבעים לממשק, מובנית או מותאמת. | כל קובץ |
+| `tui` | בוחר בין renderer במסך מלא (`fullscreen`) לבין הקלאסי (`default`). | כל קובץ |
+| `statusLine` | מריץ פקודה משלך שמציגה status line מתחת לשורת הקלט. | כל קובץ |
+| `editorMode` | מפעיל קיצורי vim בשורת הקלט. | כל קובץ |
+| `verbose` | מציג פלט כלים מלא במקום סיכומים מקוצרים. | כל קובץ |
+| `viewMode` | מתחיל כל סשן בתצוגת default,‏ verbose או focus. | כל קובץ |
+| `respectGitignore` | משאיר קבצים שב-gitignore מחוץ לבורר הקבצים של `@`. | כל קובץ |
+| `companyAnnouncements` | מציג הודעות של הארגון בעת ההפעלה. | כל קובץ |
+| `attribution` | מתאים את הקרדיט ש-Claude Code מוסיף ל-commits ול-pull requests. | כל קובץ |
+
+## עדכונים וגרסאות
+
+| מפתח | מה הוא עושה | היקף |
+| --- | --- | --- |
+| `autoUpdatesChannel` | ערוץ העדכונים: `"latest"` (ברירת המחדל) או `"stable"` — גרסה בת כשבוע בערך שמדלגת על גרסאות עם רגרסיות משמעותיות. | כל קובץ |
+| `minimumVersion` | מונע מעדכונים אוטומטיים ומ-`claude update` להתקין גרסה נמוכה ממנה. | כל קובץ |
+| `requiredMinimumVersion` | Claude Code מסרב לפעול בגרסה ישנה ממה שהארגון דורש. | Managed |
+| `requiredMaximumVersion` | Claude Code מסרב לפעול בגרסה חדשה ממה שהארגון מתיר. | Managed |
+
+## התחברות, ארגון ופלאגינים
+
+| מפתח | מה הוא עושה | היקף |
+| --- | --- | --- |
+| `forceLoginMethod` | מגביל את סוג החשבון להתחברות: `"claudeai"`,‏ `"console"` או `"gateway"`. | כל קובץ |
+| `forceLoginOrgUUID` | מצמיד התחברויות claude.ai לארגון שלך; רק מקור managed אוכף אותו. | כל קובץ |
+| `apiKeyHelper` | מייצר את אישור הגישה ל-API באמצעות פקודה משלך. | כל קובץ |
+| `enabledPlugins` | מדליק או מכבה plugins מסוימים לכל היקף. | כל קובץ |
+| `extraKnownMarketplaces` | רושם marketplaces למאגר או לארגון. | כל קובץ |
+| `strictKnownMarketplaces` | רשימת היתר של מקורות marketplace שמשתמשים יכולים להוסיף ולהתקין מהם. | Managed |
+| `disableSideloadFlags` | דוחה את דגלי ה-CLI שטוענים plugins,‏ subagents ושרתי MCP מבחוץ. | Managed |
+
+## איפה לומדים עוד?
+
+- [הגדרות Claude Code](/advanced/settings) — שיעור שמסביר איך לבחור קובץ ולשנות הגדרה.
+- [מצבי הרשאות](/beginner-plus/permission-modes) — מה כל `defaultMode` עושה בפועל.
+- [Hooks](/advanced/hooks) — איך כותבים את המפתח `hooks`.
+- [All settings — התיעוד הרשמי](https://code.claude.com/docs/en/settings-reference) — כל המפתחות, עם סוג, ברירת מחדל ודוגמה.
