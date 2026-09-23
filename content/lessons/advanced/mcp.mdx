@@ -1,0 +1,183 @@
+---
+title: "איך מחברים כלים חיצוניים ל-Claude Code עם שרתי MCP?"
+description: "MCP מחבר את Claude Code לכלים חיצוניים. מוסיפים שרת עם claude mcp add, בוחרים scope ‏(local,‏ project או user), בודקים עם /mcp ונזהרים משרתים שלא בדקתם."
+level: "advanced"
+order: 25
+source: "https://code.claude.com/docs/en/mcp-quickstart"
+lastVerified: "2026-09-23"
+keywords: ["Claude Code", "MCP", "Model Context Protocol", "שרת MCP", "שרתי MCP", "claude mcp add", "/mcp", ".mcp.json", "חיבור כלים", "לחבר כלים חיצוניים", "scope", "tool search", "אבטחה"]
+canDo: "עכשיו אתה יכול להוסיף שרת MCP ל-Claude Code, לבחור לו scope מתאים, לבדוק שהוא מחובר, להתחבר אליו עם /mcp ולשתף אותו עם הצוות דרך .mcp.json."
+relatedSlugs: ["connectors", "plugins", "extend-overview"]
+faq:
+  - q: "מה ההבדל בין שרת MCP מקומי לשרת מרוחק?"
+    a: "שרת מרוחק (HTTP) הוא שירות שיושב בכתובת URL, ומוסיפים אותו עם הדגל --transport http. שרת מקומי (stdio) הוא תוכנה ש-Claude Code מריץ כתהליך במחשב שלך, ומתאים לכלים שצריכים גישה למשאבים מקומיים כמו דפדפן, מערכת קבצים או מסד נתונים."
+  - q: "איפה Claude Code שומר את הגדרות שרתי ה-MCP?"
+    a: "ב-scope מסוג local וב-scope מסוג user ההגדרה נשמרת בקובץ ~/.claude.json בתיקיית הבית. ב-scope מסוג project היא נשמרת בקובץ .mcp.json בשורש הפרויקט, שמכניסים ל-git. Claude Code לא קורא נתיבים אחרים כמו ~/.claude/mcp.json."
+  - q: "למה שרת מ-.mcp.json מופיע כ-Pending approval?"
+    a: "בפעם הראשונה ש-Claude Code רואה שרת ברמת project הוא מבקש ממך לאשר אותו, כדי שריפו שמשכפלים לא יוכל להריץ תהליכים במחשב שלך בלי הסכמה. מריצים claude בתיקייה ומאשרים, או מאשרים אחר כך דרך /mcp."
+  - q: "האם כל שרת MCP מכביד על חלון ההקשר?"
+    a: "כל שרת מחובר תופס מעט מקום, כי שמות הכלים והוראות השרת נטענים בכל סשן. tool search, שפועל כברירת מחדל, דוחה את טעינת הגדרות הכלים המלאות עד ש-Claude צריך אותן. בכל זאת כדאי להסיר שרתים שכבר לא משתמשים בהם."
+  - q: "איך מתחברים לשרת שדורש התחברות בדפדפן?"
+    a: "מוסיפים את השרת עם claude mcp add, פותחים סשן ומריצים /mcp. בוחרים את השרת, לוחצים Enter ובוחרים Authenticate. הדפדפן נפתח לדף ההתחברות של השירות, ואחרי האישור השרת מסומן כמחובר."
+---
+
+import { CommandBlock, Callout, StepList } from "@/components/lesson";
+
+MCP ‏(Model Context Protocol) הוא תקן פתוח שנותן ל-Claude Code כלים מעבר לכלים המובנים, כמו מעקב issues, מסד נתונים או דפדפן. מוסיפים שרת עם `claude mcp add` בטרמינל, בודקים את החיבור עם `claude mcp list`, ובתוך סשן מנהלים שרתים ומתחברים אליהם עם `/mcp`.
+
+## למה זה חשוב
+כדאי לחבר שרת MCP כשאתה מוצא את עצמך מעתיק לצ'אט מידע מכלי אחר, כמו מערכת מעקב באגים או דשבורד ניטור. אחרי החיבור Claude קורא ופועל ישירות מול המערכת, במקום לעבוד ממה שהדבקת. שרתי MCP רצים במחשב שלך או כשירותים מרוחקים. [התיעוד המלא](https://code.claude.com/docs/en/mcp) נותן דוגמאות כאלה:
+
+```text
+Add the feature described in JIRA issue ENG-4521 and create a PR on GitHub.
+```
+
+```text
+Check Sentry and Statsig to check the usage of the feature described in ENG-4521.
+```
+
+## איך מוסיפים שרת MCP ראשון?
+התהליך זהה לכל שרת: מוסיפים, בודקים סטטוס, ומשתמשים. הדוגמה הרשמית מחברת את שרת התיעוד של Claude Code, שרת מרוחק שלא דורש התחברות.
+
+<StepList>
+
+1. מוסיפים את השרת. מריצים את זה בטרמינל, **לא** בתוך סשן `claude`:
+   ```bash
+   claude mcp add --transport http claude-code-docs https://code.claude.com/docs/mcp
+   ```
+   `--transport http` אומר שהשרת יושב בכתובת URL. ‏`claude-code-docs` הוא שם שאתה בוחר, ו-Claude Code משתמש בו כדי לסמן את הכלים של השרת ובפקודות כמו `claude mcp remove`.
+2. בודקים שהשרת ברשימה ומה הסטטוס שלו:
+   <CommandBlock>claude mcp list</CommandBlock>
+   מצפים לראות `✔ Connected`.
+3. פותחים סשן ומבקשים מ-Claude להשתמש בשרת בשמו:
+   ```text
+   Use the claude-code-docs server to look up what MCP_TIMEOUT does
+   ```
+   בדרך כלל לא צריך לציין את שם השרת, כי Claude בוחר כלים מתאימים לבד. כאן זה מבטיח שהתשובה תגיע מהשרת. אם Claude Code מבקש הרשאה בקריאה הראשונה לשרת, מאשרים. קריאת הכלי בפלט מסומנת בשם השרת.
+4. (אופציונלי) מסירים את השרת כשמסיימים:
+   <CommandBlock>claude mcp remove claude-code-docs</CommandBlock>
+
+</StepList>
+
+## מה אומר הסטטוס ב-claude mcp list?
+
+| סטטוס | משמעות |
+| --- | --- |
+| `✔ Connected` | מוכן לשימוש |
+| `! Connected · tools fetch failed` | השרת התחבר אבל לא הצליח להחזיר את רשימת הכלים. ‏`claude mcp get <name>` מציג את פרטי השגיאה |
+| `! Needs authentication` | השרת זמין אבל צריך התחברות בדפדפן, או טוקן שמעבירים עם `--header` |
+| `✘ Failed to connect` | השרת לא הגיב. ‏`claude mcp get <name>` מציג פרטים |
+| `✘ Connection error` | ניסיון החיבור נכשל בשגיאה. עוברים לטבלת התקלות למטה |
+| ``⏸ Pending approval (run `claude` to approve)`` | שרת ברמת project שעוד לא אישרת. מריצים `claude` כדי לאשר |
+| `⊘ Disabled for this project (re-enable via /mcp)` | השרת כובה לפרויקט הזה. מפעילים אותו מחדש דרך `/mcp` |
+
+## איזה סוגי transport קיימים?
+סוג החיבור קובע איך Claude Code מדבר עם השרת:
+
+| סוג | מתי | איך מוסיפים |
+| --- | --- | --- |
+| HTTP | שרת מרוחק בכתובת URL. האפשרות המומלצת לשרתים מרוחקים | `claude mcp add --transport http <name> <url>` |
+| stdio | תוכנה שרצה כתהליך מקומי במחשב שלך | `claude mcp add <name> -- <command> [args...]` |
+| SSE | שרת מרוחק ישן שחושף רק SSE. **הוצא משימוש (deprecated)**, עדיף HTTP | `claude mcp add --transport sse <name> <url>` |
+
+דוגמה לשרת מקומי מהמדריך הרשמי, Playwright, שנותן ל-Claude דפדפן (דורש Node.js 18 ומעלה):
+
+```bash
+claude mcp add playwright -- npx -y @playwright/mcp@latest
+```
+
+כל מה שאחרי `--` הוא הפקודה שמריצה את השרת, והיא מועברת כמו שהיא. בלי `--`, ‏Claude Code ינסה לקרוא את הדגלים של השרת כדגלים שלו. אין צורך ב-`--transport` כי stdio הוא ברירת המחדל. בהרצה הראשונה ייתכן שתראה `✘ Failed to connect` בזמן ש-`npx` מוריד את החבילה. מחכים רגע ובודקים שוב.
+
+שרת שצריך מפתח API מקבל אותו עם `--env KEY=value`. שרת שמתחבר עם טוקן קבוע מקבל אותו עם `--header "Authorization: Bearer <token>"`. יש גם transport מסוג WebSocket, שהדגל `--transport` לא מקבל: מגדירים אותו ב-`.mcp.json` או עם `claude mcp add-json`. ראה [התיעוד המלא](https://code.claude.com/docs/en/mcp#option-4-add-a-remote-websocket-server).
+
+## מה ההבדל בין local,‏ project ו-user?
+ה-scope קובע באילו פרויקטים השרת נטען ואם הוא משותף עם הצוות. ברירת המחדל היא `local`.
+
+| Scope | זמין ל | נשמר ב |
+| --- | --- | --- |
+| `local` (ברירת מחדל) | רק לך, רק בפרויקט הנוכחי | `~/.claude.json`, תחת הרשומה של הפרויקט |
+| `project` | כל מי שמשכפל את הפרויקט | `.mcp.json` בשורש הפרויקט |
+| `user` | רק לך, בכל הפרויקטים | `~/.claude.json`, תחת המפתח `mcpServers` |
+
+בוחרים scope עם הדגל `--scope`:
+
+```bash
+claude mcp add --scope user --transport http claude-code-docs https://code.claude.com/docs/mcp
+```
+
+ה-scope נקבע ברגע ההוספה. כדי לשנות אותו, מסירים את השרת ומוסיפים אותו מחדש ב-scope החדש. ‏`claude mcp get <name>` מראה באיזה scope השרת מוגדר. אם אותו שם מוגדר בכמה scopes, ‏`local` גובר על `project`, ו-`project` גובר על `user`.
+
+## איך משתפים שרת עם הצוות דרך .mcp.json?
+מוסיפים את השרת עם `--scope project`, או כותבים את `.mcp.json` בשורש הפרויקט ידנית, ומכניסים את הקובץ ל-git. זו הדוגמה מהמדריך הרשמי, עם שרת HTTP ושרת stdio:
+
+```json
+{
+  "mcpServers": {
+    "claude-code-docs": {
+      "type": "http",
+      "url": "https://code.claude.com/docs/mcp"
+    },
+    "playwright": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@playwright/mcp@latest"]
+    }
+  }
+}
+```
+
+לשרת HTTP מגדירים `url`. לשרת stdio מגדירים `command` ו-`args`. ‏Claude Code קורא את `.mcp.json` בתחילת סשן, אז אחרי עריכה צריך לצאת ולהתחיל סשן חדש.
+
+בפעם הראשונה ש-Claude Code רואה שרת ברמת project הוא מבקש אישור. זה נועד למנוע מריפו שמשכפלים להריץ תהליכים במחשב שלך בלי הסכמה. אם דחית בטעות, מאפסים את הבחירות עם `claude mcp reset-project-choices`.
+
+<Callout type="warning">
+רשומה ב-JSON עם `url` אבל בלי `type` היא שגיאת הגדרה: Claude Code מתייחס לרשומה בלי `type` כשרת stdio ומדלג עליה. בשרת מרוחק תמיד כותבים `"type": "http"`.
+</Callout>
+
+## מה עושים עם /mcp בתוך סשן?
+`/mcp` הוא לוח הניהול של שרתי MCP מתוך סשן פתוח:
+
+<CommandBlock>/mcp</CommandBlock>
+
+- **בדיקת סטטוס:** רואים כל שרת, אם הוא מחובר, וכמה כלים יש לו. בוחרים שרת כדי לראות את רשימת הכלים שלו.
+- **התחברות (OAuth):** שירותים כמו Sentry,‏ Linear ו-Notion דורשים התחברות בדפדפן. בוחרים את השרת, לוחצים Enter ובוחרים `Authenticate`. אם הדפדפן לא נפתח, מעתיקים את הכתובת שמופיעה בטרמינל.
+- **חיבור מחדש:** אפשר לחבר שרת מחדש בלי לצאת מהסשן.
+- **כיבוי זמני:** מכבים שרת בלי למחוק את ההגדרה שלו, ומדליקים אותו שוב מאותו מקום.
+- **אישור שרתי project:** אם פספסת את בקשת האישור בתחילת הסשן.
+
+## מה זה tool search?
+tool search מצמצם את צריכת ההקשר של MCP על ידי דחיית טעינת הגדרות הכלים עד ש-Claude צריך אותן. בתחילת הסשן נטענים רק שמות הכלים והוראות השרתים, כך שהוספת שרתים משפיעה מעט על חלון ההקשר. זו ברירת המחדל, ולא צריך להפעיל כלום.
+
+שולטים בהתנהגות עם משתנה הסביבה `ENABLE_TOOL_SEARCH`. למשל, `false` טוען את כל הכלים מראש. לשרת שהכלים שלו צריכים להיות זמינים תמיד, בלי שלב חיפוש, מוסיפים `"alwaysLoad": true` בהגדרה שלו. כל כלי שנטען מראש צורך הקשר, אז משתמשים בזה במשורה. פרטים ואפשרויות נוספות ב-[תיעוד tool search](https://code.claude.com/docs/en/mcp#scale-with-mcp-tool-search).
+
+<Callout type="tip">
+גם עם tool search, כל שרת מחובר תופס מעט מקום בכל סשן. הסר שרתים שאתה כבר לא משתמש בהם.
+</Callout>
+
+## למה צריך להיזהר עם שרתים של צד שלישי?
+שרת MCP מקבל גישה אמיתית לכלים ולנתונים שלך, ושרת stdio מריץ תוכנה במחשב שלך. התיעוד הרשמי מבקש לוודא שאתה סומך על כל שרת לפני שמחברים אותו. שרתים שמביאים תוכן חיצוני יכולים לחשוף אותך ל-[prompt injection](https://code.claude.com/docs/en/security#protect-against-prompt-injection): תוכן שמנסה לתת ל-Claude הוראות.
+
+<Callout type="warning">
+- מחברים רק שרתים ממקור שאתה סומך עליו. כל שרת מרוחק שמופיע בספריית Anthropic Directory אפשר להוסיף עם `claude mcp add`.
+- לא מכניסים טוקנים ומפתחות ל-`.mcp.json` שנכנס ל-git. שרת עם פרטי גישה שלא רוצים בניהול גרסאות שומרים ב-scope מסוג `local`.
+- שרת ברמת project מריפו שמשכפלים: בודקים מה הוא מריץ לפני שמאשרים.
+</Callout>
+
+## מה עושים כשהחיבור נכשל?
+
+| תסמין | מה לבדוק |
+| --- | --- |
+| `/mcp` מציג No MCP servers configured | הוספת את השרת (local) מפרויקט אחר, או ערכת קובץ בנתיב שגוי. הקבצים הנכונים הם `~/.claude.json` ו-`<project>/.mcp.json` |
+| `✘ Failed to connect` | מריצים `claude mcp get <name>` ורואים את פרטי השגיאה. בשרת stdio, מריצים את הפקודה ישירות בטרמינל |
+| השרת מחובר אבל אין כלים | בדרך כלל חסר משתנה סביבה, כמו מפתח API. מעבירים עם `--env KEY=value` או בשדה `env` |
+| Timeout בהפעלה | מגדילים את `MCP_TIMEOUT` (במילישניות), למשל `MCP_TIMEOUT=60000 claude` |
+
+רשימת התקלות המלאה נמצאת ב-[מדריך ה-MCP quickstart](https://code.claude.com/docs/en/mcp-quickstart#troubleshooting).
+
+<Callout type="note">
+connectors שהוספת ב-claude.ai נטענים ב-Claude Code אוטומטית כשאתה מחובר עם אותו חשבון. על זה בשיעור הבא.
+</Callout>
+
+## הצעד הבא
+- ← [Connectors: כלים מ-claude.ai בתוך Claude Code](/advanced/connectors)
+- שיעורים קשורים: [Plugins](/advanced/plugins) · [סקירת דרכי ההרחבה](/advanced/extend-overview) · [Hooks](/advanced/hooks)
