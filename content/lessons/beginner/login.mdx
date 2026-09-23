@@ -1,0 +1,82 @@
+---
+title: "איך מתחברים ל-Claude Code ואיזה חשבון צריך בשביל זה?"
+description: "בהפעלה הראשונה Claude Code פותח דפדפן להתחברות. אילו חשבונות מתאימים, מה עושים כשהדפדפן לא נפתח, איך מחליפים חשבון, ומה קורה כשמוגדר ANTHROPIC_API_KEY."
+level: "beginner"
+order: 5
+source: "https://code.claude.com/docs/en/authentication"
+lastVerified: "2026-09-23"
+keywords: ["Claude Code", "התחברות", "להתחבר", "login", "חשבון", "מנוי", "Pro", "Max", "Claude Console", "ANTHROPIC_API_KEY", "/login", "/logout"]
+canDo: "עכשיו אתה יכול להתחבר ל-Claude Code עם החשבון המתאים, לפתור תקלות התחברות נפוצות ולבדוק באיזה חשבון אתה מחובר."
+relatedSlugs: ["installation", "first-session"]
+faq:
+  - q: "האם אפשר להשתמש ב-Claude Code עם החשבון החינמי של claude.ai?"
+    a: "לא. התוכנית החינמית של claude.ai לא כוללת את Claude Code. צריך מנוי Pro,‏ Max,‏ Team או Enterprise, חשבון Claude Console, או ספק ענן נתמך."
+  - q: "מה עושים אם הדפדפן לא נפתח אוטומטית?"
+    a: "לוחצים c כדי להעתיק את כתובת ההתחברות, ומדביקים אותה בדפדפן. אם אחרי ההתחברות הדפדפן מציג קוד, מדביקים אותו בטרמינל בשורה Paste code here if prompted."
+  - q: "איך מחליפים חשבון?"
+    a: "מקלידים /login בתוך Claude Code כדי להתחבר מחדש. /logout מתנתק, ובהפעלה הבאה Claude Code יעבור שוב את תהליך ההתחברות וההגדרה הראשונית."
+  - q: "איך יודעים באיזה חשבון Claude Code משתמש כרגע?"
+    a: "מקלידים /status בתוך Claude Code. הוא מציג את שיטת ההתחברות הפעילה, וכשמוגדרים גם התחברות וגם מפתח API הוא מסמן את זה שלא בשימוש."
+---
+
+import { CommandBlock, Callout, StepList } from "@/components/lesson";
+
+מתחברים בהפעלה הראשונה של `claude`: נפתח חלון דפדפן, מתחברים לחשבון, והטרמינל מציג `Login successful`. צריך מנוי Pro,‏ Max,‏ Team או Enterprise, חשבון Claude Console, או ספק ענן נתמך. התוכנית החינמית של claude.ai לא כוללת את Claude Code.
+
+## למה זה חשוב
+בלי התחברות Claude Code לא יכול לעבוד. סוג החשבון קובע גם איך משלמים: דרך מנוי Claude או לפי שימוש ב-API. כדאי לבחור נכון מההתחלה, ולדעת לזהות מתי Claude Code משתמש בחשבון אחר ממה שחשבת.
+
+## איזה חשבון מתאים?
+
+| סוג חשבון | איך מתחברים |
+| --- | --- |
+| מנוי Claude Pro או Max | עם חשבון claude.ai |
+| Claude for Teams או Enterprise | עם חשבון claude.ai שמנהל הצוות הזמין |
+| Claude Console | עם פרטי Console. המנהל צריך להזמין אותך קודם |
+| ספקי ענן (Amazon Bedrock,‏ Google Cloud's Agent Platform,‏ Microsoft Foundry) | מגדירים משתני סביבה לפני ההפעלה, בלי התחברות בדפדפן |
+
+לשימוש אישי, מנוי Pro או Max הוא הדרך הפשוטה. צוותים וארגונים עובדים בדרך כלל עם Teams או Enterprise, או עם Console כשמעדיפים חיוב לפי API.
+
+## איך מתחברים?
+
+<StepList>
+
+1. אחרי ההתקנה מפעילים את Claude Code:
+   <CommandBlock>claude</CommandBlock>
+2. בהפעלה הראשונה נפתח חלון דפדפן. מתחברים לחשבון שלך.
+3. כשההתחברות מסתיימת, הטרמינל מציג `Login successful`. לוחצים `Enter` כדי להמשיך.
+
+</StepList>
+
+ההתחברות נשמרת. לא צריך להתחבר שוב בכל הפעלה.
+
+## מה עושים כשמשהו לא עובד?
+- **הדפדפן לא נפתח:** לוחצים `c` כדי להעתיק את כתובת ההתחברות, ומדביקים אותה בדפדפן.
+- **הדפדפן מציג קוד במקום לחזור לטרמינל:** מדביקים את הקוד בטרמינל בשורה `Paste code here if prompted`. זה קורה כשהדפדפן לא מצליח להגיע ל-Claude Code, מצב נפוץ ב-WSL2, ב-SSH ובקונטיינרים.
+
+לתקלות אחרות יש [מדריך פתרון תקלות התחברות רשמי](https://code.claude.com/docs/en/troubleshoot-install#login-and-authentication).
+
+## איך מחליפים חשבון או מתנתקים?
+מתוך Claude Code:
+
+- `/login` מתחבר מחדש, למשל כדי לעבור לחשבון אחר.
+- `/logout` מתנתק. בהפעלה הבאה Claude Code יעבור שוב את תהליך ההתחברות וההגדרה.
+- `/status` מציג באיזו שיטת התחברות Claude Code משתמש כרגע.
+
+## מה קורה אם מוגדר `ANTHROPIC_API_KEY`?
+אם משתנה הסביבה `ANTHROPIC_API_KEY` מוגדר, Claude Code מדלג על ההתחברות בדפדפן ומבקש ממך לאשר את המפתח. אחרי האישור הוא משתמש במפתח, גם אם יש לך מנוי פעיל.
+
+<Callout type="warning">
+אם יש לך מנוי וגם `ANTHROPIC_API_KEY` מוגדר, Claude Code ישתמש במפתח. אם המפתח שייך לארגון שהושבת או שפג תוקפו, ההתחברות תיכשל. כדי לחזור למנוי, מסירים את המשתנה (למשל `unset ANTHROPIC_API_KEY` ב-Bash או ב-Zsh), ובודקים עם `/status` איזו שיטה פעילה.
+</Callout>
+
+## איפה נשמרים פרטי ההתחברות?
+- **macOS:** ב-Keychain המוצפן של macOS.
+- **Linux:** בקובץ `~/.claude/.credentials.json`, שרק המשתמש שלך יכול לקרוא.
+- **Windows:** בקובץ `%USERPROFILE%\.claude\.credentials.json`, עם ההרשאות של תיקיית המשתמש שלך.
+
+כשההתחברות קרובה לפוג, Claude Code מציג אזהרה בהפעלה. מריצים `/login` כדי לחדש.
+
+## הצעד הבא
+- ← [הסשן הראשון: הרצתי claude, מה עכשיו?](/beginner/first-session)
+- שיעורים קשורים: [איך מתקינים את Claude Code](/beginner/installation) · [לא מכיר טרמינל? מאיפה מתחילים](/beginner/terminal-basics)
