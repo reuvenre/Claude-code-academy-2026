@@ -20,6 +20,14 @@ kbd {
   white-space: nowrap;
 }
 
+/* תא טבלה שכולו קוד (למשל פרומפט ארוך): בלוק LTR שנשבר לשורות, במקום שורה אחת שמרחיבה את הטבלה */
+td > code:only-child {
+  display: block;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  text-align: start;
+}
+
 /* חריג מכוון לכלל logical properties: מנטרל margin-right פיזי שספריית scroll-lock מזריקה */
 html > body[data-scroll-locked] {
   margin-right: 0px !important;
