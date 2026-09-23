@@ -1,0 +1,178 @@
+---
+title: "איך משתמשים בקונקטורים של claude.ai בתוך Claude Code?"
+description: "קונקטורים הם שרתי MCP שמוסיפים ב-claude.ai, והם זמינים אוטומטית ב-Claude Code. איך מחברים אותם, בודקים ב-/mcp, מתקנים קונקטור חסר ומכבים אותם."
+level: "advanced"
+order: 26
+source: "https://code.claude.com/docs/en/mcp"
+lastVerified: "2026-09-23"
+keywords: ["Claude Code", "קונקטורים", "קונקטור", "connectors", "claude.ai", "MCP", "/mcp", "Slack", "Figma", "GitHub", "לחבר כלים", "חיבור לכלים חיצוניים", "disableClaudeAiConnectors"]
+canDo: "עכשיו אתה יכול לחבר קונקטור ב-claude.ai, לראות אותו ב-/mcp של Claude Code, לפתור מצב שבו הוא לא מופיע ולכבות אותו לפרויקט מסוים."
+relatedSlugs: ["mcp", "plugins", "extend-overview"]
+faq:
+  - q: "מה ההבדל בין קונקטור לשרת MCP?"
+    a: "אין הבדל טכני. קונקטור הוא שרת MCP שהוסיפו ב-claude.ai. הוא עובד על אותה תשתית MCP, וההבדל הוא רק איפה מגדירים אותו: ב-claude.ai במקום בפקודת claude mcp add."
+  - q: "למה הקונקטור שהוספתי ב-claude.ai לא מופיע ב-Claude Code?"
+    a: "Claude Code מושך קונקטורים רק כשההתחברות הפעילה היא מנוי claude.ai. אם פעילים ANTHROPIC_API_KEY, apiKeyHelper, ספק צד שלישי או טוקן מ-claude setup-token, הקונקטורים לא נטענים. מריצים /status כדי לבדוק, מסירים את מקור ההתחברות האחר ומריצים /login."
+  - q: "אפשר להוסיף קונקטור בתוכנית Team או Enterprise?"
+    a: "בתוכניות Team ו-Enterprise רק אדמינים יכולים להוסיף קונקטורים ב-claude.ai. אחרי שהקונקטור נוסף, משלימים ב-claude.ai את שלבי ההתחברות שהוא דורש, ובודקים ב-/mcp שהוא מופיע."
+  - q: "איך מכבים קונקטור בפרויקט אחד בלבד?"
+    a: "פותחים את /mcp ומכבים את הקונקטור. הכיבוי חל רק על הפרויקט הנוכחי. כדי לכבות את כל הקונקטורים שנמשכים מ-claude.ai, מגדירים disableClaudeAiConnectors עם הערך true בקובץ settings."
+  - q: "למה אי אפשר להתחבר ל-Gmail דרך claude mcp login?"
+    a: "חלק מהקונקטורים ש-Anthropic מארחת, כמו Microsoft 365, Gmail ו-Google Calendar, לא תומכים בהתחברות OAuth מקומית מ-Claude Code. מחברים אותם ב-claude.ai, והם מופיעים ב-Claude Code אוטומטית."
+---
+
+import { CommandBlock, Callout, StepList } from "@/components/lesson";
+
+קונקטורים הם שרתי MCP שמוסיפים ב-claude.ai. אם התחברת ל-Claude Code עם חשבון claude.ai, הם זמינים בו אוטומטית, בלי `claude mcp add`. מוסיפים קונקטור ב-claude.ai/customize/connectors, משלימים שם את ההתחברות, ואז רואים אותו ב-`/mcp` בתוך Claude Code.
+
+## למה זה חשוב
+קונקטור חוסך העתקה ידנית של מידע לצ'אט. התיעוד הרשמי ממליץ לחבר שרת כשאתה מוצא את עצמך מדביק נתונים מכלי אחר, כמו issue tracker או דשבורד ניטור. אחרי החיבור, Claude קורא ופועל ישירות מול המערכת. היתרון של קונקטור: מגדירים אותו ב-claude.ai, והוא זמין אוטומטית גם ב-Claude Code, בלי `claude mcp add`.
+
+## מה ההבדל בין קונקטור לשרת MCP רגיל?
+קונקטור הוא שרת MCP. ההבדל הוא רק איפה מגדירים אותו:
+
+| | שרת שמוסיפים ב-Claude Code | קונקטור מ-claude.ai |
+| --- | --- | --- |
+| איפה מגדירים | `claude mcp add` או `.mcp.json` | claude.ai/customize/connectors |
+| איפה מתחברים (auth) | ב-Claude Code, דרך `/mcp` | ב-claude.ai |
+| תנאי | אין | התחברות ל-Claude Code עם מנוי claude.ai |
+
+על הוספת שרתים ב-Claude Code, scopes ו-`/mcp` הרחבנו [בשיעור הקודם](/advanced/mcp). כאן מתמקדים בקונקטורים.
+
+קונקטורים מוכנים אפשר למצוא ב-[Anthropic Directory](https://claude.ai/directory). הם עובדים על אותה תשתית MCP, ולכן אפשר להוסיף כל שרת remote משם גם עם `claude mcp add`.
+
+## איך מחברים קונקטור ל-Claude Code?
+
+<StepList>
+
+1. מוסיפים את הקונקטור ב-[claude.ai/customize/connectors](https://claude.ai/customize/connectors). בתוכניות Team ו-Enterprise רק אדמינים יכולים להוסיף.
+2. משלימים ב-claude.ai את שלבי ההתחברות שהקונקטור דורש.
+3. פותחים את Claude Code ומריצים:
+   <CommandBlock>/mcp</CommandBlock>
+4. קונקטורים מ-claude.ai מופיעים ברשימה עם סימון שמראה שהם מגיעים מ-claude.ai.
+
+</StepList>
+
+כמה דברים שכדאי לדעת על הרשימה ב-`/mcp`:
+
+- קונקטור שהארגון מנהל את ההתחברות שלו ב-claude.ai מסומן `managed`.
+- קונקטורים שמעולם לא התחברת אליהם מקופלים מאחורי השורה `Show unused connectors` בסוף הרשימה. בוחרים בה כדי לפתוח אותם.
+- קונקטור שהתחברת אליו בעבר נשאר גלוי, גם כשהוא צריך התחברות מחדש.
+
+<Callout type="note">
+התיעוד הרשמי לא מפרט צעדי הגדרה לכל שירות בנפרד, למשל Google Drive או Figma. התהליך הכללי זהה: מחברים ב-claude.ai ובודקים ב-`/mcp`. לפרטים על שירות מסוים, בדוק את הקונקטור שלו ב-claude.ai.
+</Callout>
+
+## איך עובדים עם קונקטור אחרי שהוא מחובר?
+פשוט מבקשים במילים. Claude משתמש בכלים של הקונקטור לבד. אלה דוגמאות מהתיעוד הרשמי:
+
+```text
+Update our standard email template based on the new Figma designs that were posted in Slack
+```
+
+```text
+Add the feature described in JIRA issue ENG-4521 and create a PR on GitHub.
+```
+
+```text
+Create Gmail drafts inviting these 10 users to a feedback session about the new feature.
+```
+
+שרתי MCP יכולים לחשוף גם resources ו-prompts:
+
+- **Resources:** מקלידים `@` בפרומפט, ו-resources מהשרתים המחוברים מופיעים לצד קבצים ברשימת ההשלמה.
+- **Prompts:** מקלידים `/`, ו-prompts של שרתי MCP מופיעים כפקודות בפורמט `/servername:promptname (MCP)`.
+
+## מה לגבי GitHub?
+התיעוד הרשמי מביא את GitHub כדוגמה של שרת שמוסיפים ישירות ב-Claude Code, לא כקונקטור. השרת מתחבר עם personal access token של GitHub שעובר כ-header:
+
+```bash
+claude mcp add --transport http github https://api.githubcopilot.com/mcp/ \
+  --header "Authorization: Bearer YOUR_GITHUB_PAT"
+```
+
+מחליפים את `YOUR_GITHUB_PAT` בטוקן fine-grained שיוצרים ב[הגדרות הטוקנים של GitHub](https://github.com/settings/personal-access-tokens), עם גישה רק לריפוזיטוריז ש-Claude צריך. `claude mcp add` לא בודק את הטוקן, אז מריצים `/mcp` ומוודאים שהשרת במצב `connected`. טוקן שגוי יופיע כ-`failed`.
+
+אחר כך עובדים עם GitHub בשפה רגילה:
+
+```text
+Review PR #456 and suggest improvements
+```
+
+```text
+Show me all open PRs assigned to me
+```
+
+<Callout type="warning">
+ודא שאתה סומך על כל שרת או קונקטור לפני שאתה מחבר אותו. שרתים שמביאים תוכן חיצוני חושפים אותך לסיכון של [prompt injection](https://code.claude.com/docs/en/security#protect-against-prompt-injection).
+</Callout>
+
+## למה הקונקטור לא מופיע ב-/mcp?
+הסיבה הנפוצה: Claude Code מושך קונקטורים רק כשההתחברות הפעילה היא מנוי claude.ai. הם לא נטענים, גם אם הרצת `/login` בעבר, כאשר:
+
+- `ANTHROPIC_API_KEY`,‏ `ANTHROPIC_AUTH_TOKEN` או `apiKeyHelper` פעילים.
+- ספק צד שלישי, כמו Amazon Bedrock, פעיל.
+- `ANTHROPIC_PROFILE`, משתני federation או Anthropic profile פעיל מספקים את ההתחברות.
+- `CLAUDE_CODE_OAUTH_TOKEN` מחזיק טוקן מ-`claude setup-token`, שמאפשר רק בקשות למודל.
+
+הפתרון:
+
+<StepList>
+
+1. מריצים `/status` כדי לראות איזו שיטת התחברות פעילה.
+2. מסירים את מקור ההתחברות האחר: מבטלים את משתנה הסביבה, מסירים את `apiKeyHelper` או מכבים את ה-profile.
+3. מריצים `/login` ובוחרים את חשבון claude.ai.
+
+</StepList>
+
+מצבים נוספים:
+
+| מה רואים | מה עושים |
+| --- | --- |
+| הקונקטורים לא נטענו בגלל תקלת רשת בפתיחת הסשן | Claude Code מנסה שוב עד שלוש פעמים ברקע. אם הם עדיין חסרים, מפעילים מחדש את Claude Code |
+| `connected · session token rejected` | claude.ai דחה את הטוקן של ההתחברות ל-Claude Code, בדרך כלל כי היא פגה. מריצים `/login`, ואז מחברים מחדש את הקונקטור מ-`/mcp` |
+| הקונקטור מסומן כמוסתר (hidden) | הוספת ב-Claude Code שרת לאותה כתובת, והוא גובר. `/mcp` מראה איך להסיר את הכפילות |
+
+## למה אי אפשר להתחבר ל-Gmail מתוך Claude Code?
+חלק מהקונקטורים ש-Anthropic מארחת, כמו Microsoft 365,‏ Gmail ו-Google Calendar, לא תומכים בהתחברות OAuth מקומית מ-Claude Code. ספק הזהות שלהם מקבל רק את כתובת ההפניה ש-claude.ai רשם. אם הוספת שרת כזה עם `claude mcp add` וניסית להתחבר, תקבל הודעה שמפנה אותך ל-claude.ai.
+
+הפתרון: מסירים את השרת המקומי עם `claude mcp remove <name>`, מחברים את השירות ב-claude.ai/customize/connectors, והקונקטור מופיע ב-Claude Code אוטומטית.
+
+## איפה הקונקטורים זמינים?
+זה תלוי איפה הסשן רץ:
+
+| איפה הסשן רץ | איך הקונקטורים מגיעים |
+| --- | --- |
+| טרמינל, VS Code,‏ JetBrains ו-Agent SDK | Claude Code מושך אותם מ-claude.ai |
+| [סשנים בענן](https://code.claude.com/docs/en/claude-code-on-the-web) | סביבת הענן מעבירה אותם לסשן |
+| סשנים מקומיים ו-SSH באפליקציית הדסקטופ | אפליקציית הדסקטופ מעבירה אותם |
+
+בסשני WSL של אפליקציית הדסקטופ הקונקטורים עדיין לא זמינים. `disableClaudeAiConnectors` ו-`ENABLE_CLAUDEAI_MCP_SERVERS` מהסעיף הבא חלים רק על השורה הראשונה, כלומר על הקונקטורים ש-Claude Code מושך בעצמו. באפליקציית הדסקטופ, משתמש שרוצה להוציא קונקטור מהסשנים שלו מנתק אותו ב-claude.ai.
+
+## איך מכבים קונקטורים?
+יש כמה רמות:
+
+| מה רוצים | איך |
+| --- | --- |
+| לכבות קונקטור אחד בפרויקט הנוכחי | מכבים אותו ב-`/mcp` |
+| לכבות את כל הקונקטורים לסשן אחד | `ENABLE_CLAUDEAI_MCP_SERVERS=false claude` |
+| לכבות את כל הקונקטורים דרך הגדרות | `"disableClaudeAiConnectors": true` בקובץ settings |
+| לחסום קונקטור מסוים | להוסיף אותו ל-`deniedMcpServers`, למשל `serverName` בשם `"claude.ai Slack"` |
+
+```json
+{
+  "disableClaudeAiConnectors": true
+}
+```
+
+`true` בכל מקור הגדרות גובר. `.claude/settings.json` של פרויקט יכול לכבות קונקטורים לריפו, אבל `false` ברמת הפרויקט לא מחזיר קונקטורים שכובו ברמת המשתמש או המדיניות.
+
+## איך הארגון שולט בכלים של קונקטור?
+ארגון יכול להגדיר בקרה לכל כלי של קונקטור ב-claude.ai. בסשנים ש-Claude Code מושך בהם קונקטורים בעצמו, `/mcp` מראה איזו הגדרה חלה על כל כלי:
+
+- **`ask`:** Claude Code מבקש אישור בכל קריאה, עם הסיבה `Your organization requires approval for this tool`. הבקשה מופיעה גם במצבי `acceptEdits`,‏ `auto` ו-`bypassPermissions`, ואין אפשרות לזכור את הבחירה.
+- **`blocked`:** הכלי מסונן לפני ש-Claude רואה אותו, והוא לא מופיע ברשימת הכלים בכלל.
+
+## הצעד הבא
+- ← [Plugins: התקנה, יצירה ובדיקה](/advanced/plugins)
+- שיעורים קשורים: [MCP: חיבור Claude Code לכלים](/advanced/mcp) · [סקירת דרכי ההרחבה](/advanced/extend-overview)
