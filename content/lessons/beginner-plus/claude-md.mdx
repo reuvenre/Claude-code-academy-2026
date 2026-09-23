@@ -72,11 +72,19 @@ Claude מנתח את הפרויקט ויוצר קובץ עם פקודות build,
 - **ספציפיות:** הוראות שאפשר לבדוק. "Use 2-space indentation" ולא "Format code properly". "Run `npm test` before committing" ולא "Test your changes".
 - **עקביות:** אם שני כללים סותרים, Claude עלול לבחור אחד באקראי. עוברים על הקובץ מדי פעם ומוחקים הוראות ישנות.
 
-אם Claude ממשיך לדלג על הוראה אחת, אפשר להדגיש אותה, למשל עם "IMPORTANT". אבל אם מדגישים הרבה שורות, אף אחת לא בולטת.
+אם Claude ממשיך לדלג על הוראה אחת, אפשר להדגיש אותה, למשל עם "IMPORTANT". אבל אם מדגישים הרבה שורות, אף אחת לא בולטת. לכן כדאי להתייחס להדגשה כמו לתקציב מוגבל: הדגשה מעלה את השורה רק ביחס לשורות השקטות שסביבה, ו[התיעוד](https://code.claude.com/docs/en/best-practices#write-an-effective-claude-md) ממליץ להדגיש רק את השורה ש-Claude ממשיך לדלג עליה.
 
 <Callout type="warning">
 CLAUDE.md הוא הקשר, לא הגדרה שנאכפת. Claude קורא אותו ומנסה למלא, אבל אין הבטחה. פעולה שחייבת לקרות תמיד, כמו לפני כל commit או אחרי כל עריכה, כותבים כ-hook, שרץ כפקודת shell בנקודה קבועה.
 </Callout>
+
+## מה עושים כש-Claude לא מקיים כלל ב-CLAUDE.md?
+כלל ש-Claude לא מקיים הוא סימן לבאג בקובץ, ו[הקורס הרשמי](https://academy.claude.com/courses/claude-code-in-action/a-claude-md-that-follows) של Claude Academy מציע לתקן אותו כמו שמתקנים קוד. עוברים על הבדיקות האלה לפי הסדר:
+
+1. **האם המקום של הכלל הוא בכלל ב-CLAUDE.md?** כלל שאסור להפר אף פעם, כמו "לא לעשות push ל-main", לא כדאי להשאיר כהנחיה. [PreToolUse hook](https://code.claude.com/docs/en/hooks-guide) יכול לחסום את הפעולה בלי קשר למה ש-Claude החליט.
+2. **האם הקובץ ארוך מדי?** בקובץ ארוך, כלל חשוב הולך לאיבוד בין שאר השורות. פיצול עם `@` לא יעזור, כי גם קבצים מיובאים נטענים בתחילת הסשן. מה שבאמת מקצר את ההקשר: להעביר הנחיות שנוגעות רק לחלק מהקוד ל-[rules עם `paths`](https://code.claude.com/docs/en/memory#path-specific-rules) ב-`.claude/rules/`, ונהלים של כמה שלבים ל-skill.
+3. **האם הניסוח משאיר ל-Claude לנחש?** כשאוסרים משהו, כותבים גם מה לעשות במקום. "Use named exports, not default exports" עדיף על "Don't use default exports". אם Claude שואל שאלה שהתשובה עליה כבר כתובה בקובץ, [כנראה שהניסוח עמום](https://code.claude.com/docs/en/best-practices#write-an-effective-claude-md).
+4. **האם התיקון עבד?** מבקשים מ-Claude בצ'אט "add this to CLAUDE.md", או עורכים את הקובץ ישירות עם `/memory`. אחר כך בודקים שההתנהגות באמת השתנתה.
 
 ## איפה הקובץ יושב?
 
