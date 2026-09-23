@@ -1,0 +1,138 @@
+---
+title: "אילו פיצ'רים של Claude Code זמינים בכל תוכנית ובכל ספק ענן?"
+description: "ה-CLI עובד אצל כל ספק. פיצ'רי ענן דורשים מנוי claude.ai, חלק מהיכולות חסרות ב-Bedrock,‏ Google Cloud ו-Foundry, והתוכנית קובעת את השאר. כך קוראים את המטריצה."
+level: "enterprise"
+order: 63
+source: "https://code.claude.com/docs/en/feature-availability"
+lastVerified: "2026-09-23"
+keywords: ["Claude Code", "feature availability", "זמינות פיצ'רים", "זמינות", "Amazon Bedrock", "Google Cloud's Agent Platform", "Microsoft Foundry", "Claude Platform on AWS", "Anthropic Console", "ספק ענן", "ספקים", "תוכנית מנוי", "Team", "Enterprise"]
+canDo: "עכשיו אתה יכול לזהות באיזו עמודה של מטריצת הזמינות הארגון שלך נמצא, לדעת אילו פיצ'רים חסרים אצל הספק שלכם, ולבחור חלופה רשמית במקומם."
+relatedSlugs: ["admin", "gateways", "surfaces"]
+faq:
+  - q: "האם Claude Code עובד על Amazon Bedrock בלי מנוי claude.ai?"
+    a: "ה-CLI, ה-Agent SDK, תוספי VS Code ו-JetBrains, subagents,‏ hooks,‏ skills,‏ CLAUDE.md,‏ plugins ושרתי MCP עובדים אצל כל ספק, כולל Bedrock. מה שחסר הוא הפיצ'רים שדורשים חשבון claude.ai, כמו סשנים בענן, Routines ו-Remote Control, ועוד כמה יכולות כמו web search,‏ fast mode ו-Advisor."
+  - q: "למה Routines לא זמין אצלנו ואיך מתזמנים משימות במקום?"
+    a: "Routines דורש כניסה עם חשבון claude.ai. לפי התיעוד הרשמי, בספקי ענן כמו Bedrock,‏ Google Cloud's Agent Platform ו-Foundry משתמשים בפקודה /loop במקום /schedule, ובמקום סשנים בענן משתמשים ב-GitHub Actions או ב-GitLab CI/CD, לפי מה שנתמך אצל הספק."
+  - q: "האם LLM gateway משנה אילו פיצ'רים זמינים?"
+    a: "הזמינות תואמת לספק שה-gateway מעביר אליו, עם חריג אחד חשוב: כש-ANTHROPIC_BASE_URL מצביע על כתובת שאינה api.anthropic.com, Claude Code מכבה בעצמו פיצ'רים כמו Remote Control והגדרות מנוהלות מהשרת. Advisor עובד רק אם ה-gateway מעביר את הבקשות כמו שהן ל-Anthropic API."
+  - q: "מה ההבדל בין תוכנית Team ל-Enterprise מבחינת Claude Code?"
+    a: "שתיהן כוללות Code Review, דשבורד analytics, הגדרות מנוהלות מהשרת ו-SSO. רק Enterprise כוללת SCIM, את Compliance API ואת Enterprise Analytics API. Zero Data Retention אינו חלק מתוכנית Enterprise הרגילה ודורש הפעלה נפרדת על ידי Anthropic לחשבונות שעומדים בתנאים."
+  - q: "איפה בודקים אילו מודלים זמינים אצל כל ספק?"
+    a: "דף זמינות הפיצ'רים לא מפרט מודלים. הוא מפנה לדף Model configuration בתיעוד של Claude Code ול-Models overview של פלטפורמת Claude, שם מופיעים המודלים וגודלי חלון ההקשר לפי ספק ואזור."
+---
+
+import { Callout } from "@/components/lesson";
+
+ה-CLI וכל מה שרץ מקומית עובדים אצל כל ספק. ההבדלים ביכולות שתלויות בצד השרת: סשנים בענן, Routines ו-Remote Control דורשים חשבון claude.ai. יכולות כמו web search ו-Advisor חסרות אצל חלק מספקי הענן. ובתוך המנוי, התוכנית (Pro,‏ Max,‏ Team או Enterprise) קובעת מה פתוח.
+
+## למה זה חשוב
+ארגון שבוחר ספק לפי חוזה הענן הקיים עלול לגלות אחר כך שפיצ'ר שהצוות רצה לא זמין אצלו. [מטריצת הזמינות הרשמית](https://code.claude.com/docs/en/feature-availability) עונה על זה מראש, אבל היא ארוכה ומלאה בהערות שוליים. השיעור הזה מלמד לקרוא אותה: למצוא את העמודה שלך, לזהות את הדפוסים הקבועים, ולדעת מה עושים כשפיצ'ר חסר. את הפירוט המלא, שמתעדכן לעיתים קרובות, תמיד בודקים בדף עצמו.
+
+## איך יודעים באיזו עמודה אתה נמצא?
+העמודה נקבעת לפי דרך האימות, לא לפי המשטח שבו אתה עובד:
+
+| דרך האימות | העמודה במטריצה |
+| --- | --- |
+| כניסה עם חשבון claude.ai בתוכנית Pro,‏ Max,‏ Team או Enterprise | Claude subscription |
+| מפתח Anthropic API, או כניסה לחשבון Console בלי מפתח | Anthropic Console |
+| מודלים מקטלוג Amazon Bedrock, עם `CLAUDE_CODE_USE_BEDROCK` (כולל Mantle endpoint עם `CLAUDE_CODE_USE_MANTLE`) | Amazon Bedrock |
+| רכישה דרך AWS Marketplace וקריאה ל-Anthropic API, עם `CLAUDE_CODE_USE_ANTHROPIC_AWS` | Claude Platform on AWS |
+| הפעלה של Google, עם `CLAUDE_CODE_USE_VERTEX` | Google Cloud's Agent Platform |
+| הפעלה של Anthropic, עם `CLAUDE_CODE_USE_FOUNDRY` | Microsoft Foundry |
+
+במטריצה, ✓ פירושו זמין ו-✗ לא זמין. מילה אחרי ✓ מצמצמת את הזמינות לתת-קבוצה, למשל תוכנית מסוימת. "Admin-enabled" פירושו שהפיצ'ר כבוי עד שאדמין בארגון מפעיל אותו. "See note" מפנה להערת שוליים על תמיכה חלקית.
+
+## מה עובד אצל כל ספק?
+כל מה שרץ מקומית. לפי התיעוד הרשמי, אלה זמינים בכל העמודות:
+
+- ה-CLI וה-Agent SDK, ותוספי VS Code ו-JetBrains.
+- subagents,‏ hooks, פקודות ו-skills.
+- ‏CLAUDE.md,‏ plugins ושרתי MCP.
+- checkpoints,‏ sandboxing ו-Workflows.
+- מדדי OpenTelemetry וקובץ ה-managed settings.
+
+גם כאן יש כמה הבדלים קטנים. connectors מ-claude.ai נטענים רק כשמנוי claude.ai הוא שיטת האימות הפעילה. הפקודה `/voice` דורשת חשבון claude.ai. הפקודות `/design-sync` ו-`/import` לא זמינות ב-Bedrock,‏ Google Cloud's Agent Platform,‏ Foundry ו-Claude Platform on AWS.
+
+## אילו פיצ'רים דורשים מנוי Claude?
+כל פיצ'ר שרץ על התשתית של claude.ai. הם לא זמינים עם מפתח Console ולא אצל ספק צד שלישי:
+
+| פיצ'ר | הערה |
+| --- | --- |
+| סשנים בענן, Claude Code בנייד ו-Claude Code ב-Slack | |
+| Claude Code Desktop | יש חריג, ראו בהמשך |
+| Routines (`/schedule`) ו-Ultrareview | |
+| Remote Control ותוסף Chrome | |
+| Code Review | תוכניות Team ו-Enterprise |
+| Computer use | תוכניות Pro ו-Max |
+| Artifacts ו-Voice dictation | |
+
+Desktop הוא החריג החלקי. אפשר להגדיר בו ניתוב דרך gateway, ו-[Claude Desktop on 3P](https://claude.com/docs/third-party/claude-desktop/overview) מריץ את לשונית Code על Bedrock,‏ Google Cloud's Agent Platform,‏ Foundry או LLM gateway בניהול עצמי.
+
+## אילו יכולות CLI משתנות בין ספקים?
+אלה פיצ'רים שרצים ב-CLI המקומי, אבל תלויים ביכולת בצד השרת שלא כל ספק חושף. הדפוסים העיקריים:
+
+| דפוס | פיצ'רים | היכן זמין |
+| --- | --- | --- |
+| רק ב-Anthropic ישירות | fast mode,‏ Advisor,‏ Channels | מנוי Claude ו-Console בלבד. ל-fast mode יש תנאים: ב-Team וב-Enterprise בעל הארגון מפעיל אותו, וב-Console רק לארגונים שקיבלו גישה (provisioned) |
+| חלקי אצל ספקי ענן | auto mode | מלא במנוי, ב-Console וב-Claude Platform on AWS. ב-Bedrock,‏ Google Cloud ו-Foundry רק למודלים מסוימים |
+| משתנה לפי ספק | web search | לא ב-Bedrock. ב-Google Cloud למודלים מסוימים. ב-Foundry רק בפריסות שמתארחות אצל Anthropic |
+| חריגים בודדים | GitHub Actions,‏ GitLab CI/CD | GitHub Actions לא זמין ב-Claude Platform on AWS. GitLab CI/CD לא זמין ב-Foundry |
+| מוגבל למחשב אחד | cross-session messaging | במנוי Claude אפשר גם בין מחשבים, מסשן שמחובר ל-Remote Control. בכל השאר רק בין סשנים באותו מחשב |
+
+<Callout type="note">
+ב-Bedrock,‏ Google Cloud's Agent Platform ו-Foundry, מצב ההרשאות שסשן מתחיל בו כברירת מחדל הוא Manual. רשימת המודלים שתומכים ב-auto mode אצל הספקים האלה משתנה, ולכן בודקים אותה ב-[Auto mode configuration](https://code.claude.com/docs/en/auto-mode-config) ולא מסתמכים על רשימה קבועה.
+</Callout>
+
+## מה עם ניהול ו-analytics?
+כלי הניהול בצד השרת זמינים רק דרך Anthropic ישירות:
+
+- **דשבורד ו-API של analytics:** במנוי, הדשבורד ב-Team וב-Enterprise, וה-API ב-Enterprise בלבד. גם ב-Console. לא זמין אצל ספקי הענן.
+- **הגדרות מנוהלות מהשרת (server-managed settings):** במנוי ובמפתח Console ששייך לארגון Team או Enterprise. לא זמין אצל ספקי הענן.
+- **Zero Data Retention:** לחשבונות שעומדים בתנאים. ב-Bedrock,‏ Google Cloud ו-Foundry זה תלוי בהסכם שלכם עם ספק הענן.
+
+את ההגדרות המנוהלות עצמן מלמד [השיעור על הגדרת אדמין](/enterprise/admin). שים לב שקובץ ה-managed settings המקומי כן עובד אצל כל ספק. רק הגרסה שמגיעה מהשרת מוגבלת.
+
+## מה משתנה בין תוכניות המנוי?
+הסעיף הזה רלוונטי רק למי שנכנס עם חשבון claude.ai. בספקי ענן ובמפתח Console הוא לא חל. הדפוסים:
+
+| דפוס | פיצ'רים |
+| --- | --- |
+| בכל התוכניות | סשנים בענן, Routines |
+| רק Pro ו-Max | Computer use, ו-Dispatch בדסקטופ |
+| Team ו-Enterprise | Code Review, דשבורד analytics ו-contribution metrics, הגדרות מנוהלות מהשרת, SSO |
+| רק Enterprise | SCIM,‏ Compliance API,‏ Enterprise Analytics API |
+| דורש הפעלה של אדמין | Remote Control ו-Channels ב-Team וב-Enterprise. Artifacts ב-Enterprise |
+
+שני פרטים שכדאי להכיר ב-Enterprise: סשנים בענן דורשים premium seat או Chat + Claude Code seat, ו-Zero Data Retention אינו חלק מהתוכנית הרגילה. הוא דורש הפעלה נפרדת על ידי Anthropic לחשבונות שעומדים בתנאים.
+
+## מה קורה כשעובדים דרך LLM gateway?
+הזמינות תואמת לספק שה-gateway מעביר אליו, חוץ מפיצ'רים ש-Claude Code מכבה בעצמו. כש-`ANTHROPIC_BASE_URL` מצביע על כתובת שאינה `api.anthropic.com`, ‏Claude Code מכבה פיצ'רים כמו Remote Control והגדרות מנוהלות מהשרת, בלי קשר למה שה-gateway מעביר. Advisor עובד רק אם ה-gateway מעביר את הבקשות כמו שהן ל-Anthropic API. את ההבדלים בין סוגי ה-gateway מכסה [השיעור הבא](/enterprise/gateways).
+
+<Callout type="warning">
+אל תסיק מהמטריצה שפיצ'ר עובד דרך gateway רק כי הוא מסומן ✓ אצל הספק שמאחוריו. בדוק גם את רשימת הפיצ'רים ש-Claude Code מכבה כשכתובת הבסיס אינה של Anthropic.
+</Callout>
+
+## מה עושים כשפיצ'ר חסר אצל הספק?
+התיעוד הרשמי מציע חלופות מוגדרות:
+
+| חסר | חלופה |
+| --- | --- |
+| Routines (`/schedule`) | הפקודה [`/loop`](/pro/scheduled) |
+| סשנים בענן | [GitHub Actions או GitLab CI/CD](/pro/ci-cd), לפי מה שהספק תומך |
+| web search ב-Bedrock | הכלי WebFetch עם URL ספציפי |
+
+עוד פרט שכדאי לדעת: ב-Bedrock,‏ Google Cloud's Agent Platform,‏ Foundry ו-Claude Platform on AWS, דיווח שגיאות ו-telemetry ל-Anthropic כבויים כברירת מחדל.
+
+## ומה עם מודלים?
+דף הזמינות לא מפרט מודלים. אילו מודלים וגדלים של חלון הקשר זמינים לכל ספק ואזור, בודקים ב-[Model configuration](https://code.claude.com/docs/en/model-config). ראייה (vision), קלט PDF ו-extended thinking הם יכולות של המודל ולא של Claude Code, ולכן הם עובדים אצל כל ספק שמציע את המודל. Prompt caching עובד באותו אופן אצל רוב הספקים. ב-Bedrock התמיכה משתנה לפי מודל.
+
+## דוגמה מעשית
+צוות פיתוח בארגון שעובד עם Amazon Bedrock רוצה שני דברים: משימת בדיקה שרצה כל בוקר, ו-Channels כדי לקבל אירועים מבחוץ לתוך הסשן. בודקים בלשונית Amazon Bedrock ב-[summary by provider](https://code.claude.com/docs/en/feature-availability#summary-by-provider):
+
+1. Routines דורש מנוי claude.ai, ולכן לא זמין. החלופה הרשמית היא `/loop`, או workflow ב-GitHub Actions או ב-GitLab CI/CD, ששניהם זמינים ב-Bedrock.
+2. Channels מסומן ✗ ב-Bedrock, ואין לו חלופה בדף.
+3. הצוות מחליט: המשימה היומית עוברת ל-CI, ואת הדרישה ל-Channels מעלים בדיון על ספק או על חשבון Console לחלק מהמשתמשים.
+
+## הצעד הבא
+- ← [Gateways: ‏Claude apps gateway ו-LLM gateway](/enterprise/gateways)
+- שיעורים קשורים: [הגדרת אדמין והגדרות מנוהלות](/enterprise/admin) · [איפה רץ Claude Code](/product-family/surfaces) · [Routines](/pro/routines)
