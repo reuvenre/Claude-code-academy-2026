@@ -1,0 +1,105 @@
+---
+title: "מה ה-workflow הנכון ב-Claude Code? לחקור, לתכנן, לממש, לשמור"
+description: "ה-workflow המומלץ ב-Claude Code: Explore,‏ Plan,‏ Implement ו-Commit. איך עובדים עם plan mode, מתי מדלגים על תכנון, ואיך נותנים ל-Claude דרך לבדוק את העבודה."
+level: "beginner-plus"
+order: 10
+source: "https://code.claude.com/docs/en/best-practices"
+lastVerified: "2026-09-23"
+keywords: ["Claude Code", "workflow", "Explore Plan Implement Commit", "plan mode", "best practices", "שיטת עבודה", "תכנון", "לתכנן", "אימות", "בדיקות", "context window"]
+canDo: "עכשיו אתה יכול לעבוד עם Claude Code בארבעה שלבים מסודרים, להשתמש ב-plan mode כשצריך, ולתת ל-Claude בדיקה שהוא יכול להריץ בעצמו."
+relatedSlugs: ["claude-md", "auto-memory"]
+faq:
+  - q: "מה ה-workflow המומלץ לעבודה עם Claude Code?"
+    a: "ארבעה שלבים: Explore, שבו Claude קורא את הקוד בלי לשנות אותו; Plan, שבו מבקשים תוכנית מפורטת; Implement, שבו Claude מממש ובודק מול התוכנית; ו-Commit עם הודעה מתארת ו-PR."
+  - q: "איך נכנסים ל-plan mode?"
+    a: "לוחצים Shift+Tab עד ששורת הסטטוס מציגה ⏸ plan mode on, או מפעילים את Claude Code עם claude --permission-mode plan. ב-plan mode Claude קורא קבצים ועונה על שאלות בלי לבצע שינויים."
+  - q: "מתי לא צריך plan mode?"
+    a: "כשהמשימה ברורה והשינוי קטן, כמו תיקון שגיאת כתיב או שינוי שם של משתנה. לפי התיעוד הרשמי, אם אפשר לתאר את השינוי במשפט אחד, מדלגים על התוכנית."
+  - q: "מה עושים אם תיקנתי את Claude כמה פעמים והוא עדיין טועה?"
+    a: "אחרי שני תיקונים שלא עבדו, ההקשר מלא בניסיונות כושלים. מריצים /clear ומתחילים מחדש עם בקשה מדויקת יותר שכוללת את מה שלמדת."
+---
+
+import { CommandBlock, Callout, StepList } from "@/components/lesson";
+
+ה-workflow שהתיעוד הרשמי ממליץ עליו כולל ארבעה שלבים: Explore (חוקרים את הקוד), Plan (מבקשים תוכנית), Implement (מממשים ובודקים) ו-Commit. את החקירה והתכנון עושים ב-plan mode, כדי ש-Claude לא יפתור את הבעיה הלא נכונה. בשינוי קטן, שאפשר לתאר במשפט אחד, מדלגים על התכנון.
+
+## למה זה חשוב
+כש-Claude קופץ ישר לכתיבת קוד, הוא עלול לפתור את הבעיה הלא נכונה. הפרדה בין חקירה ותכנון לבין מימוש חוסכת תיקונים.
+
+יש גם סיבה עמוקה יותר. לפי התיעוד הרשמי, רוב שיטות העבודה המומלצות נובעות ממגבלה אחת: חלון ההקשר (context window) מתמלא מהר, והביצועים יורדים ככל שהוא מתמלא. כל הודעה, כל קובץ ש-Claude קורא וכל פלט של פקודה תופסים בו מקום. עבודה מסודרת שומרת עליו נקי.
+
+## ארבעת השלבים
+
+<StepList>
+
+1. **Explore:** נכנסים ל-plan mode. Claude קורא קבצים ועונה על שאלות בלי לשנות דבר.
+   ```text
+   read /src/auth and understand how we handle sessions and login.
+   also look at how we manage environment variables for secrets.
+   ```
+2. **Plan:** מבקשים תוכנית מימוש מפורטת.
+   ```text
+   I want to add Google OAuth. What files need to change?
+   What's the session flow? Create a plan.
+   ```
+   לוחצים `Ctrl+G` כדי לפתוח את התוכנית בעורך הטקסט ולערוך אותה לפני ש-Claude ממשיך.
+3. **Implement:** יוצאים מ-plan mode, באישור התוכנית או ב-`Shift+Tab`, ונותנים ל-Claude לממש ולבדוק מול התוכנית.
+   ```text
+   implement the OAuth flow from your plan. write tests for the
+   callback handler, run the test suite and fix any failures.
+   ```
+4. **Commit:** מבקשים commit עם הודעה מתארת ו-PR.
+   ```text
+   commit with a descriptive message and open a PR
+   ```
+
+</StepList>
+
+## איך נכנסים ל-plan mode?
+לוחצים `Shift+Tab` עד ששורת הסטטוס מציגה `⏸ plan mode on`, או מפעילים את Claude Code ישירות במצב הזה:
+
+<CommandBlock>claude --permission-mode plan</CommandBlock>
+
+<Callout type="tip">
+תכנון עוזר, אבל גם מוסיף זמן. הוא שימושי כשלא בטוחים בגישה, כשהשינוי נוגע בכמה קבצים, או כשלא מכירים את הקוד. אם אפשר לתאר את השינוי במשפט אחד, כמו תיקון שגיאת כתיב או שינוי שם של משתנה, מבקשים אותו ישירות.
+</Callout>
+
+## איך Claude יודע שהוא סיים?
+Claude עוצר כשהעבודה נראית גמורה. בלי בדיקה שהוא יכול להריץ, "נראה גמור" הוא הסימן היחיד, ואתה הופך לזה שמוצא כל טעות. תן לו משהו שמחזיר עבר או נכשל: בדיקות, build, linter, או צילום מסך להשוואה. ככה Claude עובד, מריץ את הבדיקה, קורא את התוצאה וממשיך עד שהיא עוברת.
+
+| במקום | כתוב |
+| --- | --- |
+| `implement a function that validates email addresses` | `write a validateEmail function. example test cases: user@example.com is true, invalid is false, user@.com is false. run the tests after implementing` |
+| `the build is failing` | `the build fails with this error: [paste error]. fix it and verify the build succeeds. address the root cause, don't suppress the error` |
+
+בקש מ-Claude להראות ראיות ולא רק להכריז שהצליח: את פלט הבדיקות, את הפקודה שהריץ ואת מה שהיא החזירה. קל יותר לבדוק ראיות מאשר להריץ הכול שוב בעצמך.
+
+## איך מנסחים בקשה טובה?
+ככל שההוראה מדויקת יותר, צריך פחות תיקונים. מציינים קבצים, תרחישים ואילוצים, ומפנים לדוגמאות קיימות בקוד:
+
+| במקום | כתוב |
+| --- | --- |
+| `add tests for foo.py` | `write a test for foo.py covering the edge case where the user is logged out. avoid mocks.` |
+| `fix the login bug` | `users report that login fails after session timeout. check the auth flow in src/auth/, especially token refresh. write a failing test that reproduces the issue, then fix it` |
+
+בקשה כללית שימושית כשרק חוקרים, למשל `what would you improve in this file?`.
+
+## מתי מתקנים ומתי מתחילים מחדש?
+הכי טוב לתקן מוקדם, ברגע ש-Claude סוטה מהכיוון:
+
+- `Esc` עוצר אותו באמצע. ההקשר נשמר, אז אפשר לכוון מחדש.
+- `Esc` פעמיים או `/rewind` מחזירים את השיחה ו/או הקוד לנקודה קודמת.
+- `/clear` מאפס את ההקשר בין משימות שלא קשורות זו לזו.
+
+<Callout type="warning">
+אם תיקנת את Claude יותר מפעמיים על אותה בעיה, ההקשר מלא בניסיונות כושלים. הרץ `/clear` והתחל מחדש עם בקשה מדויקת יותר שכוללת את מה שלמדת. לפי התיעוד הרשמי, סשן נקי עם בקשה טובה כמעט תמיד מנצח סשן ארוך עם הרבה תיקונים.
+</Callout>
+
+## טעויות נפוצות
+- **סשן "הכול בבת אחת":** מתחילים משימה, עוברים לשאלה שלא קשורה, וחוזרים. ההקשר מתמלא במידע לא רלוונטי. הפתרון: `/clear` בין משימות.
+- **אמון בלי בדיקה:** Claude מייצר מימוש שנראה סביר אבל לא מטפל במקרי קצה. הפתרון: תמיד לתת דרך לבדוק, כמו בדיקות, סקריפטים או צילומי מסך.
+- **חקירה אינסופית:** מבקשים "לחקור" משהו בלי גבולות, ו-Claude קורא מאות קבצים. הפתרון: להגדיר את החקירה בצורה ממוקדת.
+
+## הצעד הבא
+- ← [CLAUDE.md ו-/init: איך Claude Code זוכר את הפרויקט](/beginner-plus/claude-md)
+- שיעורים קשורים: [השינוי הראשון בקוד](/beginner/first-change) · [Git בשפה טבעית](/beginner/git-basics)
