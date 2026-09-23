@@ -1,0 +1,197 @@
+---
+title: "איפה רצים סשני ענן של Claude Code ומתי לבחור self-hosted?"
+description: "סשן ענן של Claude Code רץ בסביבת ענן: כברירת מחדל VM אצל Anthropic, עם רשת, משתנים ו-setup script שמגדירים. ארגון יכול להריץ אותו על runners משלו."
+level: "enterprise"
+order: 65
+source: "https://code.claude.com/docs/en/self-hosted-environments"
+lastVerified: "2026-09-23"
+keywords: ["Claude Code", "cloud environment", "סביבת ענן", "סביבות ענן", "self-hosted", "סביבה בשליטת הארגון", "runner", "ראנר", "setup script", "סקריפט התקנה", "network access", "גישת רשת", "claude --cloud", "/remote-env"]
+canDo: "עכשיו אתה יכול להסביר איפה רצים סשני ענן, להגדיר סביבת ענן עם גישת רשת, משתני סביבה ו-setup script, ולהעריך אם הארגון צריך סביבה self-hosted."
+relatedSlugs: ["web", "admin", "cloud-deploy"]
+faq:
+  - q: "איפה רץ סשן ענן של Claude Code?"
+    a: "כברירת מחדל על תשתית של Anthropic: כל סשן מקבל VM חדש עם Ubuntu 24.04, הריפו משוכפל אליו וכלי פיתוח נפוצים מותקנים מראש. ארגון ב-Team או Enterprise יכול לנתב סשנים לסביבה self-hosted, ואז הם רצים על runners בתוך הרשת של הארגון."
+  - q: "אפשר לשים סודות במשתני הסביבה של סביבת ענן?"
+    a: "לא מומלץ. כל מי שמשתמש בסביבה יכול לקרוא את המשתנים ואת ה-setup script, וגם הדיאלוג עצמו מזהיר מכך. בתוכניות Pro ו-Max אפשר לשמור מפתח כ-API credential, שה-agent proxy מצרף לבקשות בלי ש-Claude רואה אותו. ב-Team וב-Enterprise האפשרות הזו עדיין לא זמינה."
+  - q: "מה ההבדל בין setup script ל-SessionStart hook?"
+    a: "setup script מוגדר בסביבה, רץ לפני ש-Claude Code עולה ורק בסשני ענן, ומדולג כשיש cache של הסביבה. SessionStart hook מוגדר בקובץ settings בריפו, רץ אחרי ש-Claude Code עולה בכל סשן, כולל סשן שחודש, גם מקומית וגם בענן."
+  - q: "האם בסביבה self-hosted הקוד לא יוצא מהרשת של הארגון?"
+    a: "ה-checkouts של הריפו, תוצרי build, סודות וקבצים שהסשן יוצר נשארים על המכונות של הארגון. השיחה עצמה, כולל פרומפטים, תשובות ותוצאות כלים, נשלחת ל-api.anthropic.com לצורך inference, ו-Anthropic שומרת את התמליל כדי שאפשר יהיה לחדש את הסשן."
+  - q: "האם אפשר לנתב inference של סביבה self-hosted דרך Bedrock או LLM gateway?"
+    a: "לא. סשנים בסביבה self-hosted משתמשים ב-Anthropic API עם OAuth token שמונפק לסשן, ולכן אי אפשר לנתב את ה-inference דרך Amazon Bedrock,‏ Google Cloud's Agent Platform,‏ Microsoft Foundry או LLM gateway."
+---
+
+import { CommandBlock, Callout, StepList } from "@/components/lesson";
+
+סשן ענן רץ בסביבת ענן. כברירת מחדל זו VM חדשה על תשתית של Anthropic, שבה מגדירים גישת רשת, משתני סביבה ו-setup script. ארגון ב-Team או Enterprise יכול ליצור סביבה self-hosted, ואז אותם סשנים רצים על runners בתוך הרשת שלו.
+
+## למה זה חשוב
+[סשן ענן](/pro/web) הוא כל סשן שרץ במקום אחר ממחשב המפתח: מ-claude.ai, מאפליקציות Desktop ו-mobile, מהטרמינל עם `claude --cloud` ומ[routines](/pro/routines). [לפי התיעוד](https://code.claude.com/docs/en/cloud-environments), הסביבה קובעת מה הסשן יכול לעשות: לאילו דומיינים הוא מגיע, אילו משתנים הוא רואה ומה מותקן בו כש-Claude מתחיל לעבוד. בארגון, הסביבה היא גם החלטת אבטחה: איפה הקוד משוכפל ולאן יוצאת התעבורה.
+
+סשנים בטרמינל או ב-IDE תמיד רצים על המחשב של המפתח. אם הצוות לא משתמש בסשני ענן, אין כאן מה להגדיר.
+
+## איפה רץ סשן ענן כברירת מחדל?
+בסביבה שמנוהלת על ידי Anthropic, כל סשן מקבל VM חדשה עם Ubuntu 24.04 על x86_64, עם שכפול של הריפו וכלי פיתוח נפוצים מותקנים מראש. זה לא תלוי במערכת ההפעלה שלך.
+
+| מה | בסביבה של Anthropic |
+| --- | --- |
+| כלים מותקנים | Python,‏ Node.js,‏ Ruby,‏ PHP,‏ Java,‏ Go,‏ Rust,‏ C/C++,‏ Docker,‏ PostgreSQL,‏ Redis,‏ git,‏ gh ועוד |
+| משאבים (בקירוב, עשוי להשתנות) | 4 vCPUs,‏ 16 GB RAM,‏ 30 GB דיסק |
+| גישה ל-shell | אין. Claude מריץ את כל הפקודות, ומבקשים ממנו בפרומפט |
+| GitHub | דרך proxy ייעודי שמחזיק את ה-credentials האמיתיים מחוץ ל-VM |
+
+אם אין לך סביבה, ה-onboarding מקים סביבה בשם **Default**. ב-Pro, ב-Max ובפקודות CLI כמו `/web-setup` היא נוצרת אוטומטית. ב-Team וב-Enterprise מופיע טופס, ואם משאירים את ברירות המחדל שלו מקבלים אותה סביבה. יש לה גישת רשת **Trusted**, בלי משתני סביבה ובלי setup script.
+
+### מה מגיע מהסביבה המקומית שלך?
+רק מה שב-commit. הסשן מתחיל משכפול טרי של הריפו:
+
+- **מגיע:** `CLAUDE.md` של הריפו, `.claude/rules/`, ‏`.claude/skills/`, ‏`.claude/agents/`, ‏`.claude/commands/`, ו-[server-managed settings](/enterprise/admin) של הארגון. hooks והרשאות מ-`.claude/settings.json` ושרתי MCP מ-`.mcp.json` נטענים בסשן עם ריפו אחד.
+- **לא מגיע:** `~/.claude/CLAUDE.md`, הגדרות ו-skills ברמת המשתמש, שרתי MCP שהוספת ב-scope מקומי או של משתמש, והזדהות אינטראקטיבית כמו AWS SSO.
+
+## איך מגדירים סביבת ענן?
+יוצרים ועורכים סביבות מבורר הסביבות ב-[claude.ai/code](https://claude.ai/code) או מתיבת הפרומפט באפליקציית Desktop:
+
+<StepList>
+
+1. ב-claude.ai/code לוחצים על אייקון הענן עם שם הסביבה הנוכחית, בשורה שמעל תיבת ההודעה.
+2. בוחרים **Add cloud environment**, או מרחפים מעל סביבה קיימת ולוחצים על אייקון ההגדרות.
+3. ממלאים שם, רמת **Network access**, משתני סביבה ו-setup script, ושומרים.
+
+</StepList>
+
+סביבה שיצרת היא אישית לחשבון שלך. אי אפשר למחוק סביבה, רק להעביר לארכיון (**Archive**). סשנים שכבר רצים בה ממשיכים לעבוד.
+
+### איך קובעים גישת רשת?
+כל סביבה מקבלת רמת גישה אחת:
+
+| רמה | חיבורים יוצאים |
+| --- | --- |
+| **None** | אין גישת רשת יוצאת דרך הרשת של הסשן |
+| **Trusted** | רק דומיינים ברשימת ההיתר: package registries,‏ GitHub,‏ cloud SDKs |
+| **Full** | כל דומיין |
+| **Custom** | רשימה משלך, עם אפשרות לכלול גם את ברירת המחדל |
+
+ב-**Custom** כותבים דומיין אחד בכל שורה, ו-`*.` בהתחלה מתאים לכל תת-דומיין. זו הדוגמה מהתיעוד:
+
+```text
+api.example.com
+*.internal.example.com
+registry.example.com
+```
+
+כדי לשמור גם את דומייני Trusted, מסמנים **Also include default list of common package managers**. בכל רמה, הסשן עדיין מגיע ל-GitHub דרך ה-proxy שלו, ל-MCP connectors שהפעלת, ול-Anthropic API. אין רשימת היתר ברמת הארגון שנדחפת לכל הסביבות. כדי לתת לצוות רשימה אחידה, Owner יוצר סביבה משותפת.
+
+### איך מגדירים משתני סביבה?
+בפורמט `.env`, זוג `KEY=value` אחד בכל שורה:
+
+```text
+NODE_ENV=development
+LOG_LEVEL=debug
+DATABASE_URL=postgres://localhost:5432/myapp
+```
+
+כל סשן מעתיק את הערכים פעם אחת, בהפעלה. שינוי משפיע רק על סשנים חדשים. ערך שמכיל `#` או כמה שורות צריך מרכאות, אחרת `#` מתחיל הערה.
+
+<Callout type="warning">
+כל מי שמשתמש בסביבה יכול לקרוא את משתני הסביבה ואת ה-setup script. אל תשים בהם סודות. בתוכניות Pro ו-Max יש [API credentials](https://code.claude.com/docs/en/cloud-environments#add-api-credentials) שה-agent proxy מצרף לבקשות בלי ש-Claude רואה את המפתח. ב-Team וב-Enterprise הם עדיין לא זמינים.
+</Callout>
+
+### מה עושה setup script?
+setup script הוא סקריפט Bash שרץ כשסשן חדש מתחיל, לפני ש-Claude Code עולה. הוא רץ כ-root, ולכן `apt install` עובד. הדוגמה מהתיעוד מתקינה ShellCheck:
+
+```bash
+#!/bin/bash
+apt update && apt install -y shellcheck
+```
+
+שלוש דרישות:
+
+- **יציאה עם 0:** אם הסקריפט נכשל, הסשן לא עולה. מוסיפים `|| true` לפקודות לא קריטיות.
+- **פחות מחמש דקות בערך:** אחרת ה-cache של הסביבה לא נבנה.
+- **גישת רשת:** עם **None** ההתקנות נכשלות.
+
+אחרי הריצה הראשונה, Anthropic שומרת snapshot של מערכת הקבצים, וסשנים הבאים מתחילים ממנו בלי להריץ את הסקריפט. ה-snapshot שומר קבצים, לא תהליכים שרצים. הסקריפט רץ שוב כשמשנים אותו או את רשימת הדומיינים, או כשה-cache פג אחרי כשבעה ימים.
+
+<Callout type="tip">
+setup script מתאים להתקנת כלים ב-VM. להגדרת פרויקט שצריכה לרוץ גם מקומית וגם בענן, כמו `npm install`, משתמשים ב-[SessionStart hook](/advanced/hooks) בריפו.
+</Callout>
+
+### איך בוחרים סביבה מהטרמינל?
+מריצים:
+
+<CommandBlock>/remote-env</CommandBlock>
+
+הפקודה פותחת בורר של הסביבות הקיימות ושומרת את הבחירה כברירת המחדל לסשני ענן שנפתחים מה-CLI, למשל עם `claude --cloud`. היא לא יוצרת ולא עורכת סביבות.
+
+## מה Owner יכול להגדיר לכל הארגון?
+ב-Team וב-Enterprise, Owner יוצר סביבות משותפות בדף **Cloud environments** ב-admin settings. לתפקיד Admin אין גישה לדף. סביבה משותפת מופיעה אצל כל חבר בבורר הסביבות תחת הכותרת **Organization**. אייקון ההגדרות שלה פותח סיכום לקריאה בלבד, גם ל-Owners.
+
+- **יצירת סביבה משותפת:** עם שם, רמת גישת רשת, משתני סביבה ו-setup script.
+- **שיתוף סביבה אישית:** משורת **Who can use it** בעריכת הסביבה. הסביבה שומרת את ה-ID שלה, כך שסשנים ו-routines שמשתמשים בה לא מושפעים.
+- **ברירת מחדל לארגון:** נקבעת בנפרד ב-`claude.ai/admin-settings/claude-code`.
+
+## מה זו סביבה self-hosted?
+סביבה self-hosted מריצה את אותם סשני ענן על תשתית שהארגון מפעיל. [לפי התיעוד](https://code.claude.com/docs/en/self-hosted-environments), חוויית המפתח כמעט זהה: בבורר הסביבות מופיעות סביבות של Anthropic לצד הסביבות של הארגון. יש שלושה חלקים:
+
+| מונח | מה זה |
+| --- | --- |
+| Environment | יעד עם שם שהארגון יוצר ב-admin settings. מקבץ קבוצת runners. סשנים מנותבים לסביבה, לא ל-runner מסוים |
+| Runner | תהליך שרץ על מכונות בתוך הרשת שלכם ומריץ את הסשנים, בדומה ל-runner של CI בשליטת הארגון |
+| Session | משימה אחת של Claude Code. כל סשן רץ כתהליך Claude Code בן שה-runner מפעיל |
+
+כשמפתח בוחר את הסביבה שלכם, ה-control plane של Anthropic שם את הסשן בתור. runner פנוי לוקח אותו, משכפל את הריפו ומפעיל תהליך Claude Code על המכונה. את ה-runners אפשר להפעיל ולהשאיר רצים, או להריץ orchestrator עם autoscaling שמפעיל runners כשסשנים נכנסים לתור.
+
+### מתי כדאי self-hosted?
+רוב הצוותים יסתדרו טוב יותר עם סביבות של Anthropic, שלא דורשות תשתית. self-hosted מיועד לצוותים שדרישות הרשת, הכלים או הציות שלהם מחייבות הרצה על תשתית בשליטתם:
+
+- **גישת רשת:** הסשנים מגיעים לשירותים, מסדי נתונים ו-registries פנימיים בלי לחשוף אותם לאינטרנט.
+- **כלים מותאמים:** מתקינים מראש compilers,‏ SDKs ו-CLIs פנימיים ב-image של ה-runner.
+- **ציות:** checkouts ותוצרי build נשארים על התשתית שלכם.
+
+המחיר הוא אחריות תפעולית: אתם בונים ומתחזקים את ה-image, מפעילים את צי ה-runners ושולטים ברשת שלהם.
+
+### מה הדרישות והמגבלות?
+
+| נושא | מה התיעוד אומר |
+| --- | --- |
+| תוכניות | public beta ב-Team וב-Enterprise, כבוי כברירת מחדל |
+| הפעלה | Owner מדליק **Allow self-hosted environments** בדף **Cloud environments**. נדרש שסשני ענן מופעלים בארגון |
+| Zero Data Retention | לא זמין לארגונים עם ZDR |
+| inference | רק דרך Anthropic API. אין ניתוב דרך Bedrock,‏ Google Cloud's Agent Platform,‏ Foundry או [LLM gateway](/enterprise/gateways) |
+| ריפוזיטוריז | checkout מ-GitHub |
+| משטחים | claude.ai/code, אפליקציות mobile ו-Desktop, routines והטרמינל. Claude Security ו-Code Review עדיין לא מנותבים לשם |
+| חיוב | כמו בסביבות של Anthropic, מתוך השימוש ב-Claude Code של הארגון |
+
+## איך נראה מודל האבטחה של self-hosted?
+כל החיבורים יוצאים מהרשת שלכם, ו-Anthropic אף פעם לא מתחברת פנימה. ה-runner מושך עבודה מ-`api.anthropic.com` ב-HTTPS, ותהליך הסשן פותח מול אותו host את זרם האירועים ואת בקשות ה-inference, גם הם כחיבורים יוצאים. שירותים פנימיים וה-git host הפנימי נגישים מתוך הרשת.
+
+### מה נשאר אצלכם ומה יוצא?
+
+| נשאר על התשתית שלכם | נשלח ל-Anthropic |
+| --- | --- |
+| checkouts של הריפו | השיחה: פרומפטים, תשובות ותוצאות כלים, לצורך inference |
+| תוצרי build | תמליל הסשן, כדי שאפשר יהיה לחדש אותו ממשטח אחר |
+| סודות וקבצים שהסשן יוצר או משנה | |
+
+רק ההרצה עוברת לרשת שלכם. ה-control plane, כלומר התור, התזמור וממשק claude.ai, ממשיך לרוץ על התשתית של Anthropic.
+
+### איך הקוד של משתמשים שונים נשאר מופרד?
+runner משרת בעלים אחד בכל פעם. הסשן הראשון שהוא לוקח נועל אותו לבעלים של הסשן, והוא מריץ רק את הסשנים שלהם, עד הקיבולת שהוגדרה. בברירת המחדל, ה-runner יוצא כשהסשנים שלו מסתיימים, כך שה-orchestrator יכול להפעיל אותו מחדש עם דיסק נקי. לכן גודל הצי המינימלי הוא מספר הבעלים שצפויים להיות פעילים בו-זמנית.
+
+### איך מזדהים?
+- **ה-runner:** מזדהה ונרשם לסביבה עם environment secret אחד משותף, שמוצג פעם אחת ביצירת הסביבה (בממשק הוא נקרא **environment key**).
+- **git:** ה-runner משתמש ב-credentials שהפריסה שלכם מספקת. יש גם אפשרות להשתמש ב-Anthropic git proxy.
+- **inference:** הסשן מזדהה עם OAuth token שמונפק על ידי Anthropic לסשן הספציפי.
+
+proxy ארגוני יוצא נתמך דרך משתנים כמו `HTTPS_PROXY` ו-`NO_PROXY`. הזרמת הסשן משתמשת ב-server-sent events, ולכן proxy בדרך לא צריך לעשות buffering לתשובות.
+
+<Callout type="note">
+הקשחה, רשימת egress מלאה, הגדרת git ומתכוני Kubernetes נמצאים ב[מדריך הפריסה לפרודקשן](https://code.claude.com/docs/en/self-hosted-environments-deploy). להקמה ראשונה יש [quickstart](https://code.claude.com/docs/en/self-hosted-environments-quickstart).
+</Callout>
+
+## מה ההבדל בין self-hosted ל-Remote Control?
+self-hosted מיועד לארגון שמריץ סשני ענן על צי runners. אם אתה רוצה להריץ את Claude Code על מכונה משלך שדולקת תמיד ולשלוט בה ממכשירים אחרים, התיעוד מפנה ל-[Remote Control](https://code.claude.com/docs/en/remote-control), שזמין גם ב-Pro וב-Max. סשן כזה משתמש ברשת ובקבצים של המכונה שלך, לא בסביבת ענן.
+
+## הצעד הבא
+- ← [פריסות ענן](/enterprise/cloud-deploy)
+- שיעורים קשורים: [Claude Code באינטרנט](/pro/web) · [ניהול Claude Code בארגון](/enterprise/admin) · [זמינות פיצ'רים](/enterprise/feature-availability)
