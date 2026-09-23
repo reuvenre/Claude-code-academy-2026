@@ -1,0 +1,159 @@
+---
+title: "מה זה AI Fluency ואיך מסגרת 4D עוזרת לעבוד עם Claude Code?"
+description: "AI Fluency היא עבודה אפקטיבית, יעילה, אתית ובטוחה עם AI. מסגרת 4D של Anthropic: Delegation,‏ Description,‏ Discernment ו-Diligence, והיישום שלה ב-Claude Code."
+level: "fluency"
+order: 61
+source: "https://academy.claude.com/courses/ai-fluency-framework-foundations/the-4d-framework"
+lastVerified: "2026-09-23"
+keywords: ["Claude Code", "AI Fluency", "4D", "Delegation", "Description", "Discernment", "Diligence", "האצלה", "להאציל משימות", "הערכת פלט", "הזיות", "hallucination", "חלון הקשר", "אחריות על קוד"]
+canDo: "עכשיו אתה יכול לנתח משימה לפי ארבע מיומנויות ה-4D, להחליט מה להאציל ל-Claude Code, לתאר אותה היטב, לבדוק את התוצאה ולקחת עליה אחריות מלאה."
+relatedSlugs: ["core-workflow", "claude-md", "ultrareview"]
+faq:
+  - q: "מה ההבדל בין Description לכתיבת פרומפט טוב?"
+    a: "Description רחב יותר מפרומפט. הוא כולל שלושה חלקים: מה רוצים לקבל (Product), איך ה-AI צריך לגשת למשימה (Process), ואיך הוא צריך להתנהג במהלך העבודה (Performance). בקורס לבונים, Anthropic מוסיפה שבדיקות הן הצורה המדויקת ביותר של תיאור."
+  - q: "למה ה-AI ממציא שמות של ספריות ופונקציות?"
+    a: "מודל שפה כותב תשובה מילה אחרי מילה לפי מה שבדרך כלל בא אחרי מה. מכאן גם השטף וגם ההזיות. ההמצאות מתרכזות בפרטים ספציפיים כמו שמות, תאריכים, נתונים מספריים, מקורות וכתובות, ולכן בקוד בודקים כל חבילה או API לפני שסומכים עליהם."
+  - q: "האם Claude לומד מהתיקונים שלי בתוך סשן?"
+    a: "המודל עצמו לא לומד מהתיקונים שלך. הוא מגיב רק למה שנמצא כרגע בחלון ההקשר. לכן כדאי לכתוב כללים קבועים ב-CLAUDE.md, שנטען בתחילת כל סשן, ולא להסתמך על תיקון שנאמר פעם אחת בשיחה."
+  - q: "מה ההבדל בין Automation,‏ Augmentation ו-Agency?"
+    a: "ב-Automation ה-AI מבצע משימה מוגדרת לפי ההוראות שלך. ב-Augmentation אתה וה-AI חושבים ועובדים יחד. ב-Agency ה-AI עובד באופן עצמאי בשמך, ואתה מעצב את הידע, ההתנהגות והגבולות שלו במקום להכתיב כל פעולה."
+  - q: "מי אחראי לקוד ש-Claude Code כתב?"
+    a: "אתה. לפי Anthropic, הבונה אחראי לתוצאה ולא רק לפלט, והמשפט שה-AI כתב את הקוד לא מסביר ולא מצדיק דבר. לפני שמשחררים, צריך להבין מה הקוד עושה, להריץ בדיקות ולהיות שקוף לגבי תפקיד ה-AI."
+quiz:
+  - q: "איזו מיומנות ב-4D עוסקת בהחלטה מה עושים לבד, מה עושים יחד עם ה-AI ומה נותנים לו לעשות לבד?"
+    options: ["Description", "Delegation", "Discernment", "Diligence"]
+    answer: 1
+  - q: "לפי הקורס לבונים, אילו שתי מיומנויות מרכיבות את הלולאה הפנימית של העבודה היומיומית?"
+    options: ["Delegation ו-Diligence", "Description ו-Discernment", "Delegation ו-Description", "Discernment ו-Diligence"]
+    answer: 1
+  - q: "באיזה אופן עבודה ה-AI פועל באופן עצמאי, ואתה מעצב את הידע וההתנהגות שלו במקום להכתיב כל פעולה?"
+    options: ["Automation", "Augmentation", "Agency", "Delegation"]
+    answer: 2
+  - q: "Claude ממליץ על חבילת npm עם שם משכנע. מה הצעד הנכון לפי עקרון ה-Discernment?"
+    options: ["לסמוך עליו, כי הוא נשמע בטוח", "לבדוק שהחבילה וה-API באמת קיימים ועדכניים", "לבקש ממנו לחזור על ההמלצה בטון בטוח יותר", "להוסיף את החבילה ל-CLAUDE.md"]
+    answer: 1
+  - q: "Claude ביצע את ההוראה שלך מילה במילה, אבל התוצאה לא עוזרת. מה ממליצה Anthropic לעשות?"
+    options: ["לחזור על אותה הוראה בתוקף רב יותר", "לנסח מחדש ולהסביר את המטרה שמאחורי ההוראה", "לעבור מיד למודל אחר", "להאריך את ההוראה בכמה עשרות שורות"]
+    answer: 1
+  - q: "איזה רכיב של Diligence עוסק בלקיחת אחריות על פלט בסיוע AI שאתה משתף עם אחרים?"
+    options: ["Creation Diligence", "Transparency Diligence", "Deployment Diligence", "Performance Diligence"]
+    answer: 2
+---
+
+import { Callout } from "@/components/lesson";
+
+AI Fluency היא היכולת לעבוד עם AI באופן אפקטיבי, יעיל, אתי ובטוח. המסגרת של Anthropic מגדירה ארבע מיומנויות, ה-4D: Delegation (מה להאציל), Description (איך לתאר), Discernment (איך להעריך) ו-Diligence (איך לקחת אחריות). באתר הזה אנחנו מתרגמים אותן להרגלים ב-Claude Code: plan mode,‏ CLAUDE.md, ביקורת קוד והרשאות.
+
+## למה זה חשוב
+הפקודות משתנות כל הזמן, והמיומנויות נשארות. בשיעורים הקודמים למדת מה Claude Code יודע לעשות. השיעור הזה עוסק במה שאתה צריך לדעת כדי לעבוד עם סוכן: מתי לתת לו לעבוד לבד, איך להסביר לו, איך לבדוק אותו, ומי אחראי בסוף. זו השכבה הרוחבית של האתר, והיא נשענת על [קורס היסוד של Claude Academy](https://academy.claude.com/courses/ai-fluency-framework-foundations/the-4d-framework) ועל [הקורס לבונים](https://academy.claude.com/courses/ai-fluency-for-builders).
+
+לפי [הקורס לבונים](https://academy.claude.com/courses/ai-fluency-for-builders/ai-fluency-for-builders), רוב הכישלונות עם AI נובעים מטעויות שנעשו מוקדם יותר ב-Description,‏ Discernment או Diligence.
+
+## מה ארבע המיומנויות של ה-4D?
+כל מיומנות עונה על שאלה אחרת בשיתוף הפעולה, ולכל אחת שלושה רכיבים:
+
+| מיומנות | השאלה שהיא עונה עליה | שלושת הרכיבים |
+| --- | --- | --- |
+| **Delegation** | מה אני עושה, מה עושים יחד, ומה ה-AI עושה לבד? | Problem Awareness (להבין את המטרה והעבודה), Platform Awareness (להכיר מה מערכות AI שונות יודעות לעשות ומה המגבלות שלהן), Task Delegation (לחלק את העבודה) |
+| **Description** | איך אני מסביר מה אני צריך? | Product (מה רוצים לקבל), Process (איך לגשת למשימה), Performance (איך להתנהג במהלך העבודה) |
+| **Discernment** | האם מה שקיבלתי טוב? | Product (איכות הפלט), Process (איך ה-AI הגיע אליו), Performance (איך הוא התנהג בשיחה) |
+| **Diligence** | האם אני עובד באחריות? | Creation (באיזו מערכת עובדים ואיך), Transparency (שקיפות לגבי תפקיד ה-AI), Deployment (אחריות על מה שמשתפים) |
+
+Description ו-Discernment הם שני צדדים של אותה פעולה: אחת מסבירה מה אתה רוצה, והשנייה בודקת אם קיבלת את זה. ולשתיהן אותם שלושה רכיבים: Product,‏ Process ו-Performance.
+
+## מה ההבדל בין Automation,‏ Augmentation ו-Agency?
+Anthropic מתארת [שלוש דרכים עיקריות לעבוד עם AI](https://academy.claude.com/courses/ai-fluency-framework-foundations/the-4d-framework), וה-4D חלות על שלושתן:
+
+| אופן עבודה | מה קורה | דוגמה ב-Claude Code |
+| --- | --- | --- |
+| **Automation** | ה-AI מבצע משימה מוגדרת לפי ההוראות שלך, ואתה בודק | "תוסיף בדיקה למקרה הזה ותריץ אותה" |
+| **Augmentation** | אתה וה-AI חושבים ועובדים יחד | חקירה ותכנון משותפים ב-[plan mode](/beginner-plus/permission-modes) |
+| **Agency** | ה-AI עובד באופן עצמאי בשמך. אתה מעצב את הידע, ההתנהגות והגבולות שלו, ולא כל פעולה | ריצה ארוכה ב-auto mode, בתוך גבולות שקבעת ב-[כללי הרשאות](/advanced/permissions-sandbox) וב-CLAUDE.md |
+
+עמודת הדוגמאות היא הדגמה שלנו, לא חלק מהקורס. בקורס לבונים, Agency מוגדרת כעבודה של ה-AI בחופש פעולה בתוך גבולות שאתה קובע, ו-Automation כמצב שבו ה-AI עושה ואתה בודק.
+
+## מה זו לולאת Description–Discernment?
+זו הלולאה היומיומית של העבודה עם AI: מתארים, מעריכים, משפרים וחוזר חלילה. [השיעור בקורס היסוד](https://academy.claude.com/courses/ai-fluency-framework-foundations/the-description-discernment-loop) מפרק אותה לארבעה צעדים:
+
+1. **Describe:** מתארים את המשימה: מה התוצר, איך לגשת אליה, ואיך לעבוד איתך.
+2. **Discern:** מעריכים את הפלט, את הדרך שבה הגיע אליו ואת ההתנהגות שלו.
+3. **Refine:** אומרים מה עבד ומה לא, מחדדים את התיאור ומבקשים גרסה נוספת.
+4. **Integrate:** מוסיפים את הידע והשיפוט שלך, מחליטים מה נשאר, ולוקחים אחריות על התוצאה.
+
+[הקורס לבונים](https://academy.claude.com/courses/ai-fluency-for-builders/the-4d-framework) מוסיף הבחנה בין שתי לולאות. **הלולאה הפנימית**, Description ו-Discernment, מנחה את האינטראקציות היומיומיות. **הלולאה החיצונית**, Delegation ו-Diligence, מנחה החלטות גדולות יותר: מתי ואיך להשתמש ב-AI בכלל.
+
+ב-Claude Code הלולאה הפנימית מוכרת לך כבר: שולחים בקשה, קוראים את ה-diff, מתקנים כיוון. [התיעוד הרשמי](https://code.claude.com/docs/en/best-practices#course-correct-early-and-often) ממליץ לתקן מוקדם ולעיתים קרובות. אם תיקנת את אותו דבר יותר מפעמיים, עדיף להריץ `/clear` ולהתחיל מחדש עם פרומפט טוב יותר.
+
+## מה סוכן קוד יודע לעשות, ואיפה הוא נכשל?
+קורס [AI capabilities and limitations](https://academy.claude.com/courses/ai-capabilities-and-limitations) מתאר ארבע תכונות של AI גנרטיבי. ה-4D מתארות את המיומנויות שלך, והתכונות האלה מתארות את המכונה שהמיומנויות מגיבות לה:
+
+| תכונה | מה היא אומרת | איפה זה נשבר בקוד | מה עושים |
+| --- | --- | --- | --- |
+| **Next Token Prediction** | המודל כותב מילה אחרי מילה לפי מה שבדרך כלל בא אחר כך. מכאן השטף וגם ההזיות | שמות חבילות, גרסאות, חתימות API וכתובות. ככל שהטענה מדויקת יותר, כך היא צריכה יותר בדיקה | בודקים שהחבילה וה-API קיימים ועדכניים |
+| **Knowledge** | הידע מגיע מנתוני האימון ונעצר בתאריך מסוים | ספרייה שהתעדכנה או API שהוצא משימוש | נותנים ל-Claude את התיעוד, או כלי כמו [MCP](/advanced/mcp) שמביא מידע עדכני |
+| **Working Memory** | המודל רואה רק את מה שבחלון ההקשר. אין לו זיכרון מעבר לזה, והוא לא לומד מהתיקונים שלך | כשהחלון מתמלא, הוראות מוקדמות הולכות לאיבוד | [CLAUDE.md](/beginner-plus/claude-md) לכללים קבועים, `/clear` ו-`/compact` ל[ניהול ההקשר](/beginner-plus/costs-context) |
+| **Steerability** | המודל ממלא הוראות, אבל תמיד יש פער בין מה שאמרת למה שהתכוונת | הוראה שבוצעה מילה במילה אבל לא השיגה את המטרה, או טעות קטנה בשלב מוקדם שמתגלגלת הלאה | מסבירים את המטרה, ומוסיפים נקודות בדיקה באמצע |
+
+שתי העמודות הראשונות מסכמות את הקורס. הדוגמאות מעולם הקוד והכלים של Claude Code בשתי העמודות האחרונות הן היישום שלנו.
+
+לפי השיעור [When Properties Collide](https://academy.claude.com/courses/ai-capabilities-and-limitations/when-properties-collide), רוב הכישלונות הם שתי תכונות שנפגשות. Next Token Prediction יחד עם Knowledge מייצרות פרטים מומצאים. Working Memory יחד עם Steerability מייצרות סחף בשיחה ארוכה. כשיודעים לשייך את התקלה לשתי תכונות, יודעים גם איזה תיקון לבחור.
+
+<Callout type="tip">
+כש-Claude ממלא הוראה מילה במילה והתוצאה לא עוזרת, [Anthropic ממליצה](https://academy.claude.com/courses/ai-capabilities-and-limitations/steerability) לנסח מחדש את המטרה. לחזור על אותה הוראה בתוקף רב יותר לא סוגר את הפער.
+</Callout>
+
+## איך כל D נראית בעבודה עם Claude Code?
+כאן אנחנו מתרגמים כל מיומנות להרגלים ולכלים שכבר למדת באתר. ההגדרות והכללים שמיוחסים לקורסים לקוחים מהם. החיבור של כל רכיב לכלי מסוים ב-Claude Code (למשל Performance ל-output styles) הוא הפרשנות שלנו, לא טענה של הקורס.
+
+### Delegation: מה נותנים לסוכן?
+[הקורס לבונים](https://academy.claude.com/courses/ai-fluency-for-builders/ai-fluency-for-builders) מציע כלל אצבע: להאציל מימוש זה בדרך כלל בטוח, ולהאציל שיפוט בדרך כלל לא. [שיעור ה-Delegation](https://academy.claude.com/courses/ai-fluency-for-builders/delegation-the-builder-s-toolkit) שם מוסיף עוד שני כללים: קודם מפרקים את הבעיה ורק אחר כך מחליטים מה ה-AI עושה בכל שלב, וכותבים בדיקות קבלה לפני הקוד, כדי שלך ול-AI תהיה הגדרה משותפת של "גמור".
+
+- מפרקים את המשימה ב-[workflow של ארבעת השלבים](/beginner-plus/core-workflow): חוקרים ומתכננים לפני שמממשים.
+- בוחרים [מצב הרשאות](/beginner-plus/permission-modes) לפי רמת האמון: plan לחקירה, Manual לעבודה רגישה.
+- משימה צדדית שתציף את השיחה מעבירים ל-[subagent](/advanced/subagents).
+
+### Description: איך מסבירים לסוכן?
+Claude יכול להסיק כוונה, אבל [הוא לא קורא מחשבות](https://code.claude.com/docs/en/best-practices#provide-specific-context-in-your-prompts). כך אנחנו מחברים את שלושת רכיבי ה-Description לכלים:
+
+- **Product:** מה התוצר ואיך יודעים שהוא נכון. הנה דוגמה מהתיעוד הרשמי שמתארת סימפטום, מיקום משוער ומה נחשב תיקון:
+
+```text
+users report that login fails after session timeout. check the auth flow in src/auth/, especially token refresh. write a failing test that reproduces the issue, then fix it
+```
+
+- **Process:** איך לגשת למשימה. כללים קבועים של הפרויקט נכנסים ל-[CLAUDE.md](/beginner-plus/claude-md), כדי שלא תצטרך להסביר אותם מחדש בכל סשן.
+- **Performance:** איך Claude מתנהג ומדבר איתך. אפשר לבקש את זה בפרומפט, או לשנות את הטון והפורמט עם [output styles](/advanced/output-styles).
+
+לפי [הקורס לבונים](https://academy.claude.com/courses/ai-fluency-for-builders/description-building-great-things), בדיקות הן הצורה המדויקת ביותר של תיאור. אם הבדיקות עוברות והמשתמש לא מרוצה, תיארת את הכוונה הלא נכונה.
+
+### Discernment: איך בודקים את הסוכן?
+קוד שרץ עדיין יכול להיכשל. [הקורס לבונים](https://academy.claude.com/courses/ai-fluency-for-builders/discernment-for-code) מציין שלסוכן יש נקודות עיוורות צפויות: concurrency, אבטחה, וכל מה שנשבר רק בקנה מידה גדול. כך אנחנו מחברים את שלושת רכיבי ה-Discernment להרגלים:
+
+- **Product:** בודקים את התוצאה עם `/diff`, בדיקות אוטומטיות, `/code-review`, ולפני merge משמעותי גם [ultrareview](/pro/ultrareview).
+- **Process:** קוראים את התוכנית ש-Claude מציע ב-plan mode לפני שהוא מתחיל לערוך. שם רואים אם הוא הבין את הבעיה.
+- **Performance:** שמים לב אם הוא מסכים איתך מהר מדי, או מדווח על הצלחה בלי להציג ראיות. [התיעוד](https://code.claude.com/docs/en/best-practices#give-claude-a-way-to-verify-its-work) ממליץ לבקש ראיות: פלט הבדיקות, הפקודה שרצה ומה היא החזירה.
+
+אם הכיוון שגוי, [חוזרים אחורה עם `/rewind`](/beginner-plus/checkpointing) ומנסים שוב עם תיאור טוב יותר. זו שוב לולאת Description–Discernment.
+
+### Diligence: מי אחראי?
+אתה. [שיעור ה-Diligence בקורס לבונים](https://academy.claude.com/courses/ai-fluency-for-builders/stand-behind-what-you-build) מגדיר אותה כבעלות מלאה על התוצאה, לא רק על הפלט. כך אנחנו מיישמים את שלושת הרכיבים ב-Claude Code:
+
+- **Creation:** באיזה כלי עובדים, איך, ואיזה מידע חושפים לו. [כללי deny וה-sandbox](/advanced/permissions-sandbox) מונעים מ-Claude לקרוא קבצים רגישים כמו `.env`. כלל שאסור להפר מגדירים כ-[hook](/advanced/hooks) ולא כהוראה.
+- **Transparency:** אומרים לצוות ולבודקים איפה ה-AI השתתף בעבודה.
+- **Deployment:** לפני שמשחררים, צריך להבין מה הקוד עושה, להריץ בדיקות על מקרי קצה ולחשוב על מי שהמוצר לא משרת טוב.
+
+<Callout type="warning">
+"ה-AI כתב את זה" לא מסביר ולא מצדיק כלום. אם אתה לא יכול להסביר מה הקוד עושה, או לא יכול לאמת אותו, אל תשחרר אותו. [התיעוד הרשמי](https://code.claude.com/docs/en/best-practices#avoid-common-failure-patterns) מנסח זאת כך: "If you can't verify it, don't ship it."
+</Callout>
+
+## דוגמה מעשית
+נניח שצריך להוסיף הגבלת קצב (rate limiting) ל-API. כך נראית המשימה דרך ה-4D:
+
+1. **Delegation:** את ההחלטה כמה בקשות מותרות לכל משתמש אתה מקבל, כי זה שיפוט עסקי. את המימוש והבדיקות אתה מאציל. לפני כן אתה כותב שלוש בדיקות קבלה שמגדירות מה זה "גמור".
+2. **Description:** נכנסים ל-plan mode, מתארים את המטרה ואת האילוצים, ומפנים ל-middleware קיים כדוגמה לסגנון.
+3. **Discernment:** קוראים את התוכנית לפני שמאשרים. אחרי המימוש מריצים את הבדיקות ו-`/code-review`, ובודקים במיוחד מה קורה כששתי בקשות מגיעות באותו רגע. אם Claude הציע ספרייה חדשה, בודקים שהיא קיימת ומתוחזקת.
+4. **Diligence:** מוודאים שאתה מבין כל שורה ב-diff, כותבים בתיאור ה-PR ש-Claude השתתף בעבודה, ולוקחים אחריות על המיזוג.
+
+## הצעד הבא
+- ← [המסלול הבא: Enterprise](/enterprise)
+- שיעורים קשורים: [ה-workflow הנכון](/beginner-plus/core-workflow) · [CLAUDE.md](/beginner-plus/claude-md) · [ultrareview](/pro/ultrareview)
