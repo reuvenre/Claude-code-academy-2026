@@ -1,0 +1,138 @@
+---
+title: "אילו כלים מובנים יש ל-Claude Code ומתי כל כלי מבקש אישור?"
+description: "Read,‏ Edit,‏ Bash,‏ WebFetch,‏ Agent ועוד: רשימת הכלים המובנים של Claude Code לפי קטגוריות, מה כל כלי עושה והאם הוא מבקש הרשאה במצב ההרשאות Manual."
+order: 4
+source: "https://code.claude.com/docs/en/tools-reference"
+lastVerified: "2026-09-23"
+keywords: ["Claude Code", "כלים", "כלים מובנים", "tools reference", "הרשאות", "permission rules", "Read", "Edit", "Bash", "WebFetch", "Agent", "subagent", "hooks", "MCP"]
+faq:
+  - q: "איפה משתמשים בשמות הכלים?"
+    a: "בכללי הרשאות (permissions.allow ו-permissions.deny), בדגלים --allowedTools וגם --disallowedTools, ב-allowed-tools של skill, ברשימת הכלים של subagent וב-matcher של hooks. השמות צריכים להיכתב בדיוק כמו בטבלה."
+  - q: "מה המשמעות של העמודה 'הרשאה'?"
+    a: "היא מציינת אם הכלי מבקש אישור במצב Manual עבור נתיבים בתוך תיקיית העבודה. כלי קבצים כמו Read,‏ Grep ו-Glob עדיין מבקשים אישור לנתיבים מחוץ לתיקיות העבודה, ו-Bash מריץ פקודות קריאה-בלבד מובנות בלי לשאול."
+  - q: "למה אין לי Glob ו-Grep?"
+    a: "ב-macOS,‏ Linux ו-WSL הם לא חלק מסט הכלים המוגדר כברירת מחדל, ו-Claude מחפש עם find ו-grep דרך Bash. ב-Windows הם כלולים. אפשר להחזיר אותם, למשל על ידי ציון שמם בדגל --tools או בדגל --allowedTools בתחילת הסשן."
+  - q: "איך בודקים אילו כלים זמינים בסשן?"
+    a: "שואלים את Claude אילו כלים יש לו ומקבלים סיכום. לשמות המדויקים של כלי MCP מריצים /mcp."
+---
+
+כאן תמצאו את שמות הכלים המובנים ש-Claude משתמש בהם בסשן, מחולקים לקטגוריות, עם תיאור קצר וסימון אם הכלי מבקש הרשאה. משתמשים בעמוד כשכותבים כללי הרשאות, hooks, `--allowedTools` או רשימת כלים ל-subagent, ששם צריך את השם המדויק.
+
+עמודת **הרשאה** מציינת אם הכלי מבקש אישור במצב Manual עבור נתיבים בתוך תיקיית העבודה. כלים שמסומנים "לא", כמו `Read`,‏ `Grep` ו-`Glob`, עדיין מבקשים אישור לנתיבים מחוץ לתיקיות העבודה. `Bash` מסומן "כן", אבל מריץ סט מובנה של פקודות קריאה-בלבד בלי לשאול. ב-Pro,‏ Max ו-Team הסשן מתחיל ב-auto mode, שבו classifier מחליט על רוב הבקשות. הסבר על המצבים: [מצבי הרשאות](/beginner-plus/permission-modes).
+
+## קבצים וקוד
+
+| כלי | מה הוא עושה | הרשאה |
+| :-- | :-- | :-- |
+| `Read` | קורא תוכן של קבצים, כולל תמונות, PDF ו-Jupyter notebooks. לא קורא תיקיות. | לא |
+| `Edit` | עריכה ממוקדת: מחליף מחרוזת מדויקת (`old_string`) במחרוזת חדשה, בלי regex. | כן |
+| `Write` | יוצר קובץ חדש או דורס קובץ קיים עם התוכן המלא. | כן |
+| `NotebookEdit` | משנה תא אחד ב-Jupyter notebook (החלפה, הוספה או מחיקה). | כן |
+| `Glob` | מוצא קבצים לפי תבנית שם, כמו `**/*.js`. לא קיים כברירת מחדל ב-macOS,‏ Linux ו-WSL. | לא |
+| `Grep` | מחפש תבניות בתוך תוכן קבצים (מבוסס ripgrep). לא קיים כברירת מחדל ב-macOS,‏ Linux ו-WSL. | לא |
+| `LSP` | אינטליגנציית קוד דרך language server: קפיצה להגדרה, חיפוש הפניות, דיווח על שגיאות טיפוס. פעיל רק אחרי התקנת plugin מתאים. | לא |
+
+## הרצת פקודות
+
+| כלי | מה הוא עושה | הרשאה |
+| :-- | :-- | :-- |
+| `Bash` | מריץ פקודות shell בסביבה שלך. | כן |
+| `PowerShell` | מריץ פקודות PowerShell באופן טבעי. הזמינות תלויה בפלטפורמה. | כן |
+| `Monitor` | מריץ פקודה ברקע ומעביר כל שורת פלט ל-Claude, כדי שיגיב ללוגים, לשינויי קבצים או לסטטוס. יכול גם להאזין ל-WebSocket. | כן |
+
+## אינטרנט
+
+| כלי | מה הוא עושה | הרשאה |
+| :-- | :-- | :-- |
+| `WebFetch` | מביא תוכן מ-URL ומחלץ ממנו מידע לפי prompt. | כן |
+| `WebSearch` | מבצע חיפוש ברשת ומחזיר כותרות ו-URLs, בלי לקרוא את הדפים עצמם. | כן |
+
+## סוכנים, skills ו-workflows
+
+| כלי | מה הוא עושה | הרשאה |
+| :-- | :-- | :-- |
+| `Agent` | מפעיל [subagent](/advanced/subagents) עם חלון הקשר משלו לטיפול במשימה. | לא |
+| `SendMessage` | שולח הודעה לסוכן אחר: חבר ב-agent team, subagent שממשיכים, או סשן Claude Code אחר. | לא |
+| `ListAgents` | מציג את הסוכנים ש-Claude יכול לשלוח אליהם הודעות עם `SendMessage`. מופיע רק כשהודעות בין סשנים מופעלות. | לא |
+| `SubagentHandback` | מעביר את הדוח הסופי של subagent לשיחה שמקבלת את התוצאה. קיים רק ב-auto mode. | לא |
+| `Workflow` | מריץ dynamic workflow: סקריפט שמתזמר הרבה subagents ברקע ומחזיר תוצאה מאוחדת. | כן |
+| `Skill` | מריץ skill בתוך השיחה הראשית. | כן |
+| `TaskOutput` | מחזיר פלט של משימת רקע. מוצא משימוש לטובת `Read` על קובץ הפלט. | לא |
+| `TaskStop` | עוצר משימת רקע, חבר ב-agent team או סוכן רקע לפי ID או שם. | לא |
+
+## תכנון, שאלות ורשימת משימות
+
+| כלי | מה הוא עושה | הרשאה |
+| :-- | :-- | :-- |
+| `EnterPlanMode` | עובר ל-plan mode כדי לתכנן גישה לפני כתיבת קוד. | לא |
+| `ExitPlanMode` | מציג תוכנית לאישור ויוצא מ-plan mode. | כן |
+| `AskUserQuestion` | שואל שאלות אמריקאיות כדי לברר דרישות או עמימות. | לא |
+| `TaskCreate` | יוצר משימה חדשה ברשימת המשימות. | לא |
+| `TaskGet` | מחזיר את כל הפרטים של משימה מסוימת. | לא |
+| `TaskList` | מציג את כל המשימות והסטטוס שלהן. | לא |
+| `TaskUpdate` | מעדכן סטטוס, תלויות ופרטים של משימה, או מוחק משימות. | לא |
+| `TodoWrite` | מנהל את רשימת המשימות של הסשן. כבוי כברירת מחדל לטובת כלי ה-Task. | לא |
+
+כלי ה-Task ו-`TodoWrite` זמינים כברירת מחדל רק בחלק מהמודלים. הפירוט ודרכי ההפעלה (למשל `CLAUDE_CODE_ENABLE_TODO_TOOLS=1`) נמצאים ב-[Task tool availability](https://code.claude.com/docs/en/tools-reference#task-tool-availability). לשמות המודלים העדכניים: [model-config](https://code.claude.com/docs/en/model-config).
+
+## תזמון והתראות
+
+| כלי | מה הוא עושה | הרשאה |
+| :-- | :-- | :-- |
+| `CronCreate` | מתזמן prompt חוזר או חד-פעמי בתוך הסשן הנוכחי. | לא |
+| `CronDelete` | מבטל משימה מתוזמנת לפי ID. | לא |
+| `CronList` | מציג את כל המשימות המתוזמנות בסשן. | לא |
+| `ScheduleWakeup` | קובע מתי תרוץ האיטרציה הבאה של `/loop` בקצב עצמי. Claude קורא לו, לא אתם. | לא |
+| `RemoteTrigger` | יוצר, מעדכן, מריץ ומציג Routines ב-claude.ai. עומד מאחורי הפקודה `/schedule`. | לא |
+| `PushNotification` | שולח התראת desktop, ו-push לטלפון כש-Remote Control מחובר. | לא |
+
+## Worktrees
+
+| כלי | מה הוא עושה | הרשאה |
+| :-- | :-- | :-- |
+| `EnterWorktree` | יוצר git worktree מבודד ועובר אליו, או עובר ל-worktree קיים לפי `path`. | כן |
+| `ExitWorktree` | יוצא מסשן worktree וחוזר לתיקייה המקורית. | לא |
+
+## MCP וטעינת כלים
+
+| כלי | מה הוא עושה | הרשאה |
+| :-- | :-- | :-- |
+| `ListMcpResourcesTool` | מציג resources שחושפים שרתי MCP מחוברים. | לא |
+| `ReadMcpResourceTool` | קורא resource מסוים של MCP לפי URI. | לא |
+| `ToolSearch` | מחפש וטוען כלים דחויים (deferred) כש-tool search מופעל. | לא |
+| `WaitForMcpServers` | ממתין לשרתי MCP שעדיין מתחברים ברקע. מופיע רק כש-tool search כבוי. | לא |
+
+## שיתוף, משוב וסשן
+
+| כלי | מה הוא עושה | הרשאה |
+| :-- | :-- | :-- |
+| `Artifact` | מפרסם קובץ HTML או Markdown כ-artifact: עמוד פרטי ואינטראקטיבי ב-claude.ai. | כן |
+| `SendUserFile` | שולח אליכם קבצים מהסשן, עם כיתוב אופציונלי. זמין עם Remote Control או בסשן ענן. | לא |
+| `ShareOnboardingGuide` | מעלה את `ONBOARDING.md` ומחזיר קישור שיתוף. נקרא מתוך `/team-onboarding`. | כן |
+| `SendFeedback` | מנסח דוח משוב על Claude Code ושומר אותו אצלכם לבדיקה. שום דבר לא נשלח עד שאתם שולחים. | לא |
+| `ReportFindings` | מדווח ממצאי code review כרשימה מובנית (קובץ, סיכום ותרחיש כשל לכל ממצא). | לא |
+| `EndConversation` | מסיים את הסשן, במקרים נדירים של התנהגות פוגענית מתמשכת או כשמבקשים הדגמה. | לא |
+
+## איך מפנים לכלי בכללי הרשאות?
+
+כל המקומות שמקבלים שם כלי משתמשים באותו פורמט: `ToolName(specifier)`. ה-specifier תלוי בכלי:
+
+| פורמט | חל על | התאמה לפי |
+| :-- | :-- | :-- |
+| `Bash(npm run *)` | Bash,‏ Monitor | תבנית פקודה |
+| `PowerShell(Get-ChildItem *)` | PowerShell | תבנית פקודה |
+| `Read(~/secrets/**)` | Read,‏ Grep,‏ Glob,‏ LSP | תבנית נתיב |
+| `Edit(/src/**)` | Edit,‏ Write,‏ NotebookEdit | תבנית נתיב |
+| `Skill(deploy *)` | Skill | שם ה-skill |
+| `Agent(Explore)` | Agent | סוג ה-subagent |
+| `WebFetch(domain:example.com)` | WebFetch | דומיין |
+| `WebSearch` | WebSearch | בלי specifier: מאשרים או חוסמים את הכלי כולו |
+
+כלים שלא מופיעים בטבלה, כמו `ExitPlanMode`, מקבלים רק את השם עצמו. ב-`matcher` של hooks משתמשים בשם הכלי בלבד, בלי סוגריים. פירוט נוסף: [הרשאות ו-sandbox](/advanced/permissions-sandbox).
+
+## איפה לומדים עוד?
+
+- [איך Claude Code עובד? הלולאה האג׳נטית והכלים המובנים](/beginner/how-it-works)
+- [מצבי הרשאות ו-plan mode](/beginner-plus/permission-modes)
+- [subagents: מתי ואיך להאציל משימה](/advanced/subagents)
+- [Tools reference בתיעוד הרשמי](https://code.claude.com/docs/en/tools-reference)
