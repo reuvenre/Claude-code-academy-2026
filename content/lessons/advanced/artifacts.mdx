@@ -1,0 +1,171 @@
+---
+title: "איך מפרסמים עמוד חי מסשן של Claude Code בעזרת Artifacts?"
+description: "Artifact הוא עמוד web חי ש-Claude Code מפרסם מהסשן לכתובת פרטית ב-claude.ai. איך מבקשים אחד, מעדכנים אותו, משתפים, מוצאים שוב עם /artifacts ומתי הוא זמין."
+level: "advanced"
+order: 34
+source: "https://code.claude.com/docs/en/artifacts"
+lastVerified: "2026-09-23"
+keywords: ["Claude Code", "Artifacts", "artifact", "ארטיפקט", "ארטיפקטים", "/artifacts", "עמוד חי", "לפרסם עמוד", "פרסום עמוד", "שיתוף", "claude.ai", "dashboard", "enableArtifact", "MCP connectors"]
+canDo: "עכשיו אתה יכול לבקש מ-Claude Code לפרסם artifact, לעדכן אותו, לשתף אותו בבטחה, למצוא אותו שוב עם /artifacts ולכבות את הפיצ'ר כשצריך."
+relatedSlugs: ["connectors", "mcp", "permissions-sandbox"]
+faq:
+  - q: "מי יכול לראות artifact שפרסמתי?"
+    a: "רק אתה. artifact חדש פרטי לך עד שאתה משתף אותו דרך כפתור Share בכותרת העמוד בדפדפן. בתוכניות Pro ו-Max השיתוף היחיד הוא קישור ציבורי. בתוכניות Team ו-Enterprise אפשר לשתף אנשים מסוימים בארגון או את כל הארגון, ושיתוף ציבורי כבוי עד ש-Owner מפעיל אותו."
+  - q: "למה Claude Code כותב קובץ HTML מקומי במקום לפרסם artifact?"
+    a: "אחד מתנאי הזמינות לא מתקיים. צריך תוכנית Pro,‏ Max,‏ Team או Enterprise, סשן שמחובר לחשבון claude.ai עם /login, ספק מודל Anthropic API, וארגון בלי CMEK,‏ HIPAA או Zero Data Retention. סשנים עם API key, טוקן gateway או הרשאות של ספק ענן לא יכולים לפרסם."
+  - q: "איך מעדכנים artifact מסשן אחר?"
+    a: "נותנים ל-Claude את ה-URL של ה-artifact, או מצרפים אותו לסשן דרך /artifacts. בלי אחד מהשניים, סשן חדש יוצר artifact חדש במקום לעדכן את הקיים."
+  - q: "האם artifact יכול להציג נתונים עדכניים בכל פתיחה?"
+    a: "כן, דרך קונקטורים של claude.ai. העמוד קורא לקונקטורים בכל טעינה, והקריאה עוברת דרך החשבון של מי שצופה בעמוד. שרתי MCP מקומיים, כמו אלה שב-.mcp.json, יכולים לספק נתונים רק בזמן הבנייה. artifact שקורא לקונקטורים לא ניתן לשיתוף בקישור ציבורי."
+  - q: "איך מכבים artifacts?"
+    a: "מכבים את השורה Artifacts ב-/config, מגדירים enableArtifact עם הערך false בקובץ settings, מגדירים את משתנה הסביבה CLAUDE_CODE_DISABLE_ARTIFACT=1, או מוסיפים Artifact לרשימת permissions.deny."
+---
+
+import { CommandBlock, Callout, StepList } from "@/components/lesson";
+
+Artifact הוא עמוד web חי ואינטראקטיבי ש-Claude Code מפרסם מהסשן לכתובת פרטית ב-claude.ai. מבקשים אותו במילים, למשל דשבורד או diff עם הערות, והדפדפן נפתח על העמוד. העמוד מתעדכן במקום כשהסשן ממשיך, ונשאר פרטי עד שמשתפים אותו.
+
+## למה זה חשוב
+יש תוצרים שקל יותר לראות מאשר לקרוא שורה אחרי שורה בטרמינל. Claude בונה את העמוד מכל מה שהסשן מגיע אליו: הקוד שלך ונתונים שהוא מושך דרך [כלים מחוברים](/advanced/mcp). התיעוד הרשמי מביא כמה שימושים:
+
+- להעביר reviewer דרך pull request עם diff מוער.
+- להציג דשבורד מנתונים שהסשן כבר משך.
+- לפרוס כמה אפשרויות עיצוב או מימוש זו לצד זו.
+- לנהל ציר זמן של חקירה שמתמלא בזמן שמשימה ארוכה רצה.
+- לשלוח לחבר צוות קישור במקום להדביק פלט ב-Slack.
+
+artifact הוא לא אפליקציה. זה עמוד אחד עצמאי בלי backend, ולכן הוא לא יכול לשרת כמה routes. כלי פנימי עם backend מעלים על התשתית שלך.
+
+## איך יוצרים artifact?
+Claude עשוי לפרסם artifact בעצמו כשהפלט מתאים לעמוד, ואפשר גם לבקש במפורש. מזכירים את הפיצ'ר או מתארים את הפלט החזותי. אלה דוגמאות מהתיעוד הרשמי:
+
+```text
+Make an artifact that walks through this PR with the diff annotated inline.
+```
+
+```text
+Build a dashboard artifact of last week's deploy failures by service and keep it updated as you investigate.
+```
+
+<StepList>
+
+1. Claude כותב את העמוד לקובץ HTML או Markdown בתיקייה זמנית מחוץ לפרויקט, אלא אם ביקשת מיקום אחר.
+2. הפרסום עובר דרך [מצב ההרשאות](/advanced/permissions-sandbox) של הסשן. במצבי Manual ו-Accept edits מופיעה בקשת אישור, ובוחרים **Yes**. ב-auto mode המסווג בודק את הפרסום במקום לשאול אותך.
+3. אחרי הפרסום הראשון Claude מדפיס את ה-URL, והדפדפן נפתח על העמוד החדש.
+4. בכל רגע אפשר ללחוץ `Ctrl+]` כדי לפתוח שוב את ה-artifact האחרון של הסשן.
+
+</StepList>
+
+אחרי שאישרת artifact פעם אחת, Claude Code מפרסם אותו מחדש בלי לשאול. הוא שואל שוב בחלק מהמקרים, למשל כשהעמוד מבקש יכולת runtime כמו קריאה לקונקטורים או הורדת קובץ, כששיתפת אותו בינתיים בקישור ציבורי, או כששיתפת אותו עם אנשים מסוימים או עם הארגון כשהצופים רואים תמיד את הגרסה האחרונה.
+
+Claude בוחר לבד כותרת ואימוג'י לעמוד. אם אתה רוצה כותרת מסוימת, פשוט מבקשים. כדי שהדפדפן לא ייפתח אוטומטית בכל פרסום חדש, מגדירים בסביבה `CLAUDE_CODE_ARTIFACT_AUTO_OPEN=0`.
+
+## איך מעדכנים artifact?
+מבקשים מ-Claude לשנות את העמוד. הוא עורך את הקובץ ומפרסם שוב לאותו URL:
+
+```text
+Add a per-region breakdown below the summary chart and republish.
+```
+
+מי שהעמוד פתוח אצלו רואה את העדכון במקום. כל פרסום הופך לגרסה, ובכפתור **Share** בכותרת העמוד בוחרים איזו גרסה הצופים רואים.
+
+כדי לעדכן מסשן אחר, נותנים ל-Claude את ה-URL:
+
+```text
+Update https://claude.ai/code/artifact/5fbea6f3-... with today's numbers.
+```
+
+<Callout type="warning">
+סשן חדש בלי URL ובלי צירוף דרך `/artifacts` יוצר artifact חדש, ולא מעדכן את הקיים.
+</Callout>
+
+## איך מוצאים artifact שוב עם /artifacts?
+מריצים בתוך Claude Code:
+
+<CommandBlock>/artifacts</CommandBlock>
+
+הפקודה מציגה כל artifact שבבעלותך וכל artifact ששיתפו איתך. הרשימה נקראת מחשבון ה-claude.ai שלך, ולכן היא עובדת גם בסשן חדש וגם אחרי `/clear`.
+
+| מקש | מה הוא עושה |
+| --- | --- |
+| `o` | פותח את ה-artifact בדפדפן |
+| `c` | מעתיק את הקישור |
+| `Enter` | מצרף את ה-artifact לסשן הנוכחי |
+
+כל artifact שיצרת מופיע גם בגלריה ב-[claude.ai/code/artifacts](https://claude.ai/code/artifacts).
+
+## מי רואה את העמוד, ואיך משתפים?
+artifact חדש גלוי רק לך. כדי לשתף, פותחים אותו בדפדפן ומשתמשים בכפתור **Share** בכותרת העמוד. האפשרויות תלויות בתוכנית:
+
+| תוכנית | שיתוף בתוך הארגון | קישור ציבורי |
+| --- | --- | --- |
+| Pro,‏ Max | אין | הדרך היחידה לשתף |
+| Team,‏ Enterprise | אנשים מסוימים או כל הארגון | כבוי עד ש-Owner מפעיל אותו לארגון |
+
+קישור ציבורי נפתח לכל אחד באינטרנט, בלי התחברות ל-claude.ai. בשיתוף בתוך הארגון הצופים מתחברים ל-claude.ai כחברי הארגון.
+
+אנשים ששיתפת הם צופים (viewers) כברירת מחדל. בתוכניות Team ו-Enterprise אפשר להחליף לאדם את התפקיד ל-**editor**, והוא יכול לפרסם גרסאות חדשות דרך Claude, בדיוק כמו עדכון מסשן אחר. ב-artifact ששותף בתוך הארגון, מי ששיתפת יכול גם להשאיר הערות. Claude יכול לקרוא אותן, אבל עונה רק בשרשורים שמישהו עם הרשאת עריכה שלח אליו (דרך **Send to Claude** או אזכור `@claude`). ב-artifact ששותף בקישור ציבורי אין הערות.
+
+<Callout type="note">
+כש-Claude קורא artifact שמישהו אחר כתב, הוא מקבל סיכום של מה שביקש, כמו בקריאת עמוד web. הוראות שכתובות בתוך העמוד מדווחות לך, ולא מבוצעות.
+</Callout>
+
+## איך מציגים נתונים חיים?
+artifact יכול לקרוא ל[קונקטורים של claude.ai](/advanced/connectors) בכל פעם שמישהו פותח אותו, כך שהעמוד מציג נתונים עדכניים ולא תמונת מצב. מציינים בפרומפט את הקונקטור ואת הנתונים:
+
+```text
+Build a dashboard artifact of our open pull requests that pulls the live list through my GitHub connector when the page loads.
+```
+
+חשוב להבין איך זה עובד אצל הצופים:
+
+- **כל צופה משתמש בחשבון שלו.** הקריאה עוברת דרך החיבורים של מי שצופה בעמוד, לא של מי שפרסם. שני אנשים יכולים לראות נתונים שונים באותו דשבורד.
+- **הצופה מאשר קודם.** claude.ai מבקש מכל צופה אישור לפני הקריאה הראשונה. מי שסירב, או שאין לו את הקונקטור, רואה את העמוד בלי החלקים החיים.
+- **רק קונקטורים מחשבון claude.ai.** שרתי MCP מקומיים, כמו אלה שב-`.mcp.json`, יכולים לספק נתונים בזמן הבנייה, אבל העמוד שפורסם לא יכול לקרוא להם.
+
+<Callout type="warning">
+artifact שקורא לקונקטורים לא ניתן לשיתוף בקישור ציבורי בשום תוכנית. ב-Pro וב-Max, שבהן קישור ציבורי הוא הדרך היחידה לשתף, עמוד כזה נשאר פרטי לך.
+</Callout>
+
+## מה אי אפשר לעשות בעמוד?
+כל artifact הוא עמוד אחד עצמאי, שרץ תחת Content Security Policy קפדנית:
+
+| מגבלה | מה זה אומר |
+| --- | --- |
+| בקשות חיצוניות | גופנים מ-Google Fonts וסקריפטים מכמה CDNs ציבוריים בלבד. תמונות חיצוניות חסומות, ו-Claude מטמיע תמונות כ-data URIs |
+| בלי backend | עמוד סטטי שלא יכול לאמת צופים בעצמו |
+| הורדות | העמוד לא יכול להתחיל הורדה בעצמו. להורדת קובץ Claude מצהיר על יכולת downloads |
+| עמוד יחיד | קישורים יחסיים לא עובדים. לתוכן בכמה חלקים משתמשים בעוגנים בתוך העמוד |
+| סוג קובץ | `.html`,‏ `.htm` או `.md` |
+| גודל | עד 16 MiB לעמוד המרונדר |
+
+עמוד מעוצב צורך יותר output tokens מאותו תוכן כטקסט בטרמינל. כדי לחסוך: SVG או HTML ו-CSS לדיאגרמות במקום תמונות, בלי אינטראקטיביות מיותרת, וסיכום של datasets גדולים במקום להטמיע אותם במלואם.
+
+## מתי artifacts זמינים?
+צריך שכל התנאים יתקיימו. אם אחד חסר, Claude כותב קובץ HTML מקומי או אומר שהוא לא יכול לפרסם.
+
+| דרישה | זמין כש |
+| --- | --- |
+| תוכנית | Pro,‏ Max,‏ Team או Enterprise. ב-Team מופעל כברירת מחדל, וב-Enterprise ‏Owner מפעיל אותו בהגדרות האדמין |
+| התחברות | הסשן מחובר לחשבון claude.ai עם `/login`. סשנים עם API key, טוקן gateway או הרשאות ספק ענן לא יכולים לפרסם |
+| ספק מודל | Anthropic API. לא זמין ב-Amazon Bedrock, ב-Agent Platform של Google Cloud או ב-Microsoft Foundry |
+| מדיניות ארגון | CMEK,‏ HIPAA ו-Zero Data Retention לא מופעלים לארגון |
+| ממשק | Claude Code CLI או אפליקציית הדסקטופ. כבוי כברירת מחדל ב-Agent SDK, ב-GitHub Action ובהקשרי MCP server, וכשמוגדר `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC` |
+
+Claude Code טוען את מדיניות הארגון מ-`api.anthropic.com`. אם יש proxy,‏ VPN או סינון רשת, מבקשים מה-IT לאפשר את הכתובת הזו.
+
+## איך מכבים artifacts?
+אפשר לכבות artifacts לסשנים שלך בכל אחת מהדרכים האלה:
+
+| איפה | מה עושים |
+| --- | --- |
+| `/config` | מכבים את השורה **Artifacts** |
+| קובץ settings | `"enableArtifact": false` |
+| משתנה סביבה | `CLAUDE_CODE_DISABLE_ARTIFACT=1` |
+| כלל הרשאה | מוסיפים `Artifact` ל-`permissions.deny` |
+
+אפשר גם להגדיר `"enableArtifact": false` ב-`.claude/settings.json` או ב-`.claude/settings.local.json` של פרויקט כדי לכבות artifacts בסשנים של אותו פרויקט. `"enableArtifact": true` באחד מהקבצים האלה לא מחזיר אותם.
+
+## הצעד הבא
+- ← [נגישות ב-Claude Code](/advanced/accessibility)
+- שיעורים קשורים: [קונקטורים של claude.ai](/advanced/connectors) · [MCP: חיבור Claude Code לכלים](/advanced/mcp) · [הרשאות ו-sandbox](/advanced/permissions-sandbox)
