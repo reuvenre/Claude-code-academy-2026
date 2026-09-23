@@ -1,0 +1,212 @@
+---
+title: "איך מריצים את Claude Code בענן מהדפדפן ומעבירים סשן לטרמינל?"
+description: "סשן ענן של Claude Code רץ על VM מבודד וממשיך גם כשהמחשב סגור. מתחילים מ-claude.ai/code או עם claude --cloud, ומושכים את הסשן לטרמינל עם --teleport."
+level: "pro"
+order: 42
+source: "https://code.claude.com/docs/en/claude-code-on-the-web"
+lastVerified: "2026-09-23"
+keywords: ["Claude Code", "Claude Code on the web", "סשן ענן", "סשנים בענן", "cloud session", "claude.ai/code", "--cloud", "--teleport", "/teleport", "/web-setup", "Auto-fix", "GitHub", "מהדפדפן", "ענן"]
+canDo: "עכשיו אתה יכול להריץ משימות של Claude Code בענן מהדפדפן או מהטרמינל, לשלוח להן הודעות המשך, לבדוק את ה-diff, לפתוח PR ולמשוך סשן ענן לטרמינל עם --teleport."
+relatedSlugs: ["worktrees", "agents-overview", "permission-modes"]
+faq:
+  - q: "מה ההבדל בין סשן ענן לסשן מקומי של Claude Code?"
+    a: "סשן ענן רץ על VM מבודד, שמנוהל כברירת מחדל על ידי Anthropic, ולא על המחשב שלך. הוא ממשיך לרוץ גם כשמתנתקים, אבל לא משתמש בהגדרות המקומיות שלך אלא רק במה שיש בריפו. סשן מקומי רץ על המחשב שלך עם ההגדרות, הכלים והרשת שלך."
+  - q: "האם אפשר להעביר סשן שכבר רץ בטרמינל לענן?"
+    a: "מה-CLI ההעברה היא בכיוון אחד בלבד. אפשר למשוך סשן ענן לטרמינל עם claude --teleport, אבל אי אפשר לדחוף סשן קיים מהטרמינל לענן. הפקודה claude --cloud יוצרת סשן ענן חדש. אפליקציית Desktop מציעה תפריט Continue in שיכול לשלוח סשן מקומי לענן."
+  - q: "למה הסשן בענן לא רואה את השינויים המקומיים שלי?"
+    a: "כשהריפו נמצא ב-GitHub וה-Claude GitHub App מותקן עליו, ה-VM משכפל את ה-remote ב-branch הנוכחי, ולא את העותק המקומי שלך. לכן צריך לעשות push ל-commits מקומיים לפני שמריצים claude --cloud."
+  - q: "האם סשני ענן עולים כסף נוסף?"
+    a: "אין חיוב נפרד על ה-VM בענן. סשני ענן חולקים את מגבלות השימוש (rate limits) עם כל שאר השימוש ב-Claude וב-Claude Code בחשבון, ולכן הרצה של כמה משימות במקביל צורכת יותר מהמגבלות."
+  - q: "באילו תוכניות יש סשני ענן?"
+    a: "סשני ענן זמינים בתוכניות Pro,‏ Max ו-Team, ולמשתמשי Enterprise עם premium seats או Chat + Claude Code seats. הם דורשים חשבון claude.ai ולא זמינים דרך Amazon Bedrock או ספקי צד שלישי אחרים."
+---
+
+import { CommandBlock, Callout, StepList } from "@/components/lesson";
+
+נכנסים ל-[claude.ai/code](https://claude.ai/code), מחברים GitHub, בוחרים ריפו וכותבים משימה. Claude Code מריץ אותה על VM בענן, וממשיך לעבוד גם כשסוגרים את המחשב. מהטרמינל מתחילים סשן ענן עם `claude --cloud`, ומושכים סשן ענן חזרה לטרמינל עם `claude --teleport`.
+
+## למה זה חשוב
+סשן ענן לא תלוי במחשב שלך. שולחים משימה מוגדרת היטב, עוברים לדבר אחר, ובודקים את התוצאה מכל מכשיר, כולל מהנייד. כל משימה מקבלת סשן ו-branch משלה, כך שאפשר להריץ כמה משימות במקביל בלי לנהל worktrees. אפשר גם לעבוד על ריפו שאין לך אצלך: Claude משכפל אותו מחדש בכל סשן.
+
+התיעוד הרשמי מציין שלעבודה שצריכה את ההגדרות, הכלים או הסביבה המקומית שלך, עדיף סשן מקומי או Remote Control.
+
+## מה זה סשן ענן?
+סשן ענן הוא סשן של Claude Code שרץ על תשתית ענן במקום על המחשב שלך. כברירת מחדל זו תשתית ש-Anthropic מנהלת. סשני ענן זמינים בתוכניות Pro,‏ Max ו-Team, ולמשתמשי Enterprise עם premium seats או Chat + Claude Code seats.
+
+אפשר להתחיל סשן ענן מכל אחד מהמקומות האלה:
+
+- **דפדפן:** [claude.ai/code](https://claude.ai/code), שנקרא גם Claude Code on the web.
+- **נייד:** הלשונית **Code** באפליקציית Claude.
+- **אפליקציית Desktop:** בוחרים **Cloud** במקום **Local** כשמתחילים סשן.
+- **טרמינל:** `claude --cloud`.
+
+| | סשן ענן | סשן מקומי |
+| --- | --- | --- |
+| **הקוד רץ על** | VM בענן, בניהול Anthropic כברירת מחדל | המחשב שלך |
+| **משתמש בהגדרות המקומיות** | לא, רק במה שיש בריפו | כן |
+| **דורש GitHub** | כן, או bundle של ריפו מקומי דרך `--cloud` | לא |
+| **ממשיך לרוץ כשמתנתקים** | כן | לא |
+| **מצבי הרשאות** | Accept edits,‏ Plan,‏ Auto | כל המצבים בטרמינל |
+| **גישה לרשת** | נקבעת לכל סביבה | הרשת של המחשב שלך |
+
+כל סשן ענן רץ בתוך **cloud environment**: הגדרה שמורה שקובעת גישה לרשת, משתני סביבה וסקריפט הכנה (setup script). אם עוד אין לך סביבה, תהליך ההצטרפות מגדיר סביבה בשם **Default** עם גישת רשת **Trusted**, בין שהוא יוצר אותה בשבילך ובין שהוא מבקש ממך ליצור אותה, שמאפשרת גישה למאגרי חבילות נפוצים ולדומיינים מאושרים אחרים. לפרויקט ראשון היא מספיקה כמו שהיא.
+
+## איך מתחילים סשן ענן מהדפדפן?
+
+<StepList>
+
+1. נכנסים ל-[claude.ai/code](https://claude.ai/code) ומתחברים עם חשבון claude.ai.
+2. מחברים GitHub לפי ההנחיה. החיבור מאפשר לשכפל כל ריפו ציבורי. לריפו פרטי צריך להתקין עליו את ה-Claude GitHub App.
+3. יוצרים את סביבת **Default**. ב-Pro וב-Max היא נוצרת אוטומטית. ב-Team וב-Enterprise מופיע טופס, משאירים את הערכים המוכנים ולוחצים **Create & finish**.
+4. בוחרים ריפו מתחת לתיבת הקלט, ואם צריך, branch אחר מברירת המחדל. אפשר להוסיף כמה ריפואים לאותו סשן.
+5. בוחרים מצב הרשאות מהתפריט שליד תיבת הקלט: **Auto**,‏ **Accept edits** או **Plan**. ‏**Auto** מופיע רק כשהארגון מאפשר auto mode והמודל שנבחר תומך בו.
+6. כותבים את המשימה ולוחצים Enter. Claude משכפל את הריפו, מריץ את סקריפט ההכנה אם הוגדר, ומתחיל לעבוד.
+
+</StepList>
+
+סשני ענן לא מציעים את המצבים Manual ו-Bypass permissions. במצב **Plan**, Claude מציע גישה ומחכה לאישור שלך לפני עריכת קבצים.
+
+כדאי לנסח משימה ספציפית: לציין קובץ או פונקציה, להדביק פלט שגיאה אם יש, ולתאר את ההתנהגות הצפויה ולא רק את הסימפטום. זו הדוגמה מהתיעוד הרשמי, לעומת "fix tests":
+
+```text
+Fix the failing auth test in `tests/test_auth.py`
+```
+
+<Callout type="note">
+ב-Team וב-Enterprise, שלב ההתחברות ל-GitHub עובד רק אחרי ש-Owner בארגון מפעיל את ה-GitHub connector ב-**Admin settings > Connectors**.
+</Callout>
+
+## איך מחברים GitHub מהטרמינל עם /web-setup?
+אם כבר עובדים עם GitHub CLI ‏(`gh`), אפשר לחבר GitHub לסשני ענן מתוך Claude Code:
+
+<StepList>
+
+1. מתחברים ל-GitHub CLI ב-shell, אם עוד לא:
+   <CommandBlock>gh auth login</CommandBlock>
+2. ב-Claude Code מריצים `/login` ומתחברים עם חשבון claude.ai. התחברות עם API key לא מספיקה. אפשר לבדוק עם `/status` שהשורה **Login method** מציגה חשבון claude.ai.
+3. מריצים בתוך Claude Code:
+   <CommandBlock>/web-setup</CommandBlock>
+4. מאשרים את שליחת ה-token של `gh` לחשבון Claude שלך.
+
+</StepList>
+
+אחרי זה סשני ענן שאתה מתחיל ניגשים לכל ריפו שה-token של `gh` רואה, בלי להתקין את ה-Claude GitHub App. אם עוד אין לך סביבה, `/web-setup` יוצר אחת עם גישת רשת Trusted.
+
+| שיטה | גישה לריפואים | מתאים ל |
+| --- | --- | --- |
+| **Claude GitHub App** (בדפדפן) | כל ריפו ציבורי, וריפואים פרטיים שה-App מותקן עליהם | צוותים שרוצים Auto-fix |
+| **`/web-setup`** (בטרמינל) | כל ריפו שה-token של `gh` שלך ניגש אליו | מפתחים שכבר עובדים עם `gh` |
+
+<Callout type="warning">
+ב-Team וב-Enterprise, ‏`/web-setup` מוסתר כברירת מחדל עד ש-Owner מפעיל את **Quick web setup** ב-**Admin settings > Claude Code**. ארגונים עם Zero Data Retention לא יכולים להשתמש ב-`/web-setup` או בסשני ענן בכלל.
+</Callout>
+
+## איך שולחים משימה מהטרמינל לענן?
+מריצים `claude` עם הדגל `--cloud` ותיאור המשימה. זו הדוגמה מהתיעוד:
+
+```bash
+claude --cloud "Fix the authentication bug in src/auth/login.ts"
+```
+
+הפקודה יוצרת סשן ענן חדש ב-claude.ai לריפו הנוכחי. המשימה רצה בענן בזמן שאתה ממשיך לעבוד מקומית. בזמן שהסביבה עולה, ה-CLI מציג רשימת שלבים, והודעות שתקליד בינתיים נכנסות לתור ונשלחות כשהסשן מוכן. הכתיב הישן `--remote` עדיין עובד, אבל הוא deprecated.
+
+<Callout type="warning">
+ה-VM בענן משכפל את ה-remote של GitHub ב-branch הנוכחי, ולא את העותק המקומי שלך. אם יש לך commits מקומיים, עושים push לפני שמריצים `--cloud`.
+</Callout>
+
+כשאין לריפו git remote, או כשה-Claude GitHub App לא מותקן על ריפו ב-github.com, Claude Code אורז את הריפו המקומי (bundle) ומעלה אותו ישירות לסשן. ה-bundle כולל את ההיסטוריה המלאה של הריפו בכל ה-branches ושינויים שלא נכנסו ל-commit בקבצים במעקב. קבצים שלא במעקב של git לא נכללים.
+
+### איך מתכננים מקומית ומריצים בענן?
+למשימה מורכבת, התיעוד ממליץ לתכנן קודם במצב plan מקומי:
+
+<CommandBlock>claude --permission-mode plan</CommandBlock>
+
+כשהתוכנית מוכנה, שומרים אותה בריפו, עושים commit ו-push כדי שה-VM יוכל לשכפל אותה, ושולחים לענן:
+
+```bash
+claude --cloud "Execute the migration plan in docs/migration-plan.md"
+```
+
+### איך מריצים כמה משימות במקביל?
+כל פקודת `--cloud` יוצרת סשן נפרד שרץ באופן עצמאי:
+
+```bash
+claude --cloud "Fix the flaky test in auth.spec.ts"
+claude --cloud "Update the API documentation"
+claude --cloud "Refactor the logger to use structured output"
+```
+
+## איך שולחים הודעת המשך לסשן ענן מה-CLI?
+מוסיפים `-p` עם ההודעה ומעבירים ל-`--cloud` את מזהה הסשן:
+
+```bash
+claude -p "your message" --cloud <session-id>
+```
+
+הפקודה מכניסה את ההודעה לתור של הסשן ויוצאת בלי לחכות לתשובה. אפשר להריץ אותה מכל מחשב שמחובר לאותו חשבון עם `claude auth login`, לא רק מהמחשב שהתחיל את הסשן. במקום המזהה אפשר להעביר גם את כתובת ה-`claude.ai/code/<id>` של הסשן. את המזהה מוצאים ברשימת הסשנים ב-claude.ai/code.
+
+<Callout type="note">
+`--cloud` בלי `-p` לא מתחבר לסשן קיים. `--cloud` עם תיאור משימה יוצר סשן חדש, ועם `-p` ומזהה סשן הוא שולח הודעה לסשן קיים.
+</Callout>
+
+## איך מושכים סשן ענן לטרמינל עם --teleport?
+מריצים את הפקודה מתוך checkout של אותו ריפו:
+
+<CommandBlock>claude --teleport</CommandBlock>
+
+נפתח בוחר סשנים. כדי לחזור ישירות לסשן מסוים, מוסיפים את המזהה שלו: `claude --teleport <session-id>`. יש עוד כמה דרכים:
+
+- **בתוך סשן CLI פתוח:** `/teleport` או `/tp` פותחים את אותו בוחר בלי להפעיל מחדש את Claude Code.
+- **מ-`/tasks`:** מציגים את סשני הרקע ולוחצים `t` כדי לעבור לאחד מהם.
+- **מ-claude.ai/code:** בתפריט הסשן בוחרים **Open in > Terminal** ומעתיקים את הפקודה.
+- **מתוך סשן הענן:** מקלידים `/teleport`, ו-Claude Code מחזיר את הפקודה `claude --teleport` המדויקת לאותו סשן.
+
+Claude מוודא שאתה בריפו הנכון, מביא את ה-branch של סשן הענן ועושה לו checkout, וטוען לטרמינל את כל היסטוריית השיחה. מעכשיו לטרמינל יש עותק משלו: עבודה חדשה בו נשארת מקומית ולא מופיעה בסשן הענן. כדי להמשיך לנווט מהנייד אחרי ה-teleport, מפעילים `/remote-control` בסשן המקומי.
+
+| דרישה | פירוט |
+| --- | --- |
+| git נקי | אין שינויים שלא נכנסו ל-commit. Teleport מציע לעשות להם stash. |
+| ריפו נכון | checkout של אותו ריפו, לא fork. |
+| branch זמין | ה-branch של סשן הענן נדחף ל-remote. Teleport מביא אותו ועושה checkout. |
+| אותו חשבון | מחובר לאותו חשבון claude.ai של סשן הענן. |
+
+<Callout type="tip">
+`--teleport` שונה מ-`--resume`. ‏`--resume` פותח שיחה מההיסטוריה המקומית של המחשב הזה ולא מציג סשני ענן. ‏`--teleport` מושך סשן ענן יחד עם ה-branch שלו.
+</Callout>
+
+## איך בודקים את השינויים ופותחים PR?
+כל סשן מציג מחוון diff עם שורות שנוספו והוסרו, למשל `+42 -18`:
+
+<StepList>
+
+1. בוחרים את המחוון כדי לפתוח את תצוגת ה-diff. כברירת מחדל היא משווה ל-base branch. כדי להשוות ל-branch אחר, בוחרים **Compare against**.
+2. בוחרים שורה, כותבים הערה ולוחצים Enter. ההערות נשלחות יחד עם ההודעה הבאה שלך, כך ש-Claude יודע בדיוק לאיזו שורה התכוונת.
+3. כשה-diff נראה טוב, בוחרים **Create PR**: ‏PR מלא, draft, או מעבר לדף יצירת ה-PR ב-GitHub עם כותרת ותיאור מוכנים.
+4. הסשן נשאר פעיל גם אחרי ה-PR. מדביקים כשלי CI או הערות reviewer ומבקשים מ-Claude לטפל בהם.
+
+</StepList>
+
+### איך Claude מתקן PR לבד עם Auto-fix?
+Auto-fix גורם ל-Claude לעקוב אחרי PR ולהגיב לכשלי CI ולהערות review. כשהתיקון ברור, Claude מבצע אותו, דוחף אותו ומסביר בסשן מה עשה. כשהערה עמומה, הוא שואל אותך קודם. Auto-fix דורש שה-Claude GitHub App מותקן על הריפו.
+
+מפעילים אותו ב-PR שנוצר בסשן ענן דרך סרגל ה-CI, בוחרים **Auto-fix**. מהטרמינל מריצים `/autofix-pr` כשנמצאים על ה-branch של ה-PR.
+
+<Callout type="warning">
+תגובות ש-Claude כותב ב-GitHub נשלחות מחשבון ה-GitHub שלך, עם סימון שהן מ-Claude Code. אם בריפו יש אוטומציה שמופעלת מתגובות על PR, כמו Atlantis או GitHub Actions על `issue_comment`, תגובה של Claude יכולה להפעיל אותה. בדוק את האוטומציה לפני שמפעילים Auto-fix.
+</Callout>
+
+## מה כדאי לדעת לפני שמסתמכים על סשני ענן?
+- **מגבלות שימוש:** סשני ענן חולקים rate limits עם כל שאר השימוש שלך ב-Claude וב-Claude Code. כמה משימות במקביל צורכות יותר. אין חיוב נפרד על ה-VM.
+- **GitHub:** שכפול ריפו ויצירת PR דורשים GitHub. ריפו מ-GitLab או Bitbucket אפשר לשלוח כ-bundle עם משתנה הסביבה `CCR_FORCE_BUNDLE=1`, אבל הסשן לא יכול לדחוף תוצאות חזרה ל-remote שלו.
+- **חשבון Anthropic:** `--cloud` ו-`--teleport` דורשים התחברות עם חשבון claude.ai. הם לא זמינים עם API key או דרך Amazon Bedrock וספקי צד שלישי אחרים.
+- **פקודות:** פקודות שעובדות רק בממשק הטרמינל, כמו `/plugin` או `/resume`, לא זמינות בסשן ענן. `/compact` ו-`/context` עובדים. במקום `/clear` פותחים סשן חדש מהסרגל הצידי.
+- **סשן לא פעיל:** אחרי זמן בלי פעילות ה-VM משוחרר. פותחים את הסשן מחדש ב-claude.ai/code, ו-VM חדש עולה עם היסטוריית השיחה. עבודת רקע שרצה באותו רגע, כמו subagents ופקודות shell, לא משוחזרת.
+- **סגירת הלשונית לא עוצרת את הסשן.** הוא ממשיך עד שהמשימה הנוכחית מסתיימת. כדי להסתיר סשן מהרשימה, מעבירים אותו לארכיון.
+
+<Callout type="warning">
+לפני ששותפים סשן, בודקים שאין בו מידע רגיש. סשן יכול להכיל קוד ו-credentials מריפואים פרטיים. בחשבונות Pro ו-Max, שיתוף **Public** חושף את הסשן לכל משתמש מחובר ב-claude.ai.
+</Callout>
+
+## הצעד הבא
+- ← [Projects: תיאום סשני ענן משותפים](/pro/projects)
+- שיעורים קשורים: [Mobile ו-Remote Control](/pro/mobile) · [Routines](/pro/routines) · [git worktrees](/pro/worktrees)
