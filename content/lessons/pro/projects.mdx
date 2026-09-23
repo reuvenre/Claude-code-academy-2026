@@ -1,0 +1,183 @@
+---
+title: "מה זה Projects ב-Claude Code ואיך הוא מתאם כמה סשני ענן?"
+description: "Project הוא שיחה אחת שבה Claude פותח thread, סשן ענן נפרד, לכל משימה. כולם מתחילים מאותם ריפו, הנחיות וזיכרון, וחלונית Overview מראה מה מחכה לך."
+level: "pro"
+order: 43
+source: "https://code.claude.com/docs/en/claude-projects"
+lastVerified: "2026-09-23"
+keywords: ["Claude Code", "Projects", "פרויקט", "פרויקטים", "threads", "סשני ענן", "cloud sessions", "תיאום סשנים", "project instructions", "הנחיות פרויקט", "project memory", "זיכרון פרויקט", "Overview", "Claude GitHub App"]
+canDo: "עכשיו אתה יכול ליצור Project, לכתוב לו הנחיות קבועות, לשלוח לו אצווה של משימות ולעקוב ב-Overview אחרי ה-threads שמחכים לך."
+relatedSlugs: ["agents-overview", "agent-view", "agent-teams"]
+faq:
+  - q: "האם אפשר להשתמש ב-Projects מהטרמינל?"
+    a: "לא. Projects זמינים ב-claude.ai/code, בלשונית Code של אפליקציית הדסקטופ ובאפליקציית Claude לנייד. הם לא זמינים ב-CLI בטרמינל. הפקודה claude project ב-CLI מנהלת מצב מקומי של תיקייה ואינה קשורה לפיצ'ר."
+  - q: "באילו תוכניות Projects זמינים?"
+    a: "Projects נמצאים ב-public beta בתוכניות Pro ו-Max, ונפתחים לחשבונות בהדרגה. הם עדיין לא זמינים ב-Team וב-Enterprise. אם Projects לא מופיע בסרגל הצד, הפיצ'ר עוד לא הגיע לחשבון שלך ואפשר להצטרף לרשימת ההמתנה."
+  - q: "האם threads של Project מקבלים את ההגדרות וה-skills מהמחשב שלי?"
+    a: "לא. threads הם סשני ענן ולא לוקחים שום דבר מההגדרות המקומיות שלך. skills מגיעים מתיקיית .claude/skills בריפו שהוספת ל-Project ומה-skills שהפעלת בחשבון claude.ai, plugins מוסיפים בהגדרות ה-Project, וכלי MCP מגיעים מה-connectors בחשבון claude.ai שלך."
+  - q: "למה thread מחכה לאישור גם אחרי שאמרתי ל-Claude בשיחה להמשיך?"
+    a: "בקשת אישור נמצאת בתוך ה-thread עצמו, וה-thread מחכה עד שעונים שם. הוראה בשיחת ה-Project לא מגיעה אליה. פותחים את ה-thread מה-Overview ועונים על הבקשה בתוכו."
+  - q: "האם Project צורך יותר מהתוכנית שלי?"
+    a: "כן. Project סופר מול אותן מגבלות תוכנית כמו שאר הסשנים, אבל צורך אותן מהר יותר: כל thread הוא סשן מלא, השיחה המתאמת צורכת בעצמה, ו-thread שעוקב אחרי pull request מתעורר כש-CI נכשל. Project בלי פעילות לא צורך דבר."
+---
+
+import { Callout, StepList } from "@/components/lesson";
+
+Project הוא שיחה מתמשכת אחת ב-claude.ai/code שבה Claude מתאם עבורך זרם של עבודה קשורה. שולחים לו משימות, והוא פותח לכל אחת thread: סשן ענן נפרד שרץ במקביל. כל thread מתחיל מאותם ריפו, הנחיות וזיכרון, ולשונית **Overview** מראה מה הסתיים ומה מחכה לך.
+
+<Callout type="note">
+Projects נמצאים ב-public beta בתוכניות Pro ו-Max ונפתחים לחשבונות בהדרגה. הם עדיין לא זמינים ב-Team וב-Enterprise. אם **Projects** לא מופיע בסרגל הצד ב-[claude.ai/code](https://claude.ai/code) או בלשונית Code של אפליקציית הדסקטופ, הפיצ'ר עוד לא הגיע לחשבון שלך.
+</Callout>
+
+## למה זה חשוב
+בלי Project, כשמריצים כמה סשנים אתה המתאם: מחליט מה כל סשן עושה, חוזר על אותו רקע בתחילת כל אחד, ובודק מי סיים ומי מחכה לתשובה. ב-Project זה משתנה:
+
+- **שולחים עבודה למקום אחד:** מדביקים דיווח באג, stack trace או רשימת משימות. Claude פותח thread לכל עבודה, או מעביר אותה ל-thread שכבר עובד באותו אזור, ועונה על שאלות קצרות במקום.
+- **מגדירים הקשר פעם אחת:** כל thread חדש מתחיל עם הריפו, ההנחיות והזיכרון של ה-Project. כלל שאמרת פעם אחת, כמו לאיזה branch לכוון, מגיע לכולם.
+- **הולכים וחוזרים לעבודה גמורה:** ה-threads ממשיכים לרוץ גם כשסוגרים את המחשב, ואפשר לבדוק ולכוון אותם מהנייד.
+
+## מתי כדאי לפתוח Project, ומתי כלי אחר?
+Project שווה כשלעבודה יש מטרה שנמשכת יותר מסשן אחד וממשיכה לייצר משימות. דוגמאות מהתיעוד:
+
+- **מטרה אחת בכמה ריפו:** "Bring every service up to the new lint config". ‏thread לכל ריפו, כל אחד עם pull request משלו.
+- **אזור שאתה ממשיך להזין:** הבאגים וה-stack traces של שירות אחד, כשהם מגיעים אליך.
+- **build או migration גדולים מסשן:** העבודה מתפצלת ל-threads, והחלטות מההתחלה מגיעות ל-threads המאוחרים.
+- **עבודה שאינה קוד:** תיקיית חוזים או ייצוא של פניות תמיכה. מעלים את הקבצים במקום ריפו, וה-threads מחזירים קבצים ללשונית **Library**.
+
+| המצב | מה מתאים יותר |
+| --- | --- |
+| משימה אחת שנכנסת בסשן אחד | סשן ענן רגיל |
+| עבודה שצריכה כלים שרק המחשב שלך מגיע אליהם (DB מקומי, API מאחורי VPN) | סשן מקומי, או [agent view](/pro/agent-view) לכמה במקביל |
+| משימה שחוזרת לפי לוח זמנים בלי שיחה סביבה | routine עצמאי |
+| כמה אנשים שנותנים ל-Claude עבודה יחד בערוץ Slack | [Claude Tag](https://claude.com/docs/claude-tag/overview) |
+
+## ממה מורכב Project?
+Project הוא שיחה מתאמת אחת ועוד ה-threads שהיא פותחת:
+
+- **שיחת ה-Project:** סשן ארוך שבו Claude משמש מתאם. הוא מחליט מה הופך ל-thread ועוקב אחרי כולם. הוא רואה את מה שה-threads מדווחים, לא כל צעד שלהם.
+- **Threads:** העובדים. כל אחד הוא סשן ענן נפרד עם חלון הקשר משלו, שעובד על branch משלו, פותח pull request כשצריך ומדווח בסיום.
+- **חלונית Overview:** כל ה-threads במקום אחד. לצד **Threads** יש בה לשוניות **Library** לקבצים, **Pull requests** ו-**Routines**.
+
+כל thread מתחיל עם הריפו והקבצים של ה-Project, ההנחיות והזיכרון שלו, ה-`CLAUDE.md` וה-skills מכל ריפו, ה-connectors בחשבון claude.ai שלך, וסביבת ענן שקובעת גישת רשת, משתני סביבה וכלים מותקנים.
+
+<Callout type="warning">
+Threads לא לוקחים שום דבר מההגדרה של Claude Code במחשב שלך. skills,‏ subagents ופקודות מהמחשב שלך עוברים רק אם עשית להם commit לריפו שב-Project, למשל `.claude/skills/<skill-name>/SKILL.md` (threads טוענים גם את ה-skills שהפעלת בחשבון claude.ai). ‏plugins מוסיפים ב-**Project settings > Plugins**, וכלי MCP מגיעים מה-[connectors](https://claude.ai/customize/connectors) בחשבון claude.ai.
+</Callout>
+
+## מה צריך לפני שיוצרים Project?
+- **תוכנית:** Pro או Max, ו-**Projects** מופיע בסרגל הצד.
+- **GitHub, אם עובדים על קוד:** הקוד ב-github.com (לא GitHub Enterprise Server,‏ GitLab או Bitbucket), לחשבון GitHub המחובר יש הרשאת push, ו-[Claude GitHub App](https://github.com/apps/claude) מותקנת על הריפו. טוקן שחיברת עם `/web-setup` מספיק לסשני ענן רגילים, אבל לא ל-threads של Project.
+- **רשת, סודות וכלים:** מגיעים מסביבת הענן של ה-Project. סביבת ברירת המחדל כבר מגיעה ל-package registries נפוצים. בודקים את זה רק אם העבודה צריכה דומיינים אחרים, סוד או כלי שלא מותקן מראש.
+
+## איך יוצרים Project?
+
+<StepList>
+
+1. ב-[claude.ai/code](https://claude.ai/code) או בלשונית Code של אפליקציית הדסקטופ, בוחרים **Projects** בסרגל הצד ואז **New project**.
+2. ממלאים את החלון. רק **Name** חובה. **Goal** הוא שורה אחת של מה שמנסים להשיג, ו-Claude עובד לקראתה. **Context** הוא הריפו ב-GitHub והקבצים או התיקיות שה-threads יקראו.
+3. לוחצים **Create project**. נפתחת שיחת ה-Project עם תיבת הודעה בתחתית.
+
+</StepList>
+
+ב-Project הראשון, Claude לוקח תור משלו מיד אחרי היצירה, אלא אם שלחת הודעה קודם. התור הזה צורך מהתוכנית שלך. הוא עשוי לפתוח thread שסוקר את הריפו בלי לשנות דבר, או להציג **Setup recommendations** מתוך סשני הענן האחרונים שלך. כל ריפו ו-routine מומלצים מופעלים כברירת מחדל: מכבים את מה שלא רוצים ולוחצים **Update setup**.
+
+כבר יש סשן ענן שעושה את העבודה? בתפריט שלו בסרגל הצד בוחרים **Continue as a project** כדי ליצור ממנו Project חדש, או **Move to project** כדי להעביר את העבודה ל-Project קיים. הסשן המקורי נשאר ברשימה. אם הוא היה באמצע תור, הוא ממשיך לרוץ, אז עוצרים אותו בעצמך.
+
+## מה כותבים בהנחיות ה-Project?
+Project instructions הן התדריך שכל thread חדש מתחיל ממנו, עד 16,000 תווים. פותחים אותן מגלגל השיניים בכותרת: **Project settings > Memory > Project instructions**. תדריך טוב מכסה: בשביל מה ה-Project, איפה העבודה קורית (ריפו, branch, שמות PR), איך thread בודק את עצמו, מה עושים כשמשהו חסר, ומה צריך את האישור שלך. הדוגמה מהתיעוד:
+
+```text
+This project holds p95 latency for the payments API under 200 ms: profiling, query and caching fixes, and the dependency upgrades that come with them, in the payments-api repository.
+
+- Branch from main and open one draft pull request per thread.
+- Before you call work done, run `make test` and `make lint` and paste the summary lines in your final message.
+- If you can't reach something you need, such as a repository, a secret, an API, or a connector, say exactly what's missing in your first message and stop. Don't substitute, mock, or guess.
+- Don't merge, force-push, or change CI configuration without asking me in the thread.
+```
+
+כללים של ריפו אחד, כמו פקודות build, שייכים ל-`CLAUDE.md` של אותו ריפו.
+
+### מה ההבדל בין הנחיות, זיכרון ו-CLAUDE.md?
+
+| הקשר | מה הוא נושא | איך קובעים |
+| --- | --- | --- |
+| Project instructions | טקסט שנשלח לכל thread חדש ולשיחת ה-Project | ב-Project settings, או מבקשים מ-Claude לשנות |
+| Project memory | הערות ש-Claude שומר כקבצים: דרישות, החלטות, מלכודות. כל thread קורא את `MEMORY.md` בהתחלה | מבקשים מ-Claude לזכור או לשכוח. עורכים ב-**Project settings > Memory** |
+| `CLAUDE.md` בריפו | הנחיות של הריפו עצמו, שכל thread קורא מה-clone שלו | עורכים את הקובץ בריפו |
+
+זיכרון ה-Project נפרד מה-[auto memory](/beginner-plus/auto-memory) במחשב שלך, למרות ששניהם משתמשים באינדקס `MEMORY.md`. כשמתקנים thread, כדאי לבקש מ-Claude לזכור את התיקון, וכך ה-threads הבאים מתחילים איתו.
+
+<Callout type="note">
+שינויים בהנחיות, בריפו, ב-plugins ובסביבה מגיעים ל-threads חדשים בלבד, לא ל-threads שכבר רצים.
+</Callout>
+
+## איך שולחים עבודה ועוקבים אחריה?
+כותבים בשיחת ה-Project, ו-Claude מנתב: שאלה קצרה מקבלת תשובה במקום, עבודה חדשה הולכת ל-thread חדש או קיים, וכמה משימות לא קשורות בהודעה אחת הופכות ל-threads נפרדים. כל thread מופיע מתחת להודעה ככרטיס שלוחצים עליו כדי לפתוח.
+
+לפני האצווה הראשונה, התיעוד ממליץ:
+
+<StepList>
+
+1. לכתוב Project instructions.
+2. לשלוח חלק קטן אחד מהעבודה האמיתית, ולפתוח את ה-thread בסיום כדי לראות איך הוא מדווח ומה עשה ב-branch.
+3. לבדוק **Thread model** ו-**Thread effort** ב-**Project settings > General**. לפי התיעוד, ב-Project חדש ה-threads רצים כברירת מחדל על effort גבוה, וזו ההגדרה שצורכת מהתוכנית הכי מהר. על המודלים הזמינים ורמות effort ראה [model-config](https://code.claude.com/docs/en/model-config).
+4. לבקש מ-Claude להציע threads לפני שהוא מפעיל אותם ולהריץ רק כמה בכל פעם, ולהסיר את המגבלות כשה-threads חוזרים כמו שרצית.
+
+</StepList>
+
+### מה רואים בחלונית Overview?
+לשונית **Threads** ב-Overview מקבצת את ה-threads לפי מצב:
+
+| קבוצה | מה יש בה |
+| --- | --- |
+| **Ready for review** | ‏pull request פתוח שמחכה לסקירה |
+| **Waiting on you** | צריכים תשובה או אישור ממך, או שנכשלו |
+| **Working** | עדיין רצים |
+| **Landing** | ה-pull request אושר או בתור ל-merge |
+| **Idle** | סיימו ולא מחכים לכלום |
+| **Resolved** | סומנו כגמורים, על ידך, על ידי Claude, או אוטומטית אחרי שבוע בלי פעילות |
+
+כפתור **Overview** בכותרת מציג נקודה כש-thread מחכה לך. באפליקציית הדסקטופ מקבלים גם התראת דסקטופ.
+
+### איך מכוונים את Claude?
+אומרים לו בשיחה. דוגמאות מהתיעוד:
+
+```text
+Propose threads and wait for my go-ahead before starting them
+Run at most two threads at a time
+Only post when something finishes or is blocked
+Answer that here instead of starting a thread
+```
+
+Claude שומר העדפות כאלה בזיכרון ה-Project. אלה הוראות, לא הגדרות נאכפות, כך שמגבלת threads שנתת בדרך הזו אינה תקרה קשיחה.
+
+## איך עובדים עם thread בודד?
+לוחצים על הכרטיס שלו או על השורה ב-Overview. בתוך ה-thread אפשר לקרוא מה Claude עשה צעד אחר צעד, לכתוב לו ישירות, לענות על בקשת הרשאה, ולעצור אותו עם **Stop** או Esc.
+
+<Callout type="warning">
+Threads רצים ב-auto mode כשהמודל תומך בזה, כך שרוב הפעולות לא דורשות אישור. כש-thread כן צריך אישור, הבקשה נמצאת בתוכו והוא מחכה עד שעונים שם. לכתוב "go ahead" בשיחת ה-Project לא יגיע אליו.
+</Callout>
+
+כש-thread משנה קוד, הוא עובד על branch חדש מה-branch הראשי של הריפו. הוא פותח pull request כשמבקשים, ולפעמים מיוזמתו לתיקון קונקרטי. אחרי שה-PR נפתח, ה-thread עוקב אחריו עם auto-fix: דוחף תיקונים כש-CI נכשל ומטפל בהערות review. על הכרטיס מופיעים כפתורים כמו **Fix CI**,‏ **Address comments** ו-**Merge it**, ששולחים ל-thread את ההוראה בשמך.
+
+## כמה זה צורך מהתוכנית?
+Project סופר מול אותן מגבלות תוכנית כמו שאר הסשנים של Claude Code, אבל צורך אותן מהר יותר. בתוכנית Pro במיוחד, צפה להגיע למגבלה מוקדם יותר בימים שמריצים Project. מה צורך:
+
+- **threads שרצים:** כל אחד הוא סשן מלא, וכמה רצים במקביל. המגבלה האכופה היא 200 threads חדשים ביום בכל ה-Projects שלך.
+- **השיחה המתאמת:** Claude צורך tokens כשהוא קורא דיווחים ומחליט מה הלאה.
+- **threads שעוקבים אחרי PR:** ‏thread רדום מתעורר כש-CI נכשל או כשמגיעה הערת review. אם לא רוצים, מבקשים ממנו להפסיק לעקוב.
+
+Project בלי threads רצים, בלי PR במעקב ובלי הודעות חדשות לא צורך דבר. **Project settings > Usage** מציג שימוש לפי thread ולפי מודל. כדי לחסוך: לבחור מודל קטן יותר או effort נמוך יותר, לבקש פחות threads במקביל, ולפתוח thread חדש לעבודה חדשה במקום להחיות thread גדול וישן.
+
+## מה המגבלות?
+- Projects לא זמינים ב-CLI בטרמינל, וגם לא דרך Amazon Bedrock,‏ Google Cloud's Agent Platform או Microsoft Foundry. הפקודה `claude project` ב-CLI אינה קשורה.
+- סשן מקומי לא יכול להיות חלק מ-Project.
+- Project שייך למשתמש אחד. אי אפשר לשתף אותו או את ה-threads שלו.
+- ה-sandbox של thread מושהה בין תורות. אם אי אפשר לחדש אותו, ה-thread ממשיך מ-clone נקי ושינויים שלא עשו להם commit עלולים ללכת לאיבוד. במשימות ארוכות, בקש מ-Claude לעשות commit ו-push לעבודה בתהליך.
+- **Pause** ב-**Project settings > General** עוצר הכול בבת אחת. **Delete** מוחק את ה-Project, ה-threads, הזיכרון והקבצים לצמיתות, אבל branches ו-PRs ב-GitHub נשארים.
+
+פרטים על Project עם כמה ריפו, סביבות ענן ופתרון תקלות נמצאים ב[דף הרשמי](https://code.claude.com/docs/en/claude-projects).
+
+## הצעד הבא
+- ← [Mobile ו-Remote Control: לנווט מהנייד](/pro/mobile)
+- שיעורים קשורים: [סוכנים במקביל, סקירה](/pro/agents-overview) · [Claude Code בענן](/pro/web) · [Routines](/pro/routines)
