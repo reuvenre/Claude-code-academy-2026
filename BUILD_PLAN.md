@@ -69,6 +69,15 @@ StepList, FAQ (מייצר FAQPage schema), Quiz (אינטראקטיבי - אבל
 ```
 קומיט: `feat: lesson components + mdx template`
 
+**✅ הושלם.** מה נבנה, והערות להמשך:
+- סכמה: `lib/lesson-schema.ts` (zod). `source` מוגבל לדומיינים `claude.com` / `anthropic.com`. ערכי `level`: `lib/levels.ts`.
+- תבנית: `components/lesson/lesson-page.tsx`, משמשת גם את השיעורים וגם את הדמו.
+- דמו: `content/demo/components.mdx` → `/demo/components`. collection נפרד (`demoSource`) עם `noindex`, מחוץ לניווט, לחיפוש ול-llms.txt.
+- `draft: true` מוסתר בפרודקשן בעמוד השיעור בלבד. **בשלב 3:** לסנן drafts גם מ-llms.txt, מ-sitemap ומהחיפוש.
+- FAQ מייצר JSON-LD בעצמו. **בשלב 3:** להעביר ל-`lib/seo/` יחד עם שאר ה-schemas.
+- `ReadingTime`: לפי ~200 מילים לדקה (`lib/reading-time.ts`).
+- אין עדיין שיעורים ב-`content/lessons`. `/beginner` יחזור בשלב 4 כעמוד שער.
+
 ## שלב 3 — שכבת SEO/AEO/GEO
 ```text
 ממש את SEO_AEO_GEO.md:

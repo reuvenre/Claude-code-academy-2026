@@ -1,9 +1,14 @@
 import defaultMdxComponents from 'fumadocs-ui/mdx';
 import type { MDXComponents } from 'mdx/types';
+import { Callout, CommandBlock, StepList } from '@/components/lesson';
 
 export function getMDXComponents(components?: MDXComponents) {
   return {
     ...defaultMdxComponents,
+    // רכיבי גוף השיעור (דורסים את Callout של Fumadocs — tip/warning/note בעברית)
+    Callout,
+    CommandBlock,
+    StepList,
     ...components,
   } satisfies MDXComponents;
 }

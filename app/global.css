@@ -16,6 +16,8 @@ html {
 kbd {
   direction: ltr;
   unicode-bidi: isolate;
+  /* שבירת שורה בתוך פקודה קצרה בטקסט RTL מערבבת את סדר החלקים */
+  white-space: nowrap;
 }
 
 /* חריג מכוון לכלל logical properties: מנטרל margin-right פיזי שספריית scroll-lock מזריקה */
