@@ -6,10 +6,10 @@ import { docsContentRoute } from '@/lib/shared';
 // גרסת Markdown של שיעור לקוראי AI:
 //   /<level>/<slug>.md                      → תמיד Markdown
 //   /<level>/<slug> + Accept: text/markdown → Markdown (עם Vary: Accept)
-// השיעורים יושבים בשורש, ולכן הכללים מוגבלים לתחיליות הרמות בלבד.
+// השיעורים יושבים בשורש, ולכן הכללים מוגבלים לתחיליות הרמות. /<level> עצמו הוא עמוד שער (HTML בלבד).
 const rules = levels.map((level) => ({
-  suffix: rewritePath(`/${level}{/*path}.md`, `${docsContentRoute}/${level}{/*path}/content.md`),
-  negotiated: rewritePath(`/${level}{/*path}`, `${docsContentRoute}/${level}{/*path}/content.md`),
+  suffix: rewritePath(`/${level}/*path.md`, `${docsContentRoute}/${level}{/*path}/content.md`),
+  negotiated: rewritePath(`/${level}/*path`, `${docsContentRoute}/${level}{/*path}/content.md`),
 }));
 
 export default function proxy(request: NextRequest) {

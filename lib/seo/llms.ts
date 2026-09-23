@@ -30,6 +30,7 @@ export function buildLlmsIndex(): string {
   const sections = lessonsByLevel().map(
     ({ level, pages }) =>
       `## ${levelInfo[level].label}\n` +
+      `- [עמוד הרמה](${absoluteUrl(levelInfo[level].href)}): ${levelInfo[level].description}\n` +
       pages
         .map((page) => `- [${page.data.title}](${absoluteUrl(page.url)}): ${page.data.description}`)
         .join('\n'),

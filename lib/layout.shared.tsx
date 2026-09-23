@@ -7,6 +7,10 @@ export function baseOptions(): BaseLayoutProps {
       // JSX supported
       title: appName,
     },
+    links: [
+      { text: 'הקורס', url: '/beginner' },
+      { text: 'מרכז הרפרנס', url: '/reference' },
+    ],
     githubUrl: `https://github.com/${gitConfig.user}/${gitConfig.repo}`,
   };
 }

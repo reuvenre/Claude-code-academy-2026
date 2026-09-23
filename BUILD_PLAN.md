@@ -113,6 +113,19 @@ StepList, FAQ (מייצר FAQPage schema), Quiz (אינטראקטיבי - אבל
 ```
 קומיט: `feat: navigation shell + level hubs`
 
+**✅ הושלם.** מה נבנה, והערות להמשך:
+- `lib/levels.ts`: לכל רמה תווית, מסלול (ליבה/צד), תיאור ו-`teaches`. `lib/curriculum.ts`: הסילבוס מ-CONTENT_OUTLINE
+  (מספר, slug וכותרת בלבד). **slug של שיעור חדש חייב להתאים לסילבוס**, אחרת הוא יוצג בסוף הרשימה בלי מספר.
+- עמודי שער: `/<level>` מטופל ב-`app/(docs)/[...slug]` (`components/hub/level-hub.tsx`). מציג את כל הסילבוס:
+  שיעורים זמינים עם קישור וזמן קריאה, והשאר "בקרוב". יש בו JSON-LD מסוג Course ו-BreadcrumbList.
+- רמה בלי שיעורים שפורסמו מקבלת `noindex` ולא נכנסת ל-sitemap או ל-llms.txt. `/reference` הוא שלד עם `noindex` עד שלב 7.
+- סיידבר: עץ מפורש (`getSidebarTree` ב-`lib/navigation.ts`) לפי סדר הרמות ו-`order`, ולא לפי שמות תיקיות.
+  לכן **אין צורך ב-meta.json**. Breadcrumb ו"הבא/הקודם" נגזרים ממנו.
+- ממשק Fumadocs בעברית: `lib/ui-translations.ts`. המפתחות כוללים את ה-note של כל רכיב. **לבדוק מחדש אחרי שדרוג fumadocs-ui.**
+- חיפוש: breadcrumbs בעברית, ונרמול אותיות סופיות (ך→כ וכו') באינדוקס ובשאילתה, כדי שחיפוש-קידומת יעבוד.
+  **אין stemming עברי:** "התקנה" לא מוצא "מתקינים" בטקסט. לכן `keywords` מה-frontmatter נכנסים לאינדקס — לכלול בהם צורות נפוצות.
+- דף הבית: תשובה-קודם, מסלול ליבה (רמות 0-3), מסלולים משלימים. הלינק ל-`/start` יתווסף בשלב 8.
+
 ## שלב 5 — תוכן רמה 0
 ```text
 באמצעות /new-lesson <slug> וסוכן המשנה content-writer, כתוב את שיעורי רמה 0 (1-9 ב-CONTENT_OUTLINE),

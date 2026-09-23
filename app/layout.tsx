@@ -5,6 +5,7 @@ import { Heebo } from 'next/font/google';
 import { JsonLd } from '@/components/seo/json-ld';
 import { organizationJsonLd } from '@/lib/seo/jsonld';
 import { site } from '@/lib/seo/site';
+import { heTranslations } from '@/lib/ui-translations';
 
 const heebo = Heebo({
   subsets: ['hebrew', 'latin'],
@@ -37,7 +38,9 @@ export default function Layout({ children }: LayoutProps<'/'>) {
       {/* Fumadocs דורש dir גם על body וגם על RootProvider (שמעביר אותו ל-Base UI, כולל רכיבי shadcn) */}
       <body dir="rtl" className="flex flex-col min-h-screen font-sans">
         <JsonLd data={organizationJsonLd()} />
-        <RootProvider dir="rtl">{children}</RootProvider>
+        <RootProvider dir="rtl" i18n={{ locale: 'he', translations: heTranslations }}>
+          {children}
+        </RootProvider>
       </body>
     </html>
   );
