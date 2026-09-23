@@ -1,0 +1,204 @@
+---
+title: "איך ארגון אוכף מדיניות על Claude Code עם managed settings?"
+description: "ארגון אוכף מדיניות Claude Code עם managed settings: מקונסולת claude.ai, מ-MDM או מקובץ במחשב. איפה הקובץ יושב, מי גובר, ואיך שולטים ב-MCP וב-auto mode."
+level: "enterprise"
+order: 62
+source: "https://code.claude.com/docs/en/admin-setup"
+lastVerified: "2026-09-23"
+keywords: ["Claude Code", "managed settings", "managed-settings.json", "server-managed settings", "הגדרות מנוהלות", "מדיניות ארגונית", "הטמעה בארגון", "להטמיע", "מנהל מערכת", "MDM", "managed-mcp.json", "allowedMcpServers", "auto mode", "autoMode"]
+canDo: "עכשיו אתה יכול לבחור איך מדיניות Claude Code מגיעה למחשבי הארגון, לכתוב managed-settings.json בסיסי, להגביל שרתי MCP, להגדיר ל-auto mode את התשתית המהימנה, ולוודא עם /status שהמדיניות נאכפת."
+relatedSlugs: ["settings", "permissions-sandbox", "mcp"]
+faq:
+  - q: "מה ההבדל בין server-managed settings ל-endpoint-managed settings?"
+    a: "server-managed settings מוגדרות בקונסולת הניהול של claude.ai, ו-Claude Code מושך אותן בהפעלה ומרענן אותן כל שעה. endpoint-managed settings נפרסות למחשב עצמו דרך MDM, רישום Windows או קובץ managed-settings.json. במחשבים שמנוהלים ב-MDM הן נותנות הגנה חזקה יותר, כי מערכת ההפעלה מגינה על הקובץ מפני שינוי של המשתמש."
+  - q: "האם מפתח יכול לעקוף הגדרה מנוהלת בקובץ settings.json משלו?"
+    a: "מפתח לא יכול לעקוף אותה. managed settings נמצאות מעל כל שאר הרמות, כולל ארגומנטים בשורת הפקודה, פרט לכמה חריגים שבהם ערך מחמיר יותר מרמה נמוכה עדיין נספר. ברשימות כמו permissions.deny הערכים מתמזגים, כך שמפתח יכול להוסיף כללים אבל לא למחוק כללים של הארגון."
+  - q: "מי יכול לערוך server-managed settings בקונסולה?"
+    a: "רק בעלי התפקיד Owner או Primary Owner בארגון ב-claude.ai. תפקיד Admin ותפקידים אחרים לא יכולים לראות או לערוך את ההגדרות. הפיצ'ר זמין בתוכניות Claude for Teams ו-Claude for Enterprise."
+  - q: "אפשר להפיץ managed-mcp.json דרך קונסולת claude.ai?"
+    a: "את הקובץ עצמו אי אפשר להפיץ כך. managed-mcp.json הוא קובץ עצמאי שפורסים לנתיב מערכת בכל מחשב, למשל דרך MDM. דרך הקונסולה מפיצים במקומו את המפתחות allowedMcpServers ו-deniedMcpServers, או מספקים שרתים מרוחקים עם managedMcpServers."
+  - q: "איך בודקים שהמדיניות הגיעה למחשב של מפתח?"
+    a: "המפתח מריץ /status בתוך Claude Code ומסתכל בשורה Setting sources. אם מדיניות מנוהלת בתוקף, מופיע Enterprise managed settings ובסוגריים המקור שנבחר, למשל remote או file. כדי לראות רשומות שנדחו או תוצאת משיכה מהשרת מריצים claude doctor."
+---
+
+import { Callout, StepList } from "@/components/lesson";
+
+ארגון אוכף מדיניות על Claude Code באמצעות managed settings: הגדרות שגוברות על ההגדרות המקומיות של כל מפתח. מפיצים אותן מקונסולת הניהול של claude.ai, ממערכת MDM, או כקובץ `managed-settings.json` בכל מחשב. הן קובעות אילו כלים, פקודות, שרתי MCP ויעדי רשת Claude יכול להפעיל.
+
+## למה זה חשוב
+כשצוות שלם עובד עם Claude Code, כל מפתח יכול להגדיר לעצמו הרשאות, שרתי MCP ומצבי עבודה אחרים. בלי מדיניות מרכזית אין לארגון דרך להבטיח ש-Claude לא יקרא קובצי סודות, לא יתחבר לשרת MCP שלא אושר, ולא יעבוד במצב שעוקף את בקשות האישור. managed settings הן המקום שבו הארגון כותב את הכללים האלה פעם אחת, ו-Claude Code אוכף אותם אצל כולם.
+
+## מה מחליטים כשמטמיעים Claude Code בארגון?
+[מדריך ההטמעה הרשמי](https://code.claude.com/docs/en/admin-setup) מסדר את ההחלטות לפי הסדר הזה:
+
+| החלטה | מה בוחרים |
+| --- | --- |
+| ספק API | איפה Claude Code מתחבר ואיך מחייבים: Claude for Teams או Enterprise,‏ Claude Console, או ספק ענן |
+| איך ההגדרות מגיעות למחשבים | server-managed מהקונסולה, MDM או רישום של מערכת ההפעלה, או קובץ |
+| מה אוכפים | אילו כלים, פקודות ושרתי MCP מותרים |
+| ניטור שימוש | איך עוקבים אחרי עלויות ואימוץ |
+| טיפול בנתונים | מדיניות שמירת נתונים ו-compliance |
+
+לפי התיעוד, Claude for Teams או Enterprise הוא ההמלצה ברירת המחדל: מנוי אחד לכל מושב, בלי תשתית להריץ. חלק מהפיצ'רים דורשים חשבון claude.ai ולא עובדים עם מפתח Console או עם הרשאות של ספק ענן בלבד. ההגדרות של SSO,‏ SCIM והקצאת מושבים נעשות ברמת חשבון Claude, ולא בתוך Claude Code.
+
+## מה זה managed settings ואיפה הקובץ יושב?
+managed settings הן קובץ הגדרות באותו מבנה JSON של `settings.json`, שהארגון מפיץ לכל מחשב. Claude Code מחיל אותן מעל כל רמה אחרת, כך שאף ערך של משתמש, פרויקט, local או `--settings` לא דורס אותן, פרט לכמה חריגים רגישי אבטחה שבהם ערך מחמיר יותר מרמה נמוכה עדיין נספר.
+
+הדרך המהירה היא קובץ `managed-settings.json` בתיקיית המערכת:
+
+| מערכת הפעלה | נתיב |
+| --- | --- |
+| macOS | `/Library/Application Support/ClaudeCode/managed-settings.json` |
+| Linux ו-WSL | `/etc/claude-code/managed-settings.json` |
+| Windows | `C:\Program Files\ClaudeCode\managed-settings.json` |
+
+זו הדוגמה מהתיעוד. היא חוסמת קריאה של `.env` ושל תיקיית `secrets`, מכבה את מצב ה-bypass, וגורמת ל-Claude Code להתעלם מכללי הרשאות שמגיעים מקובצי user,‏ project ו-local ומ-`--allowedTools`:
+
+```json
+{
+  "permissions": {
+    "deny": [
+      "Read(./.env)",
+      "Read(./secrets/**)"
+    ],
+    "disableBypassPermissionsMode": "disable"
+  },
+  "allowManagedPermissionRulesOnly": true
+}
+```
+
+כמה צוותים יכולים לחלק את המדיניות לקבצים נפרדים בתיקייה `managed-settings.d/` שליד הקובץ הראשי. Claude Code ממזג קודם את `managed-settings.json` ואז כל קובץ `*.json` בתיקייה לפי סדר אלפביתי, ולכן נותנים לקבצים קידומת מספרית כמו `10-telemetry.json`.
+
+<Callout type="note">
+ב-Windows,‏ Claude Code לא קורא את הנתיב הישן `C:\ProgramData\ClaudeCode\managed-settings.json`. כברירת מחדל WSL קורא רק את הנתיב של Linux,‏ `/etc/claude-code`. כדי שגם WSL יקבל את מדיניות Windows, התיעוד מפנה להגדרה `wslInheritsWindowsSettings`.
+</Callout>
+
+## server-managed או endpoint-managed?
+יש שתי גישות להגדרה מרכזית. server-managed settings מגיעות מהשרתים של Anthropic. ‏endpoint-managed settings נפרסות למחשב עצמו: פרופיל MDM, מדיניות ברישום Windows או קובץ managed settings.
+
+| גישה | מתאימה ל | איך היא מגיעה |
+| --- | --- | --- |
+| **[server-managed](https://code.claude.com/docs/en/server-managed-settings)** | ארגונים בלי MDM, או משתמשים במחשבים לא מנוהלים | מוגדרת ב-claude.ai, ו-Claude Code מושך אותה בהפעלה ומרענן כל שעה |
+| **MDM או מדיניות מערכת** | ארגונים שכבר מנהלים מחשבים עם Jamf,‏ Intune או Group Policy | פרופיל macOS בדומיין `com.anthropic.claudecode`, או ערך `Settings` תחת `HKLM\SOFTWARE\Policies\ClaudeCode` |
+| **קובץ** | מחשבים בלי MDM, שרתי Linux, או images שאתה בונה בעצמך | `managed-settings.json` בנתיב המערכת |
+
+כמה דברים שכדאי לדעת לפני שבוחרים:
+
+- **server-managed דורשות** תוכנית Claude for Teams או Enterprise, תפקיד Owner או Primary Owner, וגישת רשת ל-`api.anthropic.com`. עורכים אותן ב-**Admin Settings > Claude Code > Managed settings**.
+- **endpoint-managed חזקות יותר** במחשבים שמנוהלים ב-MDM, כי מערכת ההפעלה מגינה על הקובץ מפני שינוי. התיעוד מדגיש ש-server-managed settings הן בקרה בצד הלקוח ולא גבול אבטחה: במחשב לא מנוהל, משתמש יכול לעקוף אותן בלי הרשאות admin.
+- **סשנים בענן** בסביבה של Anthropic לא קוראים MDM או קובץ מהמחשב. אם המפתחים מריצים סשנים בענן, צריך להגדיר גם server-managed settings.
+- **מגבלות של server-managed:** ההגדרות חלות על כל הארגון בלי חלוקה לקבוצות, ואי אפשר להפיץ דרכן `managed-mcp.json` (קובץ כזה שנפרס בנתיב המערכת עדיין חל). גם הגדרות שמוגבלות למקורות ברמת מערכת ההפעלה, כמו `policyHelper` ו-`wslInheritsWindowsSettings`, לא נאכפות דרכן.
+
+## איזה מקור מנצח כשיש כמה?
+managed settings תמיד מעל ההגדרות של המפתח. בתוך השכבה המנוהלת עצמה, Claude Code בודק ארבעה מקורות לפי הסדר הזה, מהגבוה לנמוך:
+
+<StepList>
+
+1. **server-managed**: מקונסולת claude.ai או מ-Claude apps gateway.
+2. **MDM או מדיניות מערכת**: ה-plist ב-macOS או המפתח `HKLM` ב-Windows.
+3. **קובצי managed settings**: `managed-settings.json` יחד עם `managed-settings.d/`.
+4. **הרישום `HKCU`** ב-Windows. נקרא רק כששום מקור אחר לא מספק מדיניות.
+
+</StepList>
+
+כברירת מחדל Claude Code לוקח את המקור הגבוה ביותר שיש בו לפחות מפתח מדיניות אחד, ו**מתעלם מהשאר** במקום למזג, פרט לכמה מפתחות חריגים שהתיעוד מפרט. אפשר לבקש מיזוג של כל המקורות עם המפתח `managedSourcesBehavior`, אבל כדאי להפעיל אותו רק כשכל המקורות הנמוכים יותר נמצאים בשליטת מנהל מערכת.
+
+כמה כללים שחלים בכל מנגנון:
+
+- **רשימות מתמזגות עם ההגדרות של המפתח.** מערכים כמו `permissions.allow` ו-`permissions.deny` מצטרפים לרשומות מרמות המשתמש והפרויקט. מפתח יכול להוסיף לרשימה של הארגון, אבל לא להוריד ממנה.
+- **`HKCU` הוא לא אכיפה.** אפשר לכתוב אליו בלי הרשאות מוגבהות, ולכן התיעוד מתייחס אליו כברירת מחדל נוחה ולא כערוץ אכיפה.
+- **`model` מנוהל הוא ברירת מחדל, לא נעילה.** מפתח עדיין יכול לבחור מודל לסשן. כדי להגביל את הבחירה מגדירים `availableModels`. ([הגדרת מודלים](https://code.claude.com/docs/en/model-config))
+
+<Callout type="warning">
+אם ניקית את ההגדרות בקונסולה כדי לחזור למדיניות MDM, ההגדרות שנשמרו ב-cache במחשבים נשארות בתוקף עד המשיכה המוצלחת הבאה. בודקים עם `/status` איזה מקור פעיל.
+</Callout>
+
+## איך שולטים בשרתי MCP בארגון?
+כברירת מחדל כל משתמש יכול לחבר כל [שרת MCP](/advanced/mcp) שהוא רוצה. [דף ה-MCP המנוהל](https://code.claude.com/docs/en/managed-mcp) מציע כמה רמות שליטה. אלה העיקריות:
+
+| דפוס | מה קורה | מה מגדירים |
+| --- | --- | --- |
+| סט קבוע | כולם מקבלים אותם שרתים ולא יכולים להוסיף אחרים | `managed-mcp.json` עם השרתים שבחרת |
+| ביטול MCP | אף שרת לא נטען, פרט לחריגים שהתיעוד מפרט | `managed-mcp.json` עם `"mcpServers": {}` |
+| שרתים מסופקים | כולם מקבלים את השרתים המרוחקים שלך, ושומרים גם את שלהם | `managedMcpServers` ב-managed settings |
+| קטלוג מאושר | משתמשים מוסיפים רק שרתים מהרשימה | `allowedMcpServers` יחד עם `allowManagedMcpServersOnly: true` |
+| רשימה שחורה בלבד | חוסמים שרתים ידועים ומאפשרים את כל השאר | `deniedMcpServers` |
+
+### מה זה managed-mcp.json?
+`managed-mcp.json` נותן לארגון שליטה בלעדית: Claude Code טוען רק את השרתים שבקובץ, את אלה שסופקו דרך `managedMcpServers`, ושרתים פנימיים שהאפליקציה המפעילה רושמת. הקובץ יושב באותה תיקיית מערכת כמו managed settings, למשל `/etc/claude-code/managed-mcp.json` ב-Linux, ובאותו פורמט כמו `.mcp.json` של פרויקט. אל תשים בו מפתחות API, כי כל משתמש במחשב יכול לקרוא אותו.
+
+### איך כותבים allowlist ו-denylist?
+כל רשומה מזהה שרת לפי `serverUrl`,‏ `serverCommand` או `serverName`. זו דוגמה שמשלבת שתי דוגמאות מהתיעוד:
+
+```json
+{
+  "allowManagedMcpServersOnly": true,
+  "allowedMcpServers": [
+    { "serverUrl": "https://api.githubcopilot.com/*" },
+    { "serverUrl": "https://*.internal.example.com/*" }
+  ],
+  "deniedMcpServers": [
+    { "serverUrl": "https://*.untrusted.example.com/*" }
+  ]
+}
+```
+
+ה-denylist נבדקת קודם, ושום דבר לא גובר עליה. בלי `allowManagedMcpServersOnly`, רשימות ה-allow מכל הרמות מתמזגות, כך שמשתמש יכול להרחיב את ה-allowlist של הארגון בהגדרות שלו.
+
+<Callout type="warning">
+רשומת `serverName` היא לא בקרת אבטחה. השם הוא תווית שהמשתמש בוחר כשהוא מוסיף שרת, ואפשר לקרוא לכל שרת `github`. כדי לאכוף אילו שרתים באמת רצים, משתמשים ב-`serverUrl` או ב-`serverCommand`.
+</Callout>
+
+כששרת נחסם, הוא פשוט נעלם מ-`/mcp` ומ-`claude mcp list`, והמשתמש לא מקבל הודעה שהמדיניות היא הסיבה. לכן כדאי לעדכן את המפתחים לפני שמפעילים הגבלה חדשה.
+
+## איך מגדירים auto mode לכל הארגון?
+[auto mode](/beginner-plus/permission-modes) מעביר פעולות דרך classifier שחוסם פעולות בלתי הפיכות, הרסניות, או כאלה שמכוונות אל מחוץ לסביבה. כברירת מחדל ה-classifier סומך רק על תיקיית העבודה ועל ה-remotes של הריפו הנוכחי. לכן push לארגון ה-source control של החברה או כתיבה ל-bucket של הצוות נחסמים, עד שמוסיפים אותם ל-`autoMode.environment`.
+
+כשמגדירים את הבלוק `autoMode` ב-managed settings, הוא חל על כל המפתחים. רשומות הסביבה הן טקסט חופשי שה-classifier קורא, ולא regex. זו דוגמה מהתיעוד:
+
+```json
+{
+  "autoMode": {
+    "environment": [
+      "$defaults",
+      "Source control: github.example.com/acme-corp and all repos under it",
+      "Trusted cloud buckets: s3://acme-build-artifacts, gs://acme-ml-datasets",
+      "Trusted internal domains: *.corp.example.com, api.internal.example.com",
+      "Key internal services: Jenkins at ci.example.com, Artifactory at artifacts.example.com"
+    ]
+  }
+}
+```
+
+מה שחשוב לדעת:
+
+- **שומרים את `"$defaults"`.** בלי המחרוזת הזו, מערך שמגדירים מחליף את כל רשימת ברירת המחדל של אותו סעיף. ב-`soft_deny` זה מבטל כללים מובנים כמו חסימת force push,‏ `curl | bash` ו-deploy ל-production.
+- **ההגדרות מתווספות, לא נועלות.** מפתח יכול להוסיף רשומות משלו אבל לא למחוק רשומות של הארגון. עם זאת, רשומת `allow` שמפתח מוסיף יכולה לגבור על `soft_deny` של הארגון. לפעולה שאסור שתרוץ אף פעם משתמשים ב-`permissions.deny` ב-managed settings, שחוסם לפני שה-classifier בכלל נשאל.
+- **לא מתוך הריפו.** ה-classifier לא קורא `autoMode` מ-`.claude/settings.json` או מ-`.claude/settings.local.json`, כדי שריפו לא יוכל להזריק כללי allow משלו.
+- **מצב פתיחה.** ב-managed settings אפשר גם לקבוע באיזה מצב הרשאות סשני הטרמינל נפתחים עם `permissions.defaultMode`, או להסיר את auto mode לגמרי עם `permissions.disableAutoMode`.
+
+אחרי השמירה, בודקים את הכללים שבתוקף בפועל:
+
+```bash
+claude auto-mode config
+```
+
+## איך בודקים שהמדיניות נאכפת?
+מריצים `/status` בתוך Claude Code במחשב אחד לפני שמפיצים לכל הארגון. בלשונית **Status**, השורה `Setting sources` מציגה `Enterprise managed settings` ובסוגריים את המקור שנבחר:
+
+| מה כתוב בסוגריים | מקור |
+| --- | --- |
+| `(remote)` | server-managed מ-claude.ai או מ-gateway |
+| `(plist)` או `(HKLM)` | MDM או מדיניות מערכת |
+| `(file)`,‏ `(drop-ins)` או `(file + drop-ins)` | הקובץ, תיקיית `managed-settings.d/`, או שניהם |
+| `(HKCU)` | הרישום של המשתמש ב-Windows |
+
+אם השורה חסרה, Claude Code לא מצא מקור מנוהל עם מפתח מדיניות: בודקים את הנתיב ואת תוכן הקובץ. אם מופיע מקור אחר מזה שפרסת, מקור גבוה יותר גבר על שלך. `claude doctor` מראה רשומות שנדחו, ובהגדרות server-managed גם את תוצאת המשיכה מהשרת.
+
+<Callout type="tip">
+קובץ managed settings שאינו JSON תקין לא נדחה בשקט: Claude Code מסרב לעלות ומציג שגיאה שמציינת את המקור. רשומה בודדת לא תקינה, לעומת זאת, נדחית עם אזהרה ושאר המדיניות נאכפת. לכן בודקים שינוי על מחשב בדיקה לפני שמפיצים אותו.
+</Callout>
+
+## הצעד הבא
+- ← [אילו פיצ'רים של Claude Code זמינים בכל תוכנית וספק](/enterprise/feature-availability)
+- שיעורים קשורים: [הגדרות ו-settings.json](/advanced/settings) · [הרשאות ו-sandbox](/advanced/permissions-sandbox) · [חיבור כלים עם MCP](/advanced/mcp)
