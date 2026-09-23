@@ -1,0 +1,271 @@
+---
+title: "איך מחברים את Claude Code ל-Amazon Bedrock ולספקי ענן אחרים?"
+description: "מפעילים ספק ענן עם משתנה סביבה כמו CLAUDE_CODE_USE_BEDROCK, מזדהים עם credentials של הענן ונועצים מודלים. כך מגדירים Bedrock,‏ Google Cloud,‏ Foundry ו-proxy."
+level: "enterprise"
+order: 66
+source: "https://code.claude.com/docs/en/amazon-bedrock"
+lastVerified: "2026-09-23"
+keywords: ["Claude Code", "Amazon Bedrock", "Claude Platform on AWS", "Google Cloud", "Agent Platform", "Vertex AI", "Microsoft Foundry", "ספק ענן", "ספקי ענן", "פריסה בענן", "CLAUDE_CODE_USE_BEDROCK", "proxy", "פרוקסי", "תעודות CA"]
+canDo: "עכשיו אתה יכול לחבר את Claude Code ל-Amazon Bedrock,‏ Claude Platform on AWS,‏ Google Cloud's Agent Platform או Microsoft Foundry, לנעוץ מודלים לצוות, ולהגדיר proxy ותעודות ברשת ארגונית."
+relatedSlugs: ["gateways", "feature-availability", "admin"]
+faq:
+  - q: "מה ההבדל בין Amazon Bedrock ל-Claude Platform on AWS?"
+    a: "Amazon Bedrock הוא שירות של AWS שמגיש את מודלי Claude דרך Invoke API שלו. Claude Platform on AWS הוא ה-Claude API ש-Anthropic מפעילה, עם הזדהות AWS, בקרת IAM וחיוב דרך AWS Marketplace. מפעילים את הראשון עם CLAUDE_CODE_USE_BEDROCK ואת השני עם CLAUDE_CODE_USE_ANTHROPIC_AWS יחד עם מזהה workspace."
+  - q: "למה הפקודה /logout לא עובדת כשעובדים עם ספק ענן?"
+    a: "ב-Amazon Bedrock,‏ Google Cloud's Agent Platform ו-Microsoft Foundry ההזדהות עוברת דרך ה-credentials של הענן, ולכן /logout לא זמינה. ב-Bedrock וב-Google Cloud מחליפים credentials, אזור או מודלים דרך האשף, עם /setup-bedrock או /setup-vertex. ב-Foundry משנים את משתני הסביבה."
+  - q: "האם חובה לנעוץ גרסאות מודל?"
+    a: "בפריסה לצוות, התיעוד ממליץ לנעוץ. בלי נעיצה, הכינויים של המודלים מתורגמים לברירת המחדל המובנית של Claude Code לאותו ספק, שעלולה לא להיות זמינה בחשבון. ב-Microsoft Foundry אין בדיקת מודלים בהפעלה, ולכן בלי נעיצה הבקשות פשוט נכשלות. רשימת המשתנים נמצאת בדף model-config."
+  - q: "Claude Code עובד מאחורי proxy מסוג SOCKS?"
+    a: "לא. Claude Code תומך ב-HTTPS_PROXY ו-HTTP_PROXY עם NO_PROXY, ובאימות basic בתוך כתובת ה-proxy. לפי התיעוד, SOCKS לא נתמך, ול-proxy שדורש NTLM או Kerberos כדאי לשקול LLM gateway שתומך בשיטת האימות הזו."
+  - q: "איך בודקים שהחיבור לספק הענן עובד?"
+    a: "מפעילים את Claude Code ומריצים /status. השורה API provider מציגה את הספק הפעיל, למשל Microsoft Foundry או Claude Platform on AWS, יחד עם פרטים כמו אזור, פרויקט או workspace. אם הספק לא מופיע, משתני הסביבה לא הגיעו לתהליך."
+---
+
+import { CommandBlock, Callout, StepList } from "@/components/lesson";
+
+כדי להריץ את Claude Code דרך ספק ענן, מגדירים משתנה סביבה שמפעיל את הספק: `CLAUDE_CODE_USE_BEDROCK`,‏ `CLAUDE_CODE_USE_ANTHROPIC_AWS`,‏ `CLAUDE_CODE_USE_VERTEX` או `CLAUDE_CODE_USE_FOUNDRY`. ההזדהות עוברת דרך ה-credentials של הענן, לא דרך claude.ai. בפריסה לצוות נועצים גרסאות מודל, ומגדירים proxy ותעודות לפי הרשת.
+
+## למה זה חשוב
+ארגונים רבים כבר מחזיקים חשבון ענן עם הרשאות, חיוב ובקרת עלויות. חיבור Claude Code לאותו חשבון שומר את התעבורה ואת החיוב בתשתית הקיימת. התיעוד ממליץ ליצור חשבון AWS או פרויקט GCP ייעודי ל-Claude Code, כדי לפשט מעקב עלויות ובקרת גישה.
+
+המחיר: חלק מהפיצ'רים מתנהגים אחרת אצל כל ספק. לפני שבוחרים, כדאי לעבור על [זמינות הפיצ'רים לפי שיטת פריסה](/enterprise/feature-availability).
+
+## איזה משתנה מפעיל כל ספק?
+לכל ספק משתנה הפעלה אחד, ועוד משתנה או שניים שמזהים את החשבון:
+
+| ספק | משתנה הפעלה | מזהה חשבון | הזדהות | אשף הגדרה |
+| --- | --- | --- | --- | --- |
+| Amazon Bedrock | `CLAUDE_CODE_USE_BEDROCK=1` | `AWS_REGION` (אופציונלי) | שרשרת ה-credentials של AWS, או מפתח Bedrock API | כן, `/setup-bedrock` |
+| Claude Platform on AWS | `CLAUDE_CODE_USE_ANTHROPIC_AWS=1` | `ANTHROPIC_AWS_WORKSPACE_ID` (חובה), `AWS_REGION` | SigV4 עם credentials של AWS, או מפתח workspace | לא |
+| Google Cloud's Agent Platform | `CLAUDE_CODE_USE_VERTEX=1` | `ANTHROPIC_VERTEX_PROJECT_ID`,‏ `CLOUD_ML_REGION` | ההזדהות הרגילה של Google Cloud, למשל Application Default Credentials או קובץ service account | כן, `/setup-vertex` |
+| Microsoft Foundry | `CLAUDE_CODE_USE_FOUNDRY=1` | `ANTHROPIC_FOUNDRY_RESOURCE` | מפתח API,‏ Microsoft Entra ID או bearer token | לא |
+
+Google Cloud's Agent Platform נקרא בעבר Vertex AI. המשתנים והפקודות שלו עדיין נושאים את השם `VERTEX`.
+
+אחרי ההגדרה מפעילים את Claude Code ובודקים את הספק הפעיל:
+
+<CommandBlock>/status</CommandBlock>
+
+## איך מחברים את Amazon Bedrock?
+הדרך המהירה היא אשף הכניסה. ב-CI או בפריסה ארגונית עם סקריפט מגדירים משתני סביבה ידנית.
+
+### עם האשף
+<StepList>
+
+1. ב-[Amazon Bedrock console](https://console.aws.amazon.com/bedrock/) פותחים את Model catalog, בוחרים מודל של Anthropic וממלאים את טופס ה-use case. זה נעשה פעם אחת לכל חשבון AWS, והגישה ניתנת מיד.
+2. מריצים `claude`, ובמסך הכניסה בוחרים **3rd-party platform** ואז **Amazon Bedrock**. אם כבר נכנסת, מריצים `/setup-bedrock`.
+3. בוחרים שיטת הזדהות: פרופיל AWS מתיקיית `~/.aws`, מפתח Amazon Bedrock API, access key ו-secret, או credentials שכבר קיימים בסביבה. האשף שואל על אזור, בודק לאילו מודלים יש גישה ומאפשר לנעוץ אותם.
+
+</StepList>
+
+האשף שומר את התוצאה בבלוק `env` של `~/.claude/settings.json`, כך שלא צריך לייצא משתנים בעצמך.
+
+### הגדרה ידנית
+Claude Code משתמש בשרשרת ה-credentials הרגילה של AWS SDK. אפשר, למשל, להיכנס עם פרופיל SSO:
+
+```bash
+aws sso login --profile=your-profile-name
+export AWS_PROFILE=your-profile-name
+```
+
+שיטות נוספות שהתיעוד מפרט: `aws configure`, משתני `AWS_ACCESS_KEY_ID` ו-`AWS_SECRET_ACCESS_KEY`, ‏`aws login`, או מפתח Amazon Bedrock API ב-`AWS_BEARER_TOKEN_BEDROCK`. אחר כך מפעילים את הספק:
+
+```bash
+export CLAUDE_CODE_USE_BEDROCK=1
+export AWS_REGION=your-aws-region  # optional if your AWS profile already sets a region
+```
+
+אם לא מגדירים `AWS_REGION`, ‏Claude Code מחפש את האזור ב-`AWS_DEFAULT_REGION` ואחר כך בפרופיל ה-AWS הפעיל. `/status` מציג את האזור שנבחר.
+
+כש-SSO פג באמצע סשן, ההגדרה `awsAuthRefresh` מריצה את פקודת הכניסה שלך ומנסה שוב את הבקשה:
+
+```json
+{
+  "awsAuthRefresh": "aws sso login --profile your-profile-name",
+  "env": {
+    "AWS_PROFILE": "your-profile-name"
+  }
+}
+```
+
+### אילו הרשאות IAM צריך?
+מדיניות ה-IAM בתיעוד כוללת את הפעולות `bedrock:InvokeModel`,‏ `bedrock:InvokeModelWithResponseStream`,‏ `bedrock:ListInferenceProfiles` ו-`bedrock:GetInferenceProfile`, ובנוסף `aws-marketplace:ViewSubscriptions` ו-`aws-marketplace:Subscribe`. את ה-JSON המלא מעתיקים מ[דף ההגדרה הרשמי](https://code.claude.com/docs/en/amazon-bedrock#iam-configuration). אפשר להגביל את ה-Resource ל-ARN-ים של inference profiles ספציפיים.
+
+### מה שונה ב-Bedrock?
+- `/logout` לא זמינה, כי ההזדהות עוברת דרך AWS.
+- הכלי WebSearch לא זמין.
+- Claude Code משתמש ב-Invoke API של Bedrock ולא תומך ב-Converse API.
+- gateway או proxy בין Claude Code ל-Bedrock חייב להעביר את גוף התשובה ואת הכותרות שלה, כולל `Content-Type`, בלי שינוי. אם ה-gateway משכתב את `Content-Type`, ‏Claude Code דוחה את התשובה בשגיאה.
+- אפשר להוסיף [Amazon Bedrock Guardrails](https://docs.aws.amazon.com/bedrock/latest/userguide/guardrails.html) דרך `ANTHROPIC_CUSTOM_HEADERS`.
+
+ל-Bedrock יש גם endpoint בשם Mantle, שמגיש את מודלי Claude בפורמט ה-API של Anthropic. מפעילים אותו עם `CLAUDE_CODE_USE_MANTLE=1`. יש לו רשימת מודלים נפרדת, והפרטים ב[דף הרשמי](https://code.claude.com/docs/en/amazon-bedrock#use-the-mantle-endpoint).
+
+## איך מחברים את Claude Platform on AWS?
+[Claude Platform on AWS](https://code.claude.com/docs/en/claude-platform-on-aws) הוא ה-Claude API ש-Anthropic מפעילה, עם הזדהות AWS, בקרת IAM וחיוב דרך AWS Marketplace. הבקשות מגיעות ישירות ל-API של Anthropic.
+
+<Callout type="note">
+ההרשמה דרך AWS Marketplace יוצרת ארגון Anthropic חדש שמקושר לחשבון ה-AWS. הוא נפרד מכל ארגון קיים ב-Claude Console, וה-credentials לא עוברים ביניהם. משתמשים במזהה ה-workspace ובמפתחות של הארגון המקושר ל-AWS.
+</Callout>
+
+יש שתי שיטות הזדהות:
+
+- **SigV4 עם credentials של AWS:** שרשרת ה-credentials הרגילה, למשל `aws sso login` ו-`AWS_PROFILE`. ב-CI נותנים ל-runner תפקיד IAM עם הרשאה להפעיל את שירות Anthropic. גם כאן `awsAuthRefresh` מרענן כניסת SSO שפגה.
+- **מפתח workspace:** יוצרים אותו ב-AWS Console תחת **Claude Platform on AWS → API keys** ושמים ב-`ANTHROPIC_AWS_API_KEY`. המפתח גובר על SigV4, כך שה-credentials של AWS בסביבה נשארים ללא שימוש.
+
+מפעילים את הספק:
+
+```bash
+export CLAUDE_CODE_USE_ANTHROPIC_AWS=1
+export ANTHROPIC_AWS_WORKSPACE_ID=your-workspace-id
+export AWS_REGION=your-aws-region
+```
+
+`ANTHROPIC_AWS_WORKSPACE_ID` הוא חובה, והוא לא נגזר מה-credentials של AWS. כמה דברים שכדאי לדעת:
+
+- הספק הזה לא מופעל אוטומטית גם כשיש credentials של AWS בסביבה. אם מוגדרים גם `CLAUDE_CODE_USE_BEDROCK` או `CLAUDE_CODE_USE_FOUNDRY`, הם גוברים, ולכן מסירים אותם.
+- פיצ'רים בצד הלקוח ש-Claude Code מפעיל דרך שירות ה-feature flags של Anthropic כבויים כברירת מחדל, וכלי ה-advisor לא זמין.
+- `/login` ו-`/logout` לא מכניסים למנוי claude.ai.
+- כדי לעבור דרך proxy או LLM gateway, מגדירים את כתובתו ב-`ANTHROPIC_AWS_BASE_URL`.
+
+## איך מחברים את Google Cloud's Agent Platform?
+גם כאן יש אשף. [לפי התיעוד](https://code.claude.com/docs/en/google-vertex-ai), מפעילים את ה-API בפרויקט, מבקשים גישה למודלי Claude ב-Model Garden, ומריצים `claude`. במסך הכניסה בוחרים **3rd-party platform** ואז **Google Vertex AI**, השם שמסך הכניסה עדיין מציג. אחרי הכניסה, `/setup-vertex` פותח את האשף שוב.
+
+### הגדרה ידנית
+מפעילים את ה-API בפרויקט:
+
+```bash
+gcloud config set project YOUR-PROJECT-ID
+gcloud services enable aiplatform.googleapis.com
+```
+
+אחר כך מבקשים גישה למודלים ב-[Model Garden](https://console.cloud.google.com/vertex-ai/model-garden). לפי התיעוד, האישור עשוי לקחת 24 עד 48 שעות. Claude Code משתמש בהזדהות הרגילה של Google Cloud. מגדירים את המשתנים:
+
+```bash
+export CLAUDE_CODE_USE_VERTEX=1
+export CLOUD_ML_REGION=global
+export ANTHROPIC_VERTEX_PROJECT_ID=YOUR-PROJECT-ID
+```
+
+`CLOUD_ML_REGION` מקבל `global`, מיקום multi-region כמו `eu` או `us`, או אזור ספציפי. לא כל מודל זמין בכל סוג endpoint. מודל שלא תומך ב-`global` מקבל אזור משלו דרך משתנה `VERTEX_REGION_CLAUDE_*` המתאים, לפי [רשימת משתני הסביבה](https://code.claude.com/docs/en/env-vars).
+
+### מה שונה ב-Google Cloud?
+- הבקשות נשלחות לפרויקט שב-`ANTHROPIC_VERTEX_PROJECT_ID`, גם אם `GOOGLE_CLOUD_PROJECT` או קובץ ה-credentials מציינים פרויקט אחר.
+- ההגדרה `gcpAuthRefresh` מריצה פקודה כמו `gcloud auth application-default login` כשה-credentials פגו.
+- התפקיד `roles/aiplatform.user` כולל את ההרשאה הנדרשת, `aiplatform.endpoints.predict`.
+- `/logout` לא זמינה, כי ההזדהות עוברת דרך Google Cloud.
+- כדי להעלות מגבלות קצב פונים לתמיכה של Google Cloud.
+
+## איך מחברים את Microsoft Foundry?
+ב-[Microsoft Foundry](https://code.claude.com/docs/en/microsoft-foundry) אין אשף, ולכן משתני הסביבה הם דרך ההגדרה היחידה.
+
+<StepList>
+
+1. בפורטל Microsoft Foundry יוצרים resource ורושמים את שמו.
+2. יוצרים deployment לכל מודל Claude שצריך, ורושמים את שם ה-deployment. בזמן היצירה בוחרים גם hosting option, שקובע אם ה-inference רץ על Azure או על תשתית של Anthropic.
+3. בוחרים שיטת הזדהות (ראו בהמשך).
+4. מפעילים את הספק ונועצים את המודלים לפי שמות ה-deployments.
+
+</StepList>
+
+```bash
+export CLAUDE_CODE_USE_FOUNDRY=1
+export ANTHROPIC_FOUNDRY_RESOURCE=your-resource-name
+```
+
+במקום שם ה-resource אפשר לתת כתובת מלאה ב-`ANTHROPIC_FOUNDRY_BASE_URL`. יש שלוש שיטות הזדהות, לפי סדר העדיפות:
+
+| שיטה | משתנה | מתי |
+| --- | --- | --- |
+| Bearer token | `ANTHROPIC_FOUNDRY_AUTH_TOKEN` | תהליך אחר כבר השיג token מ-Microsoft Entra ID. גובר על השאר |
+| מפתח API | `ANTHROPIC_FOUNDRY_API_KEY` | מעתיקים מ-**Endpoints and keys** ב-resource |
+| Microsoft Entra ID | אין, זו ברירת המחדל | כששני המשתנים לא מוגדרים, Claude Code משתמש בשרשרת ה-credentials של Azure SDK, למשל אחרי `az login` |
+
+התפקידים `Azure AI User` ו-`Cognitive Services User` כוללים את כל ההרשאות להפעלת המודלים. `/logout` לא זמינה גם כאן.
+
+<Callout type="warning">
+אם הבקשה הראשונה נכשלת בשגיאות חיבור חוזרות, בדוק ש-`ANTHROPIC_FOUNDRY_RESOURCE` מכיל את שם ה-resource האמיתי ולא placeholder. Claude Code בונה ממנו את כתובת ה-endpoint.
+</Callout>
+
+## למה נועצים גרסאות מודל לפני פריסה לצוות?
+בלי נעיצה, כינויי המודלים מתורגמים לברירת המחדל המובנית של Claude Code לאותו ספק. היא יכולה לפגר אחרי הגרסה החדשה, או לא להיות זמינה בחשבון. נעיצה נותנת לך לקבוע מתי כל הצוות עובר למודל חדש.
+
+נועצים עם משתני `ANTHROPIC_DEFAULT_*_MODEL`, ומזהי המודלים שונים בין הספקים. ב-Foundry הערכים הם שמות ה-deployments שיצרת. את רשימת המשתנים המלאה ואת מבנה המזהים לכל ספק מוצאים ב[דף הגדרת המודלים](https://code.claude.com/docs/en/model-config#pin-models-for-third-party-deployments), ובוחרים מודל בסשן עם `/model`.
+
+| ספק | מה קורה כשמודל ברירת המחדל לא זמין |
+| --- | --- |
+| Amazon Bedrock,‏ Google Cloud | בדיקת מודלים בהפעלה. Claude Code עובר לגרסה זמינה לסשן הנוכחי בלבד ומציג הודעה |
+| Microsoft Foundry | אין בדיקה בהפעלה. הבקשות נכשלות |
+
+<Callout type="warning">
+ב-Bedrock וב-Google Cloud, פריסה שלא נועצת מודל ראשי עלולה לעבור למודל יקר יותר כשברירת המחדל משתנה. התיעוד מזהיר במפורש שהמחיר לכל token משתנה בין משפחות המודלים. נועצים לפני שמפיצים לצוות.
+</Callout>
+
+## איך מגדירים proxy ותעודות ברשת ארגונית?
+Claude Code קורא את משתני ה-proxy הסטנדרטיים, ו[לפי התיעוד](https://code.claude.com/docs/en/network-config) צריך להגדיר אותם לפני ההפעלה. משתנים שמיוצאים ב-shell נקראים פעם אחת בהפעלה.
+
+```bash
+export HTTPS_PROXY=https://proxy.example.com:8080
+export NO_PROXY="localhost,example.com,.example.com"
+```
+
+- גם אותיות קטנות עובדות. Claude Code משתמש בראשון שמוגדר, לפי הסדר `https_proxy`,‏ `HTTPS_PROXY`,‏ `http_proxy`,‏ `HTTP_PROXY`.
+- proxy עם basic authentication: כותבים את שם המשתמש והסיסמה בתוך כתובת ה-proxy. לא לקבע סיסמאות בסקריפטים.
+- SOCKS לא נתמך. ל-proxy שדורש NTLM או Kerberos, התיעוד מציע לשקול [LLM gateway](/enterprise/gateways) שתומך בשיטת האימות הזו.
+
+### איך Claude Code סומך על תעודות?
+כברירת מחדל, Claude Code סומך גם על תעודות ה-CA של Mozilla שמגיעות איתו וגם על מאגר התעודות של מערכת ההפעלה. proxy עם TLS inspection עובד בלי הגדרה נוספת, אם תעודת השורש שלו מותקנת במאגר של המערכת. בהתקנה דרך npm זה דורש Node שיודע לקרוא את המאגר. ההתקנה ה-native תמיד יודעת.
+
+| משתנה | מה עושה |
+| --- | --- |
+| `NODE_EXTRA_CA_CERTS` | מוסיף תעודת CA ארגונית מקובץ |
+| `CLAUDE_CODE_CERT_STORE` | בוחר מקורות: `bundled`,‏ `system`, או שניהם (ברירת המחדל) |
+| `CLAUDE_CODE_CLIENT_CERT`,‏ `CLAUDE_CODE_CLIENT_KEY` | תעודת לקוח ומפתח ל-mTLS |
+| `CLAUDE_CODE_CLIENT_KEY_PASSPHRASE` | סיסמה למפתח מוצפן, אופציונלי |
+
+ב-Bedrock, הגדרות ה-CA חלות גם על הבקשות ל-AWS עצמו, כולל קריאות STS ו-SSO ובדיקות האשף. תעודת שורש ארגונית במאגר המערכת או ב-`NODE_EXTRA_CA_CERTS` לא דורשת הגדרה מיוחדת ל-Bedrock.
+
+### איך בודקים שההגדרות נטענו?
+Claude Code לא בודק את רוב ההגדרות האלה כשהוא קורא אותן. בדרך כלל מגלים כתובת שגויה או נתיב תעודה שגוי רק מתוך שגיאה בבקשה מאוחרת יותר. היוצא מן הכלל הוא כתובת proxy שאי אפשר לפענח: אז Claude Code עוצר בהפעלה. כדי לבדוק מראש, מפעילים עם debug log:
+
+<CommandBlock>claude --debug</CommandBlock>
+
+ה-log נכתב ל-`~/.claude/debug/`, ובו מחפשים שורות שמאשרות שתעודת ה-CA ותעודת ה-mTLS נטענו. גם `/status` מציג את השורות **Proxy**,‏ **mTLS client cert** ו-**mTLS client key** (שמופיעות רק כשהקבצים נטענו) ו-**Additional CA cert(s)**. השורה האחרונה מציגה את הנתיב בלי לבדוק שהקובץ נטען, ולכן את תעודת ה-CA מאמתים ב-debug log.
+
+<Callout type="tip">
+[Background agents](/pro/agent-view) רצים תחת תהליך supervisor משותף, ולא בטרמינל שהפעיל אותם. משתנה שייצאת רק ב-shell עלול לא להגיע אליהם. שמים את משתני ה-proxy, ה-CA וה-mTLS בבלוק `env` של `~/.claude/settings.json` או ב-[managed settings](/enterprise/admin).
+</Callout>
+
+## אילו כתובות עדיין צריך לפתוח?
+עם Amazon Bedrock,‏ Google Cloud's Agent Platform או Microsoft Foundry, תעבורת המודל וההזדהות הולכות לספק ולא ל-`api.anthropic.com`,‏ `claude.ai` או `platform.claude.com`. כמה דברים עדיין יוצאים החוצה:
+
+- הכלי WebFetch עדיין פונה ל-`api.anthropic.com` לבדיקת בטיחות הדומיין, אלא אם מגדירים `skipWebFetchPreflight: true` ב-settings.
+- `downloads.claude.ai` משמש את ה-installer ה-native, את העדכון האוטומטי ואת בדיקות הגרסה.
+- התקנות plugins ושרתי MCP שמופעלים עם `npx` צריכים את `registry.npmjs.org`.
+
+הרשימה המלאה נמצאת בטבלת [Network access requirements](https://code.claude.com/docs/en/network-config#network-access-requirements).
+
+## דוגמה מעשית: פריסת Google Cloud לצוות
+צוות הפלטפורמה רוצה שכל המפתחים יעבדו דרך פרויקט GCP ייעודי, מאחורי proxy ארגוני. במקום לבקש מכל מפתח לייצא משתנים, המנהל מפיץ בלוק `env` אחד דרך [managed settings](/enterprise/admin). לפי תיעוד ה-settings, גם `env` וגם `gcpAuthRefresh` מותרים בכל קובץ settings, כולל managed settings, ותיעוד הרשת ממליץ לשים שם את משתני ה-proxy וה-CA. זו דוגמה להמחשה שמשלבת את שני המקורות, לא קובץ מהתיעוד:
+
+```json
+{
+  "gcpAuthRefresh": "gcloud auth application-default login",
+  "env": {
+    "CLAUDE_CODE_USE_VERTEX": "1",
+    "ANTHROPIC_VERTEX_PROJECT_ID": "YOUR-PROJECT-ID",
+    "CLOUD_ML_REGION": "global",
+    "HTTPS_PROXY": "https://proxy.example.com:8080",
+    "NODE_EXTRA_CA_CERTS": "/path/to/ca-cert.pem"
+  }
+}
+```
+
+מוסיפים לבלוק את משתני נעיצת המודלים לפי [דף הגדרת המודלים](https://code.claude.com/docs/en/model-config). כל מפתח מריץ `gcloud auth application-default login` פעם אחת, מפעיל `claude` ובודק ב-`/status` שהשורה `API provider` מציגה `Google Vertex AI`.
+
+<Callout type="warning">
+לא שמים מפתחות API או tokens בקובץ `.claude/settings.json` של הפרויקט. הקובץ נכנס ל-git. מפתחות אישיים שייכים ל-`~/.claude/settings.json` או לכלי ניהול סודות.
+</Callout>
+
+## הצעד הבא
+- ← [ניטור, אנליטיקה ו-ZDR](/enterprise/observability)
+- שיעורים קשורים: [Gateways](/enterprise/gateways) · [זמינות פיצ'רים](/enterprise/feature-availability) · [סביבות הרצה בארגון](/enterprise/environments)
