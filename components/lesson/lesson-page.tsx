@@ -2,7 +2,9 @@ import type { InferPageType } from 'fumadocs-core/source';
 import { DocsBody, DocsPage, DocsTitle, MarkdownCopyButton } from 'fumadocs-ui/layouts/docs/page';
 import { createRelativeLink } from 'fumadocs-ui/mdx';
 import { getMDXComponents } from '@/components/mdx';
+import { JsonLd } from '@/components/seo/json-ld';
 import { getReadingMinutes } from '@/lib/reading-time';
+import { faqPageJsonLd, lessonBreadcrumbs, techArticleJsonLd } from '@/lib/seo/jsonld';
 import type { source } from '@/lib/source';
 import { CanDo } from './can-do';
 import { FAQ } from './faq';
@@ -30,8 +32,15 @@ export async function LessonPage({
   // מזהה יציב להתקדמות: ה-URL של השיעור
   const lessonId = page.url;
 
+  const jsonLd = [
+    techArticleJsonLd({ ...data, url: page.url }),
+    lessonBreadcrumbs(data),
+    ...(data.faq?.length ? [faqPageJsonLd(data.faq)] : []),
+  ];
+
   return (
     <DocsPage toc={data.toc} full={data.full}>
+      <JsonLd data={jsonLd} />
       <DocsTitle>{data.title}</DocsTitle>
       <div className="flex flex-wrap items-center gap-2 border-b pb-6">
         <LevelBadge level={data.level} />

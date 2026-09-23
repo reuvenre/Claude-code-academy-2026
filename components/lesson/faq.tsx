@@ -1,18 +1,9 @@
 import type { FaqItem } from '@/lib/lesson-schema';
 
-// שו"ת גלוי במלואו ב-HTML (בלי accordion) + JSON-LD מסוג FAQPage מאותו מקור בדיוק
+// שו"ת גלוי במלואו ב-HTML (בלי accordion). ה-JSON-LD מסוג FAQPage נבנה מאותם נתונים
+// בתבנית הדף (lib/seo/jsonld.ts), כך שהתוכן וה-schema תמיד תואמים.
 export function FAQ({ items }: { items: FaqItem[] }) {
   if (items.length === 0) return null;
-
-  const jsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'FAQPage',
-    mainEntity: items.map((item) => ({
-      '@type': 'Question',
-      name: item.q,
-      acceptedAnswer: { '@type': 'Answer', text: item.a },
-    })),
-  };
 
   return (
     <section aria-labelledby="faq" className="mt-12">
@@ -27,10 +18,6 @@ export function FAQ({ items }: { items: FaqItem[] }) {
           </div>
         ))}
       </dl>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }}
-      />
     </section>
   );
 }

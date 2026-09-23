@@ -90,12 +90,26 @@ StepList, FAQ (מייצר FAQPage schema), Quiz (אינטראקטיבי - אבל
 ```
 קומיט: `feat: seo/aeo/geo layer`
 
+**✅ הושלם.** מה נבנה, והערות להמשך:
+- `lib/seo/`: `site.ts` (זהות + `absoluteUrl`), `jsonld.ts` (Organization, TechArticle, FAQPage,
+  BreadcrumbList, Course), `metadata.ts` (`createLessonMetadata`), `llms.ts`. רכיב `components/seo/json-ld.tsx`.
+- Organization ב-layout השורש. TechArticle + BreadcrumbList + FAQPage בכל שיעור.
+- **drafts מסוננים במקור** (`lib/source.ts`), ולכן נעלמים מכל מקום: עמוד, סיידבר, חיפוש, llms, sitemap ו-OG.
+- `llms.txt` / `llms-full.txt` נבנים לפי `templates/llms-txt.example.txt`, ממוינים לפי רמה ו-`order`.
+- Markdown לשיעור: `/<level>/<slug>.md`, או אותו URL עם `Accept: text/markdown` (`proxy.ts`, עם `Vary: Accept`).
+- תמונות OG: **Takumi** במקום `next/og`, כי Satori לא תומך ב-RTL והפך את האותיות. הגופן Heebo נטען מקומית מ-`@fontsource/heebo`.
+- `NEXT_PUBLIC_SITE_URL` נקרא בזמן build. בפריסה מגדירים אותו בסביבת ה-build.
+- נבדק עם שיעורי בדיקה זמניים (נמחקו): כל ה-schemas, ה-metadata, סינון ה-drafts והחיפוש בעברית.
+- **פתוח:** אימות ב-Rich Results Test אפשרי רק על URL ציבורי (שלבים 8/14).
+
 ## שלב 4 — שלד ניווט ועמודי שער
 ```text
 בנה את ה-IA: דף בית עם בורר רמה ומסלול למידה, עמודי שער לכל רמה
 (/beginner, /beginner-plus, /advanced, /pro, /enterprise), /fluency, /reference, /product-family.
-סיידבר RTL + breadcrumb + חיפוש. ודא שהחיפוש עובד בעברית (Orama tokenizer).
-עמודי השער יציגו רשימת שיעורים וזמני קריאה.
+סיידבר RTL + breadcrumb + חיפוש. החיפוש המובנה (tokenizer multilingual) כבר עובד בעברית (נבדק בשלב 3).
+עמודי השער יציגו רשימת שיעורים וזמני קריאה, ויקבלו JSON-LD מסוג Course (courseJsonLd ב-lib/seo/jsonld.ts)
+ו-BreadcrumbList, וייכנסו ל-sitemap.
+כותרות תיקיות בעברית ב-meta.json לכל רמה (כרגע ה-breadcrumbs בחיפוש מציגים "Docs / Beginner").
 ```
 קומיט: `feat: navigation shell + level hubs`
 

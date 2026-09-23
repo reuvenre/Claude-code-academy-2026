@@ -1,4 +1,9 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
+
+export const metadata: Metadata = {
+  alternates: { canonical: '/' },
+};
 
 // placeholder — דף הבית המלא (בורר רמה ומסלול למידה) נבנה בשלב 4
 export default function HomePage() {
