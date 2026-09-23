@@ -1,0 +1,254 @@
+---
+title: "איך מנטרים שימוש, עלויות ושמירת נתונים ב-Claude Code בארגון?"
+description: "מפעילים ייצוא OpenTelemetry של מדדים ואירועים, בודקים את דשבורד ה-analytics, מגבילים הוצאה לפי ארגון, קבוצה או משתמש, ומבינים מתי שומרים נתונים ומה ZDR משנה."
+level: "enterprise"
+order: 67
+source: "https://code.claude.com/docs/en/monitoring-usage"
+lastVerified: "2026-09-23"
+keywords: ["Claude Code", "OpenTelemetry", "OTel", "ניטור", "לנטר", "analytics", "אנליטיקס", "עלויות", "spend limits", "מגבלות הוצאה", "Zero Data Retention", "ZDR", "שמירת נתונים", "מדיניות נתונים"]
+canDo: "עכשיו אתה יכול להפעיל ייצוא OpenTelemetry לכל הארגון דרך managed settings, לקרוא את דשבורד ה-analytics, לבחור איפה רואים ומגבילים הוצאה לפי סוג החשבון, ולהסביר מה Anthropic שומרת ומה ZDR משנה."
+relatedSlugs: ["admin", "gateways", "costs-context"]
+faq:
+  - q: "האם OpenTelemetry שולח ל-Anthropic את הפרומפטים או את הקוד שלנו?"
+    a: "הוא לא שולח אותם. ייצוא OpenTelemetry הולך רק ל-endpoint שהארגון מגדיר, ולא ל-Anthropic. גם שם תוכן הפרומפט לא נאסף כברירת מחדל, אלא רק האורך שלו, ותוכן קבצים וקטעי קוד לא נכללים במדדים ובאירועים. כדי לכלול תוכן צריך להפעיל במפורש משתנים כמו OTEL_LOG_USER_PROMPTS."
+  - q: "האם סכום העלות במדד claude_code.cost.usage הוא החשבון האמיתי?"
+    a: "הסכום הוא הערכה בלבד. התיעוד מציין שמדדי העלות הם קירוב, ושלנתוני חיוב רשמיים בודקים אצל ספק ה-API: Claude Console,‏ Amazon Bedrock או Google Cloud. אם הארגון משלם תעריפים חוזיים, אפשר לעדכן את החישוב עם ההגדרה המנוהלת modelPricing, אבל גם אז אלה הערכות ולא חשבונית."
+  - q: "איך מגבילים כמה Claude Code מוציא בתוכנית Teams או Enterprise?"
+    a: "הגבלת ברירת המחדל היא המכסה של כל מושב. כדי לאפשר לחברי הארגון להמשיך מעבר לה, מפעילים usage credits ומגדירים spend limits ברמת הארגון, הקבוצה או המשתמש, בהגדרות הניהול של claude.ai. ב-Claude Console מגדירים מגבלת הוצאה ל-workspace, ובספקי ענן משתמשים בכלי התקציב של הענן."
+  - q: "האם אפשר להפעיל Zero Data Retention לבד מהגדרות הניהול?"
+    a: "אי אפשר להפעיל אותו לבד. ZDR לא כלול בתוכנית Enterprise הרגילה ואין לו מתג בהגדרות הניהול. הוא זמין לחשבונות Claude for Enterprise מתאימים, ו-Anthropic מפעילה אותו לכל ארגון בנפרד אחרי בדיקת זכאות. פונים למכירות או לצוות החשבון."
+  - q: "האם Anthropic מאמנת מודלים על הקוד שנשלח מ-Claude Code?"
+    a: "בתנאים מסחריים Anthropic לא מאמנת על הקוד או הפרומפטים: Team,‏ Enterprise,‏ API, פלטפורמות צד שלישי ו-Claude Gov. החריג הוא לקוח שבחר לשתף נתונים, למשל דרך Development Partner Program. בחשבונות Free,‏ Pro ו-Max המשתמש בוחר אם לאפשר שימוש בנתונים לשיפור המודלים."
+---
+
+import { Callout, StepList } from "@/components/lesson";
+
+ארגון עוקב אחרי Claude Code בשלוש דרכים: ייצוא OpenTelemetry של מדדים ואירועים למערכת הניטור שלו, דשבורד analytics מובנה, ודוחות הוצאה עם מגבלות. בצד הנתונים, בתנאים מסחריים Anthropic לא מאמנת על הקוד, השמירה הסטנדרטית היא 30 יום, ו-ZDR זמין לחשבונות Enterprise מתאימים.
+
+## למה זה חשוב
+בלי מדידה אי אפשר לדעת אם ההטמעה עובדת: מי משתמש, כמה זה עולה, ואיפה צוות נתקע. [הקורס של Claude Academy על הטמעה בארגון](https://academy.claude.com/courses/deploying-claude-enterprise-with-confidence/visibility-what-you-can-measure) ממליץ להגדיר נראות לפני שהמשתמשים מקבלים גישה ולא אחרי, כי על התקופה שלפני ההפעלה לא יהיו נתונים. גם שאלות של אבטחה ופרטיות, כמו מה נשמר ולכמה זמן, צריכות תשובה לפני הפריסה.
+
+## מה אפשר למדוד, ואיפה?
+כל כלי עונה על שאלה אחרת. זו החלוקה לפי התיעוד:
+
+| כלי | מה הוא נותן | זמין ב |
+| --- | --- | --- |
+| **OpenTelemetry** | מדדים ואירועים לפי משתמש, כמעט בזמן אמת, אל מערכת הניטור שלך | כל סוגי החשבונות והספקים |
+| **דשבורד analytics** | משתמשים פעילים, סשנים, שורות קוד שאושרו, ובתוכניות Teams ו-Enterprise גם contribution metrics מ-GitHub | Teams ו-Enterprise ב-claude.ai, או ב-Claude Console |
+| **דוח הוצאה (spend report)** | הוצאה משוערת לפי משתמש ולפי מודל, עם ייצוא ל-CSV | Teams ו-Enterprise, כשה-usage credits מופעלים |
+| **כלי החיוב של הענן** | חיוב בפועל לפי טוקנים | Amazon Bedrock,‏ Google Cloud's Agent Platform,‏ Microsoft Foundry |
+
+לפי [דף העלויות](https://code.claude.com/docs/en/costs), ייצוא OpenTelemetry עובד בכל סוג חשבון, והוא האפשרות היחידה שמזרימה נתוני טוקנים ועלות לפי משתמש למערכת הניטור שלך כמעט בזמן אמת.
+
+## איך מפעילים ניטור עם OpenTelemetry?
+מגדירים משתני סביבה ומריצים את Claude Code. זו הדוגמה מהתיעוד:
+
+```bash
+# 1. Enable telemetry
+export CLAUDE_CODE_ENABLE_TELEMETRY=1
+
+# 2. Choose exporters (both are optional - configure only what you need)
+export OTEL_METRICS_EXPORTER=otlp       # Options: otlp, prometheus, console, none
+export OTEL_LOGS_EXPORTER=otlp          # Options: otlp, console, none
+
+# 3. Configure OTLP endpoint (for OTLP exporter)
+export OTEL_EXPORTER_OTLP_PROTOCOL=grpc
+export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
+
+# 4. Set authentication (if required)
+export OTEL_EXPORTER_OTLP_HEADERS="Authorization=Bearer your-token"
+
+# 5. For debugging: reduce export intervals, and reset them for production use
+export OTEL_METRIC_EXPORT_INTERVAL=10000  # 10 seconds (default: 60000ms)
+export OTEL_LOGS_EXPORT_INTERVAL=5000     # 5 seconds (default: 5000ms)
+
+# 6. Run Claude Code
+claude
+```
+
+כדי לוודא שהמדדים מגיעים, מחפשים ב-backend את המדד `claude_code.session.count`, שנשלח כשסשן מתחיל. אם הגדרת רק לוגים, שולחים פרומפט ומחפשים את האירוע `claude_code.user_prompt`. אם לא מגיע כלום, מריצים `claude --debug` ומחפשים בלוג שגיאות שמתחילות ב-`[3P telemetry]`. שורות שמתחילות ב-`[Anthropic telemetry]` שייכות לטלמטריה הנפרדת של Anthropic, ולא מעידות על בעיה בהגדרה שלך.
+
+### איך מפעילים את זה לכל הארגון?
+שמים את אותם משתנים בבלוק `env` של [managed settings](/enterprise/admin), כך שהם חלים על כל המפתחים:
+
+```json
+{
+  "env": {
+    "CLAUDE_CODE_ENABLE_TELEMETRY": "1",
+    "OTEL_METRICS_EXPORTER": "otlp",
+    "OTEL_LOGS_EXPORTER": "otlp",
+    "OTEL_EXPORTER_OTLP_PROTOCOL": "grpc",
+    "OTEL_EXPORTER_OTLP_ENDPOINT": "http://collector.example.com:4317",
+    "OTEL_EXPORTER_OTLP_HEADERS": "Authorization=Bearer example-token"
+  }
+}
+```
+
+כשמגדירים endpoint,‏ protocol או headers של OTLP ב-managed settings,‏ Claude Code מסיר בהפעלה משתנים סותרים שהמפתח הגדיר, כדי שהנתונים לא יגיעו ל-collector אחר. את בוחרי ה-exporter,‏ `OTEL_METRICS_EXPORTER` ו-`OTEL_LOGS_EXPORTER`, מפתח עדיין יכול לשנות, ולכן אם צריך לנעול אותם מגדירים גם אותם ב-managed settings.
+
+### אילו משתני סביבה כדאי להכיר?
+
+| משתנה | מה הוא עושה |
+| --- | --- |
+| `CLAUDE_CODE_ENABLE_TELEMETRY` | מפעיל את איסוף הטלמטריה. חובה |
+| `OTEL_METRICS_EXPORTER` | לאן נשלחים המדדים: `otlp`,‏ `prometheus`,‏ `console` או `none` |
+| `OTEL_LOGS_EXPORTER` | לאן נשלחים האירועים: `otlp`,‏ `console` או `none` |
+| `OTEL_EXPORTER_OTLP_PROTOCOL` | הפרוטוקול: `grpc`,‏ `http/json` או `http/protobuf`. אין ברירת מחדל, אז מגדירים אותו |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | כתובת ה-collector לכל סוגי הנתונים |
+| `OTEL_EXPORTER_OTLP_HEADERS` | כותרות אימות, למשל Bearer token |
+| `OTEL_METRIC_EXPORT_INTERVAL` | מרווח ייצוא המדדים במילישניות. ברירת מחדל: 60000 |
+| `OTEL_RESOURCE_ATTRIBUTES` | תכונות משלך, כמו צוות או מרכז עלות |
+
+יש גם משתנים לכל סוג נתונים בנפרד, אימות mTLS ו-traces בגרסת beta. הפרטים המלאים ב[דף הניטור](https://code.claude.com/docs/en/monitoring-usage).
+
+### איך מפרידים בין צוותים?
+מוסיפים תכונות משלך עם `OTEL_RESOURCE_ATTRIBUTES`. הן מצטרפות לכל מדד ולכל אירוע, כך שאפשר לסנן לפי צוות, לעקוב אחרי עלות לפי מרכז עלות ולבנות התראות לצוות מסוים:
+
+```bash
+export OTEL_RESOURCE_ATTRIBUTES="department=engineering,team.id=platform,cost_center=eng-123"
+```
+
+<Callout type="warning">
+הפורמט קפדני: זוגות `key=value` מופרדים בפסיקים, **בלי רווחים** בערכים. מרכאות סביב ערך לא עוזרות, הן פשוט נכנסות לערך. לערך שצריך בו רווח משתמשים בקו תחתון, ב-camelCase או בקידוד אחוזים (`%20`). כל מפתח כזה הופך לתווית על כל סדרת מדדים, אז ערכים רבים ושונים מייקרים את האחסון.
+</Callout>
+
+## אילו מדדים ואירועים Claude Code שולח?
+Claude Code שולח מדדים (סדרות זמן) ואירועים (לוגים). אלה המדדים:
+
+| מדד | מה הוא סופר |
+| --- | --- |
+| `claude_code.session.count` | סשנים שהתחילו |
+| `claude_code.lines_of_code.count` | שורות קוד שנוספו או נמחקו |
+| `claude_code.pull_request.count` | pull requests שנוצרו |
+| `claude_code.commit.count` | commits שנוצרו |
+| `claude_code.cost.usage` | עלות הסשן בדולרים |
+| `claude_code.token.usage` | טוקנים, לפי סוג: input,‏ output וטוקני cache |
+| `claude_code.code_edit_tool.decision` | אישור או דחייה של עריכות קבצים |
+| `claude_code.active_time.total` | זמן פעיל, בלי זמן המתנה |
+
+כל מדד ואירוע נושא תכונות משותפות, כמו `session.id`,‏ `organization.id` ו-`user.email` כשהמשתמש מחובר, וכך אפשר לפלח לפי משתמש, ולפי צוות בעזרת תכונות משלך. מדדי הטוקנים, העלות ושורות הקוד נושאים גם את התכונה `model`, כך שאפשר לפלח אותם גם לפי מודל.
+
+האירועים מפורטים יותר. בין היתר יש אירוע לכל פרומפט (`user_prompt`), לכל קריאת API (`api_request`,‏ `api_error`), לכל הרצת כלי (`tool_result`), להחלטת הרשאה (`tool_decision`), לשינוי מצב הרשאות (`permission_mode_changed`), לחיבור שרת MCP (`mcp_server_connection`) ולהתחברות (`auth`). כולם מתחילים בקידומת `claude_code.`. התיעוד מתאר את האירועים האלה כמקור נתוני הביקורת (audit) של Claude Code, ומראה איך לשלוח אותם ל-SIEM. זיהוי חריגות והתראות הם באחריות ה-SIEM או מערכת הניטור שלך: Claude Code רק שולח את זרם האירועים.
+
+<Callout type="note">
+מדדי העלות הם קירוב. לנתוני חיוב רשמיים בודקים אצל ספק ה-API: Claude Console,‏ Amazon Bedrock או Google Cloud's Agent Platform.
+</Callout>
+
+### מה נשלח ומה לא?
+ייצוא OpenTelemetry למערכת שלך דורש הפעלה מפורשת, והנתונים הולכים רק ל-endpoint שהגדרת, לא ל-Anthropic. ברירות המחדל שומרות על תוכן:
+
+- **תוכן קבצים וקטעי קוד** לא נכללים במדדים ובאירועים.
+- **תוכן הפרומפט** לא נאסף, רק האורך שלו. מפעילים עם `OTEL_LOG_USER_PROMPTS=1`.
+- **טקסט התשובה של Claude** לא נאסף, רק האורך שלו. מפעילים עם `OTEL_LOG_ASSISTANT_RESPONSES=1`. שימו לב: כשהמשתנה הזה לא מוגדר, הוא יורש את הערך של `OTEL_LOG_USER_PROMPTS`, ולכן כדי לאסוף פרומפטים בלי תשובות מגדירים `OTEL_LOG_ASSISTANT_RESPONSES=0`.
+- **פרמטרים של כלים**, כמו פקודות Bash ושמות שרתי MCP, לא נרשמים. מפעילים עם `OTEL_LOG_TOOL_DETAILS=1`.
+- **`user.email`** נכלל כשמתחברים עם OAuth. אם זו בעיה, מסננים או מסתירים את השדה ב-backend.
+
+<Callout type="warning">
+כל דגל תוכן שמפעילים מכניס מידע רגיש ל-backend שלך: פקודות, נתיבים וערכים רגישים שהופיעו בקלט. התיעוד ממליץ להגדיר ב-backend סינון או הסתרה לשדות האלה.
+</Callout>
+
+## מה מציג דשבורד ה-analytics?
+הדשבורד מראה אימוץ ופעילות בלי להקים שום תשתית. הכתובת תלויה בסוג החשבון:
+
+| חשבון | כתובת | מי רואה |
+| --- | --- | --- |
+| Claude for Teams או Enterprise | `claude.ai/analytics/claude-code` | Admins ו-Owners |
+| API ב-Claude Console | `platform.claude.com/claude-code` | תפקידים עם ההרשאה UsageView |
+
+בתוכניות Teams ו-Enterprise הדשבורד כולל שורות קוד שאושרו, אחוז ההצעות שאושרו, משתמשים פעילים וסשנים ביום, טבלת מובילים, וייצוא ל-CSV. ב-Console הוא מציג גם הוצאה יומית בדולרים והוצאה חודשית לפי משתמש. לפי התיעוד, נתוני ההוצאה ב-Console הם הערכה, והעלות בפועל מופיעה בדף החיוב.
+
+### איך מפעילים contribution metrics?
+contribution metrics מראים כמה pull requests ממוזגים ושורות קוד נכתבו בעזרת Claude Code. הם זמינים ב-Teams וב-Enterprise, בגרסת public beta, ודורשים חיבור ל-GitHub:
+
+<StepList>
+
+1. מנהל GitHub מתקין את ה-Claude GitHub app על הארגון ב-GitHub.
+2. Owner ב-Claude נכנס להגדרות הניהול של Claude Code ב-claude.ai ומפעיל את Claude Code analytics.
+3. באותו עמוד מפעילים את המתג GitHub analytics.
+4. משלימים אימות מול GitHub ובוחרים אילו ארגונים ב-GitHub לכלול.
+
+</StepList>
+
+הנתונים מופיעים בדרך כלל תוך 24 שעות ומתעדכנים פעם ביום. התיעוד מדגיש שהמדדים שמרניים ומעריכים בחסר: נספרות רק שורות שיש ביטחון גבוה ש-Claude Code היה מעורב בהן. pull requests כאלה מקבלים ב-GitHub את התווית `claude-code-assisted`.
+
+## איך מנהלים עלויות והוצאה בארגון?
+הכלים תלויים באופן שבו הארגון ניגש ל-Claude Code:
+
+| סוג החשבון | איפה רואים הוצאה | איך מגבילים |
+| --- | --- | --- |
+| Claude for Teams או Enterprise | spend report ב-analytics של הארגון | מכסת המושב, ומעליה spend limits בהגדרות הניהול |
+| Claude Console (API) | דף ה-Usage ב-Console | spend limits ל-workspace |
+| Bedrock,‏ Google Cloud,‏ Foundry | קונסולת החיוב של הענן | כלי התקציב של הענן |
+
+- **Teams ו-Enterprise:** כל חבר צורך ממכסת המושב שלו, שמתאפסת בחלון מתגלגל של חמש שעות ובחלון שבועי, ומשותפת עם הצ'אט ועם Cowork. כדי לאפשר המשך מעבר למכסה, מפעילים usage credits ומגדירים spend limits ברמת הארגון, הקבוצה או המשתמש. בתוכנית Enterprise אפשר למשוך נתונים לפי משתמש גם דרך Enterprise Analytics API.
+- **Claude Console:** בהתחברות הראשונה נוצר אוטומטית workspace בשם "Claude Code", שמרכז את העלות של כל השימוש ב-Claude Code בארגון. אפשר להגביל את ההוצאה שלו ולהגדיר לו rate limit, כדי ש-Claude Code לא יגזול את המכסה של עומסי production אחרים.
+- **ספקי ענן:** Claude Code לא שולח ל-Anthropic נתונים מהענן שלך, ולכן הדשבורדים לא מכסים את השימוש הזה. לייחוס עלות לפי משתמש משתמשים ב-OpenTelemetry או ב-[gateway](/enterprise/gateways). איך מחברים את Claude Code לספקי הענן מוסבר ב[שיעור על פריסה בענן](/enterprise/cloud-deploy).
+
+לפי התיעוד, בפריסות ארגוניות העלות הממוצעת היא כ-13 דולר למפתח ליום עבודה פעיל, ו-150 עד 250 דולר למפתח בחודש. אצל 90% מהמשתמשים העלות נשארת מתחת ל-30 דולר ליום פעיל. התיעוד ממליץ להתחיל בקבוצת פיילוט קטנה ולמדוד baseline לפני פריסה רחבה.
+
+<Callout type="note">
+המספרים האלה הם ממוצעים מהתיעוד הרשמי, ועשויים להשתנות. העלות בפועל תלויה במודל, בגודל הקוד ובדפוסי העבודה. לפני שמתכננים תקציב, בודקים את [דף העלויות](https://code.claude.com/docs/en/costs) ואת החוזה שלכם.
+</Callout>
+
+כברירת מחדל, Claude Code מחשב עלויות לפי מחירון. אם הארגון משלם תעריפים חוזיים, ההגדרה המנוהלת `modelPricing` מתאימה את הסכומים ב-`/usage`, בשורת הסטטוס וב-OpenTelemetry לתעריפים שלכם. היא משנה רק את מה ש-Claude Code מציג, לא את מה ש-Anthropic גובה, ו-Claude Code מתעלם ממנה אם היא מופיעה בהגדרות user,‏ project או local.
+
+### מה עונים למפתח שנתקע במגבלה?
+כדאי לזהות איזו תקרה הוא פגש:
+
+| ההודעה | מה היא אומרת | מה עושים |
+| --- | --- | --- |
+| session limit או weekly limit | נגמר חלון השימוש של המושב | מחכים לאיפוס, או מבקשים עוד עם `/usage-credits` אם ה-usage credits מופעלים |
+| spend limit (אישי, של הארגון או של הצוות) | ה-usage credits הגיעו לתקרה שהגדרתם | מעלים את המגבלה ב-Admin settings > Usage |
+| אזהרת context או auto-compact | לא מגבלת שימוש: השיחה מתקרבת לסף הסיכום | מפנים [לטיפים לחיסכון בטוקנים](/beginner-plus/costs-context) |
+
+## מה זה Zero Data Retention?
+Zero Data Retention (ZDR) אומר שהפרומפטים והתשובות של סשני Claude Code מעובדים בזמן אמת, ו-Anthropic לא שומרת אותם אחרי שהתשובה חוזרת, פרט למקרים שהחוק מחייב או לטיפול בשימוש לרעה. הוא זמין לחשבונות Claude for Enterprise מתאימים, לא נכלל בתוכנית הרגילה, ולא מופעל מהגדרות הניהול: [פונים למכירות או לצוות החשבון](https://code.claude.com/docs/en/zero-data-retention#request-zdr), ו-Anthropic מפעילה אותו אחרי בדיקת זכאות.
+
+כמה דברים שחשוב לדעת:
+
+- **לכל ארגון בנפרד.** ארגון חדש באותו חשבון לא מקבל ZDR אוטומטית.
+- **רק בהתחברות לארגון ה-ZDR.** מפתח שמתחבר עם חשבון אישי או עם מפתח API של ארגון אחר לא מכוסה. כדי לחייב התחברות לארגון, מפיצים ב-managed settings את `forceLoginMethod` ואת `forceLoginOrgUUID`.
+- **רק בפלטפורמה הישירה של Anthropic.** ב-Amazon Bedrock,‏ Google Cloud's Agent Platform ו-Microsoft Foundry חלה מדיניות השמירה של הפלטפורמה.
+- **הפרת מדיניות.** אם סשן מסומן כהפרה של מדיניות השימוש, Anthropic עשויה לשמור את הקלט והפלט שלו עד שנתיים.
+
+### מה ZDR לא מכסה?
+ZDR חל על קריאות ה-inference של Claude Code. אלה נשארים במדיניות השמירה הרגילה:
+
+| תחום | מה נשמר |
+| --- | --- |
+| צ'אט ב-claude.ai ו-Cowork | לא מכוסים ב-ZDR |
+| Claude Code Analytics | מטא-דאטה כמו כתובות מייל וסטטיסטיקות שימוש, בלי פרומפטים ותשובות. contribution metrics לא זמינים בכלל |
+| ניהול משתמשים ומושבים | כתובות מייל והקצאות מושבים |
+| אינטגרציות צד שלישי | נתונים ששרתי MCP וכלים חיצוניים מעבדים. בודקים את המדיניות שלהם בנפרד |
+
+### אילו פיצ'רים נחסמים תחת ZDR?
+פיצ'רים שחייבים לשמור פרומפטים או תשובות נחסמים אוטומטית בצד השרת: סשנים בענן (כולל כאלה שמתחילים מאפליקציית Desktop),‏ Claude Tag,‏ Artifacts,‏ Remote Control ושליחת משוב עם `/feedback`,‏ `/bug` ו-`/share`. ניסיון להשתמש בהם מחזיר שגיאה שמדיניות הארגון לא מתירה את הפעולה. גם חלק מהמודלים דורשים שמירת נתונים כברירת מחדל, ואז הם חסרים או מושבתים ב-`/model`. הפרטים ב[דף ה-ZDR](https://code.claude.com/docs/en/zero-data-retention#model-availability-under-zdr) וב[הגדרות המודלים](https://code.claude.com/docs/en/model-config).
+
+## מה Anthropic עושה עם הנתונים?
+התשובה תלויה בסוג החשבון. לפי [דף מדיניות הנתונים](https://code.claude.com/docs/en/data-usage):
+
+| | חשבונות מסחריים (Team,‏ Enterprise,‏ API) | חשבונות אישיים (Free,‏ Pro,‏ Max) |
+| --- | --- | --- |
+| אימון מודלים | לא מאמנים על קוד ופרומפטים, אלא אם הלקוח בחר לשתף, למשל ב-Development Partner Program | המשתמש בוחר אם לאפשר |
+| שמירה | 30 יום כסטנדרט, או ZDR לחשבונות Enterprise מתאימים | 5 שנים אם אישרת שימוש לשיפור המודלים, 30 יום אם לא |
+
+שני דברים נוספים:
+
+- **עותק מקומי.** Claude Code שומר את תמלילי הסשנים כטקסט רגיל במחשב, תחת `~/.claude/projects/`, למשך 30 יום כברירת מחדל, כדי שאפשר יהיה לחזור לסשן. משנים את התקופה עם `cleanupPeriodDays`.
+- **משוב.** תמליל שנשלח עם `/feedback` נשמר 5 שנים. מכבים את הפקודה עם `DISABLE_FEEDBACK_COMMAND=1`.
+
+### איך מכבים את הטלמטריה של Anthropic?
+זו טלמטריה נפרדת מ-OpenTelemetry: Claude Code שולח ל-Anthropic ולשירותי צד שלישי מדדי תפעול ודוחות שגיאה. לפי התיעוד, המדדים אף פעם לא כוללים קוד, פרומפטים או נתיבי קבצים. אפשר לכבות כל סוג בנפרד:
+
+| משתנה | מה הוא מכבה |
+| --- | --- |
+| `DISABLE_TELEMETRY=1` | מדדי שימוש ותפעול |
+| `DISABLE_ERROR_REPORTING=1` | דוחות שגיאה |
+| `CLAUDE_CODE_DISABLE_FEEDBACK_SURVEY=1` | סקרי איכות הסשן |
+| `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC` | כל התעבורה הלא-חיונית בבת אחת |
+
+ב-Amazon Bedrock,‏ Google Cloud's Agent Platform ו-Microsoft Foundry, מדדים, דוחות שגיאה ו-`/feedback` כבויים כברירת מחדל. אפשר להכניס את כל המשתנים האלה ל-`settings.json`, או להפיץ אותם לכל הארגון דרך managed settings.
+
+## הצעד הבא
+- ← [אימוץ Claude Code בארגון](/enterprise/adoption)
+- שיעורים קשורים: [managed settings ומדיניות ארגונית](/enterprise/admin) · [Claude apps gateway ו-LLM gateway](/enterprise/gateways) · [Claude Code ב-Bedrock ובספקי ענן](/enterprise/cloud-deploy) · [חיסכון בטוקנים ו-prompt caching](/beginner-plus/costs-context)
