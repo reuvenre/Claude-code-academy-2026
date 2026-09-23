@@ -1,0 +1,92 @@
+---
+title: "איך עושים commit ו-branch בשפה טבעית עם Claude Code?"
+description: "Claude Code עובד ישירות עם git: מציג מה השתנה, כותב הודעות commit, יוצר branches ופותח pull requests. אילו בקשות לכתוב, ומה לבדוק לפני שמשהו יוצא מהמחשב."
+level: "beginner"
+order: 8
+source: "https://code.claude.com/docs/en/quickstart"
+lastVerified: "2026-09-23"
+keywords: ["Claude Code", "git", "commit", "branch", "pull request", "PR", "merge conflicts", "גיט", "שפה טבעית", "הודעת commit", "ענף"]
+canDo: "עכשיו אתה יכול לבקש מ-Claude Code לבדוק מה השתנה, ליצור commit עם הודעה מתאימה, לפתוח branch ולהכין pull request."
+relatedSlugs: ["first-change", "essential-commands"]
+faq:
+  - q: "האם צריך לדעת פקודות git כדי לעבוד עם Claude Code?"
+    a: "לא. מבקשים בשפה טבעית, למשל commit my changes with a descriptive message, ו-Claude Code מריץ את פקודות git בעצמו. כדאי להבין את המושגים הבסיסיים כדי לבדוק מה הוא עשה."
+  - q: "מה Claude Code יודע על ה-git שלי?"
+    a: "הוא רואה את ה-branch הנוכחי, שינויים שעוד לא נשמרו ב-commit, והיסטוריית commits אחרונה."
+  - q: "האם Claude Code יכול לפתוח pull request?"
+    a: "כן. מבקשים create a pr for my changes, או מתקדמים שלב-שלב: מבקשים סיכום של השינויים, ואז PR, ואז שיפור התיאור. התיעוד הרשמי ממליץ לבדוק את ה-PR לפני שליחה."
+  - q: "האם Claude Code עוזר בפתרון merge conflicts?"
+    a: "כן. המדריך הרשמי מציג את הבקשה help me resolve merge conflicts כאחת מפעולות ה-git שאפשר לבקש מ-Claude Code. כמו בכל שינוי, כדאי לבדוק את התוצאה עם /diff."
+---
+
+import { CommandBlock, Callout, StepList } from "@/components/lesson";
+
+Claude Code עובד ישירות עם git, אז מבקשים במילים במקום להקליד פקודות: `what files have I changed?` כדי לראות שינויים, `commit my changes with a descriptive message` כדי לשמור אותם, ו-`create a new branch called feature/quickstart` כדי לפתוח branch. הוא מריץ את פקודות git בעצמו וכותב את הודעות ה-commit.
+
+## למה זה חשוב
+git הוא אחד הכלים שמתחילים הכי חוששים ממנו. עם Claude Code לא צריך לזכור תחביר: הוא מכין שינויים ל-commit, כותב הודעות commit, יוצר branches ופותח pull requests. אתה מתמקד במה שרוצים לעשות, ובודק את התוצאה.
+
+## מה Claude Code רואה ב-git?
+כשמפעילים את `claude` בתיקייה, Claude Code רואה:
+
+- את ה-branch הנוכחי.
+- שינויים שעוד לא נשמרו ב-commit.
+- היסטוריית commits אחרונה.
+
+כשעוברים ל-branch אחר, Claude רואה את הקבצים של ה-branch החדש, והשיחה עצמה נשארת כפי שהייתה.
+
+## אילו בקשות כותבים?
+אלה דוגמאות מהמדריך הרשמי:
+
+| מה רוצים | מה כותבים ל-Claude |
+| --- | --- |
+| לראות מה השתנה | `what files have I changed?` |
+| לשמור שינויים ב-commit | `commit my changes with a descriptive message` |
+| לפתוח branch חדש | `create a new branch called feature/quickstart` |
+| לראות היסטוריה | `show me the last 5 commits` |
+| לפתור קונפליקטים | `help me resolve merge conflicts` |
+
+## איך מכינים pull request?
+אפשר לבקש ישירות `create a pr for my changes`, או להתקדם בשלבים:
+
+<StepList>
+
+1. מבקשים סיכום של השינויים:
+   ```text
+   summarize the changes I've made to the authentication module
+   ```
+2. מבקשים ליצור את ה-PR:
+   ```text
+   create a pr
+   ```
+3. משפרים את התיאור:
+   ```text
+   enhance the PR description with more context about the security improvements
+   ```
+
+</StepList>
+
+<Callout type="tip">
+לפני ששולחים את ה-PR, קוראים אותו ומבקשים מ-Claude להצביע על סיכונים או נקודות שכדאי לשים לב אליהן. זו המלצה מהתיעוד הרשמי.
+</Callout>
+
+## איך בודקים לפני שממשיכים?
+commit נשמר אצלך במחשב, אבל push ו-pull request משתפים את העבודה עם אחרים. לכן כדאי לבדוק קודם:
+
+- `/diff` מציג את כל השינויים בתיקיית העבודה.
+- אפשר לשאול את Claude מה בדיוק הוא עשה ולמה.
+
+<Callout type="warning">
+checkpoints של Claude Code מחזירים קבצים מקומיים בלבד. פעולות שיוצאות מהמחשב, כמו push או פתיחת PR, אי אפשר להחזיר עם `Esc`. בדוק לפני שאתה מאשר אותן.
+</Callout>
+
+## דוגמה: סיכום commits מהטרמינל
+Claude Code משתלב גם עם כלים אחרים בטרמינל. הדוגמה הזו מהתיעוד הרשמי מעבירה את 20 ה-commits האחרונים ל-Claude ומבקשת סיכום:
+
+<CommandBlock>git log --oneline -20 | claude -p "summarize these recent commits"</CommandBlock>
+
+`claude -p` מריץ בקשה אחת, מדפיס את התשובה ויוצא.
+
+## הצעד הבא
+- ← [פקודות חיוניות ו-/help: מה צריך לדעת ביום הראשון](/beginner/essential-commands)
+- שיעורים קשורים: [השינוי הראשון בקוד](/beginner/first-change) · [הסשן הראשון](/beginner/first-session)
