@@ -2,7 +2,7 @@ import type * as PageTree from 'fumadocs-core/page-tree';
 import { curriculum } from './curriculum';
 import { levelInfo, levels, type Level } from './levels';
 import { getReadingMinutes } from './reading-time';
-import { source } from './source';
+import { referenceSource, source } from './source';
 
 type LessonPage = ReturnType<typeof source.getPages>[number];
 
@@ -12,6 +12,11 @@ export function getLevelLessons(level: Level): LessonPage[] {
     .getPages()
     .filter((page) => page.data.level === level)
     .sort((a, b) => a.data.order - b.data.order);
+}
+
+// עמודי רפרנס שפורסמו, לפי order
+export function getReferencePages() {
+  return referenceSource.getPages().sort((a, b) => a.data.order - b.data.order);
 }
 
 export interface HubEntry {
@@ -80,8 +85,22 @@ export function getSidebarTree(): PageTree.Root {
     };
   });
 
+  // מרכז הרפרנס כתיקייה אחרונה, לפי order
+  const referenceFolder: PageTree.Folder = {
+    $id: 'reference',
+    type: 'folder',
+    name: 'מרכז הרפרנס',
+    index: { $id: 'hub:reference', type: 'page', name: 'מרכז הרפרנס', url: '/reference' },
+    children: getReferencePages().map((page) => ({
+      $id: `reference:${page.url}`,
+      type: 'page',
+      name: page.data.title,
+      url: page.url,
+    })),
+  };
+
   return {
     name: 'Claude Code Academy',
-    children: folders,
+    children: [...folders, referenceFolder],
   };
 }

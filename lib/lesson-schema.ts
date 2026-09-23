@@ -54,3 +54,14 @@ export const lessonSchema = pageSchema.extend({
 
 export type FaqItem = z.infer<typeof faqItemSchema>;
 export type QuizItem = z.infer<typeof quizItemSchema>;
+
+// עמוד רפרנס (content/reference): בלי רמה/CanDo/Quiz, אבל עם אותן דרישות מקור ואימות
+export const referenceSchema = pageSchema.extend({
+  description: z.string().min(1),
+  order: z.number().int().nonnegative(),
+  source: officialUrl,
+  lastVerified: isoDate,
+  keywords: z.array(z.string().min(1)).min(1),
+  faq: z.array(faqItemSchema).optional(),
+  draft: z.boolean().default(false),
+});

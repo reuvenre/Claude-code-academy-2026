@@ -1,6 +1,6 @@
 import type { MetadataRoute } from 'next';
 import { levelInfo, levels } from '@/lib/levels';
-import { isLevelLive } from '@/lib/navigation';
+import { getReferencePages, isLevelLive } from '@/lib/navigation';
 import { source } from '@/lib/source';
 import { absoluteUrl } from '@/lib/seo/site';
 
@@ -15,5 +15,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
     lastModified: page.data.lastVerified,
   }));
 
-  return [{ url: absoluteUrl('/') }, ...hubs, ...lessons];
+  const reference = getReferencePages().map((page) => ({
+    url: absoluteUrl(page.url),
+    lastModified: page.data.lastVerified,
+  }));
+  const referenceHub = reference.length ? [{ url: absoluteUrl('/reference') }] : [];
+
+  return [{ url: absoluteUrl('/') }, ...hubs, ...lessons, ...referenceHub, ...reference];
 }

@@ -1,4 +1,5 @@
 import { levelInfo, levels } from '@/lib/levels';
+import { getReferencePages } from '@/lib/navigation';
 import { source } from '@/lib/source';
 import { absoluteUrl, site } from './site';
 
@@ -36,9 +37,20 @@ export function buildLlmsIndex(): string {
         .join('\n'),
   );
 
-  return [header, ...sections, `## תוכן מלא\n- [llms-full.txt](${absoluteUrl('/llms-full.txt')})`].join(
-    '\n',
-  );
+  const reference = getReferencePages();
+  const referenceSection = reference.length
+    ? `## מרכז הרפרנס\n` +
+      reference
+        .map((page) => `- [${page.data.title}](${absoluteUrl(page.url)}): ${page.data.description}`)
+        .join('\n')
+    : undefined;
+
+  return [
+    header,
+    ...sections,
+    ...(referenceSection ? [referenceSection] : []),
+    `## תוכן מלא\n- [llms-full.txt](${absoluteUrl('/llms-full.txt')})`,
+  ].join('\n');
 }
 
 export async function renderLessonMarkdown(page: LessonPage): Promise<string> {

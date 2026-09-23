@@ -3,12 +3,26 @@ import { lucideIconsPlugin } from 'fumadocs-core/source/lucide-icons';
 import { docsContentRoute, docsImageRoute, docsRoute } from './shared';
 import { defineDocs } from 'fumadocs-mdx/macro';
 import { metaSchema } from 'fumadocs-core/source/schema';
-import { lessonSchema } from './lesson-schema';
+import { lessonSchema, referenceSchema } from './lesson-schema';
 
 const docs = defineDocs({
   dir: 'content/lessons',
   docs: {
     schema: lessonSchema,
+    postprocess: {
+      includeProcessedMarkdown: true,
+    },
+  },
+  meta: {
+    schema: metaSchema,
+  },
+});
+
+// מרכז הרפרנס: collection נפרד עם סכמה משלו, בכתובות /reference/<slug>
+const reference = defineDocs({
+  dir: 'content/reference',
+  docs: {
+    schema: referenceSchema,
     postprocess: {
       includeProcessedMarkdown: true,
     },
@@ -48,6 +62,18 @@ export const source = loader({
   baseUrl: docsRoute,
   source: lessonsSource,
   plugins: [lucideIconsPlugin()],
+});
+
+const referenceFiles = reference.toFumadocsSource();
+if (hideDrafts) {
+  referenceFiles.files = referenceFiles.files.filter(
+    (file) => file.type !== 'page' || !file.data.draft,
+  );
+}
+
+export const referenceSource = loader({
+  baseUrl: '/reference',
+  source: referenceFiles,
 });
 
 export const demoSource = loader({
