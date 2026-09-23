@@ -1,0 +1,220 @@
+---
+title: "מה זה subagent ב-Claude Code ומתי כדאי להאציל אליו משימה?"
+description: "subagent הוא עוזר ייעודי שרץ בחלון הקשר משלו ומחזיר רק סיכום. איך משתמשים ב-subagents המובנים, יוצרים אחד משלך ב-.claude/agents/ ומתי עדיף skill."
+level: "advanced"
+order: 23
+source: "https://code.claude.com/docs/en/sub-agents"
+lastVerified: "2026-09-23"
+keywords: ["Claude Code", "subagent", "subagents", "סוכן משנה", "סוכני משנה", ".claude/agents", "Explore", "Plan", "הקשר", "context window", "--agent", "background", "רקע", "האצלת משימות"]
+canDo: "עכשיו אתה יכול להאציל משימה צדדית ל-subagent, ליצור subagent משלך עם קובץ ב-.claude/agents/, ולהחליט מתי הוא עדיף על skill או על השיחה הראשית."
+relatedSlugs: ["extend-overview", "skills", "permission-modes"]
+faq:
+  - q: "מה ההבדל בין subagent ל-skill?"
+    a: "subagent רץ בחלון הקשר נפרד ומחזיר לשיחה רק סיכום, ולכן מתאים למשימות שמייצרות הרבה פלט. skill הוא פרומפט או workflow לשימוש חוזר שרץ בתוך ההקשר של השיחה הראשית. אפשר גם לשלב: השדה skills בקובץ ה-subagent טוען skills לתוכו כשהוא מתחיל."
+  - q: "איפה שומרים קובץ של subagent?"
+    a: "ב-.claude/agents/ בתיקיית הפרויקט, כדי שהוא יהיה זמין בפרויקט הזה ויכנס ל-git עם הצוות. או ב-~/.claude/agents/ בתיקיית הבית, כדי שיהיה זמין לך בכל הפרויקטים. אם יש שני subagents באותו שם, זה של הפרויקט גובר."
+  - q: "האם subagent רואה את השיחה שלי?"
+    a: "subagent רגיל לא רואה את השיחה, כי הוא מתחיל עם חלון הקשר נקי. הוא מקבל את הפרומפט שלו, הודעת משימה ש-Claude כותב, ובדרך כלל גם קובצי CLAUDE.md ומצב git (Explore ו-Plan מדלגים עליהם), אבל לא את היסטוריית השיחה ולא את הקבצים ש-Claude כבר קרא. היוצא מן הכלל הוא fork, שיורש את כל השיחה."
+  - q: "איך מכריחים את Claude להשתמש ב-subagent מסוים?"
+    a: "מקלידים @ ובוחרים את ה-subagent מהרשימה, והוא ירוץ בוודאות למשימה הזו. אפשר גם פשוט לכתוב את שמו בפרומפט, ואז Claude מחליט. כדי שכל הסשן ירוץ כ-subagent, מפעילים את Claude Code עם הדגל --agent ושם ה-subagent."
+  - q: "למה Claude לא מוצא subagent חדש שיצרתי?"
+    a: "Claude Code מזהה שינויים בתיקיות agents תוך כמה שניות, אבל רק בתיקיות שהיו קיימות כשהסשן התחיל. אם יצרת את תיקיית agents בפעם הראשונה, הפעל מחדש את Claude Code. ודא גם שבקובץ יש name ו-description, אחרת הוא לא נטען."
+---
+
+import { CommandBlock, Callout } from "@/components/lesson";
+
+subagent הוא עוזר AI ייעודי ש-Claude Code מאציל אליו משימה. הוא רץ בחלון הקשר משלו, עם system prompt, כלים והרשאות משלו, ומחזיר לשיחה הראשית רק סיכום. משתמשים בו כשמשימה צדדית תציף את השיחה בפלט שלא תחזור אליו, כמו חיפושים, לוגים או תוצאות בדיקות.
+
+## למה זה חשוב
+חלון ההקשר של השיחה הראשית הוא משאב מוגבל. הרצת בדיקות, קריאת לוגים או סריקה של קוד בסיס מייצרות הרבה טקסט שאתה צריך רק את השורה התחתונה שלו. subagent עושה את העבודה בהקשר נפרד ומחזיר סיכום, כך שהשיחה שלך נשארת נקייה.
+
+לפי התיעוד הרשמי, subagents עוזרים:
+
+- **לשמור על ההקשר:** חיפוש ומימוש נשארים מחוץ לשיחה הראשית.
+- **לאכוף מגבלות:** מגבילים אילו כלים ה-subagent יכול להפעיל.
+- **לעשות שימוש חוזר:** subagent ברמת המשתמש זמין בכל הפרויקטים.
+- **להתמחות:** system prompt ממוקד לתחום מסוים.
+- **לשלוט בעלויות:** אפשר להריץ משימה על מודל מהיר וזול יותר (ראה [הגדרת מודלים](https://code.claude.com/docs/en/model-config)).
+
+כדאי להגדיר subagent משלך כשאתה מוצא את עצמך שולח שוב ושוב את אותו סוג עבודה עם אותן הוראות.
+
+## אילו subagents מובנים יש ב-Claude Code?
+Claude Code כולל subagents מובנים ש-Claude מפעיל לבד כשזה מתאים. כולם יורשים את ההרשאות של השיחה הראשית.
+
+| subagent | כלים | למה משמש |
+| --- | --- | --- |
+| **Explore** | קריאה בלבד (Write ו-Edit חסומים) | חיפוש קבצים וקוד והבנת קוד בסיס בלי לשנות אותו |
+| **Plan** | קריאה בלבד (Write ו-Edit חסומים) | איסוף הקשר ב-plan mode לפני הצגת תוכנית |
+| **General-purpose** | כל הכלים הזמינים ל-subagents | משימות מורכבות מרובות שלבים שדורשות גם חקירה וגם שינוי |
+
+כש-Claude מפעיל את Explore, הוא בוחר רמת יסודיות: **quick** לחיפוש ממוקד, **medium** לחקירה מאוזנת, או **very thorough** לניתוח מקיף. יש גם subagents עזר, כמו `statusline-setup` שרץ כשמריצים `/statusline`, ו-`claude-code-guide` שעונה על שאלות על Claude Code. בדרך כלל לא צריך להפעיל אותם ישירות.
+
+Explore ו-Plan מדלגים על קובצי CLAUDE.md ועל מצב git כדי שהחקירה תהיה מהירה וזולה. כל שאר ה-subagents טוענים את שניהם, אלא אם ההגדרה שלהם כוללת `omitClaudeMd: true`, שמדלג על קובצי ה-CLAUDE.md של המשתמש, הפרויקט וה-local.
+
+## מה subagent רואה כשהוא מתחיל?
+subagent מתחיל עם חלון הקשר נקי ומבודד. הוא לא רואה את היסטוריית השיחה, את ה-skills שכבר הפעלת או את הקבצים ש-Claude כבר קרא. מה שכן מגיע אליו:
+
+- **system prompt:** הפרומפט של ה-subagent עצמו ופרטי סביבה, ולא ה-system prompt של Claude Code.
+- **הודעת משימה:** Claude כותב סיכום של המשימה כשהוא מאציל אותה.
+- **קובצי CLAUDE.md:** כל הרמות שהשיחה הראשית טוענת (חוץ מ-Explore ו-Plan, ו-subagent שהוגדר עם `omitClaudeMd`).
+- **מצב git:** תמונת מצב של הריפו ברגע שה-subagent מתחיל.
+- **skills שנטענו מראש:** התוכן המלא של skills שמופיעים בשדה `skills` שלו.
+
+אם כלל מסוים חייב להגיע ל-subagent, כמו "ignore the `vendor/` directory", כדאי לחזור עליו בבקשה שאתה נותן ל-Claude כשאתה מאציל.
+
+## איך יוצרים subagent משלך?
+subagent הוא קובץ Markdown עם frontmatter ב-YAML. הדרך הפשוטה: מתארים ל-Claude את ה-subagent שאתה רוצה ואיפה לשמור אותו, והוא כותב את הקובץ. אפשר גם לכתוב אותו ידנית. הפקודה `/agents` כבר לא פותחת אשף יצירה, אלא מזכירה לבקש מ-Claude או לערוך את `.claude/agents/` ישירות.
+
+זו דוגמה מהתיעוד הרשמי, subagent לסקירת קוד שלא יכול לערוך קבצים. שומרים אותה ב-`.claude/agents/code-reviewer.md`:
+
+```markdown
+---
+name: code-reviewer
+description: Expert code review specialist. Proactively reviews code for quality, security, and maintainability. Use immediately after writing or modifying code.
+tools: Read, Grep, Glob, Bash
+model: inherit
+---
+
+You are a senior code reviewer ensuring high standards of code quality and security.
+
+When invoked:
+1. Run git diff to see recent changes
+2. Focus on modified files
+3. Begin review immediately
+
+Review checklist:
+- Code is clear and readable
+- Functions and variables are well-named
+- No duplicated code
+- Proper error handling
+- No exposed secrets or API keys
+- Input validation implemented
+- Good test coverage
+- Performance considerations addressed
+
+Provide feedback organized by priority:
+- Critical issues (must fix)
+- Warnings (should fix)
+- Suggestions (consider improving)
+
+Include specific examples of how to fix issues.
+```
+
+ה-frontmatter מגדיר את ההגדרות, והגוף הופך ל-system prompt של ה-subagent. Claude Code עוקב אחרי תיקיות ה-agents ומזהה קובץ חדש או ערוך תוך כמה שניות, בלי הפעלה מחדש. החריג: אם תיקיית `agents` לא הייתה קיימת כשהסשן התחיל, צריך להפעיל מחדש.
+
+### איפה שומרים את הקובץ?
+המיקום קובע מי יכול להשתמש ב-subagent. כשיש שני subagents באותו שם, זה שבמיקום עם העדיפות הגבוהה יותר גובר.
+
+| מיקום | היקף | עדיפות |
+| --- | --- | --- |
+| managed settings | כל הארגון | 1 (הגבוהה ביותר) |
+| הדגל `--agents` | הסשן הנוכחי | 2 |
+| `.claude/agents/` | הפרויקט הנוכחי | 3 |
+| `~/.claude/agents/` | כל הפרויקטים שלך | 4 |
+| תיקיית `agents/` של plugin | איפה שה-plugin מופעל | 5 (הנמוכה ביותר) |
+
+subagents של פרויקט מכניסים ל-git, כדי שכל הצוות ישתמש בהם וישפר אותם.
+
+### אילו שדות אפשר להגדיר?
+רק `name` ו-`description` חובה. שמות שדות מרובי-מילים נכתבים ב-camelCase בדיוק כמו בטבלה, כי Claude Code מתעלם בשקט משדה שהוא לא מכיר.
+
+| שדה | מה הוא עושה |
+| --- | --- |
+| `name` | מזהה ייחודי, כמו `code-reviewer`. שם הקובץ לא חייב להתאים |
+| `description` | מתי Claude צריך להאציל ל-subagent הזה |
+| `tools` | הכלים שה-subagent יכול להפעיל. בלי השדה הוא יורש את כל הכלים הזמינים ל-subagents |
+| `disallowedTools` | כלים לחסום, שמוסרים מהרשימה שנורשה או שהוגדרה |
+| `model` | alias, מזהה מודל מלא או `inherit` (אותו מודל כמו השיחה הראשית). ראה [הגדרת מודלים](https://code.claude.com/docs/en/model-config) |
+| `permissionMode` | מצב ההרשאות של ה-subagent, למשל `default` או `plan` |
+| `skills` | skills שנטענים להקשר של ה-subagent כשהוא מתחיל |
+| `maxTurns` | מספר מרבי של תורות לפני שה-subagent עוצר |
+| `background` | `true` כדי שה-subagent ירוץ תמיד ברקע |
+| `isolation` | `worktree` כדי להריץ אותו בעותק מבודד של הריפו ב-git worktree |
+
+יש עוד שדות, כמו `hooks`,‏ `mcpServers`,‏ `memory` ו-`effort`. הרשימה המלאה ב[טבלת ה-frontmatter בתיעוד](https://code.claude.com/docs/en/sub-agents#supported-frontmatter-fields).
+
+<Callout type="tip">
+Claude בוחר subagent לפי ה-`description`. כתוב תיאור ספציפי שמכוון ל-subagent אחד בלבד, והוסף "use proactively" אם אתה רוצה ש-Claude יאציל אליו מיוזמתו. התיאורים תופסים הקשר, אז שמור אותם קצרים והעבר פרטים ל-system prompt, שנטען רק כשה-subagent רץ.
+</Callout>
+
+## איך מפעילים subagent?
+Claude מאציל אוטומטית לפי הבקשה שלך, ה-`description` של כל subagent וההקשר הנוכחי. כשרוצים לבחור בעצמך, יש שלוש דרכים:
+
+**בשפה טבעית.** כותבים את שם ה-subagent בפרומפט, ו-Claude מחליט אם להאציל:
+
+```text
+Use the test-runner subagent to fix failing tests
+Have the code-reviewer subagent look at my recent changes
+```
+
+**עם @-mention.** מקלידים `@` ובוחרים את ה-subagent מהרשימה, כמו שמזכירים קובץ. כך ה-subagent הזה ירוץ בוודאות:
+
+```text
+@"code-reviewer (agent)" look at the auth changes
+```
+
+**כל הסשן כ-subagent.** הדגל `--agent` מפעיל סשן שבו השיחה הראשית עצמה מקבלת את ה-system prompt, הכלים והמודל של ה-subagent:
+
+<CommandBlock>claude --agent code-reviewer</CommandBlock>
+
+כדי שזו תהיה ברירת המחדל בפרויקט, מגדירים `agent` ב-`.claude/settings.json`:
+
+```json
+{
+  "agent": "code-reviewer"
+}
+```
+
+בזמן העבודה, ההאצלה מופיעה בתמליל כשורה עם שם ה-subagent ותיאור קצר של המשימה, למשל `code-reviewer(Suggest code improvements)`.
+
+## מה ההבדל בין foreground ל-background?
+subagent ב-foreground חוסם את השיחה הראשית עד שהוא מסיים, ובקשות הרשאה עוברות אליך כשהן עולות. subagent ב-background רץ במקביל בזמן שאתה ממשיך לעבוד. כשהוא צריך הרשאה לכלי, Claude Code מציג את הבקשה בסשן הראשי ומציין איזה subagent מבקש.
+
+בסשן אינטראקטיבי fork mode פעיל כברירת מחדל, ולכן Claude Code מריץ ברקע את ה-subagents ש-Claude מפעיל. כמה דברים שימושיים:
+
+- `Ctrl+B` מעביר משימה שרצה לרקע.
+- `/tasks` מציג את ה-subagents ועל איזה מודל כל אחד רץ.
+- התוצאות של subagent ברקע מגיעות ל-Claude כהודעת סיום. אם תשאל לפני כן, Claude יגיד שה-subagent עדיין רץ.
+- כדי ש-subagent מסוים יישאר ברקע גם כש-Claude מבקש להריץ אותו ב-foreground (רלוונטי כש-fork mode כבוי, למשל במצב לא-אינטראקטיבי עם `-p`), מגדירים לו `background: true`.
+
+<Callout type="note">
+fork הוא subagent שיורש את כל השיחה עד עכשיו במקום להתחיל נקי, כך שלא צריך להסביר לו שוב את המצב. מפעילים אותו עם `/subtask` ואחריו המשימה. הפרטים ב[תיעוד הרשמי](https://code.claude.com/docs/en/sub-agents#fork-the-current-conversation).
+</Callout>
+
+## מתי subagent, מתי skill ומתי השיחה הראשית?
+התיעוד הרשמי נותן כלל אצבע פשוט:
+
+| השתמש ב... | כש... |
+| --- | --- |
+| **שיחה ראשית** | צריך הרבה הלוך-חזור, השלבים חולקים הרבה הקשר, השינוי קטן וממוקד, או שחשובה מהירות תגובה |
+| **subagent** | המשימה מייצרת פלט ארוך שלא צריך בהקשר הראשי, רוצים לאכוף הגבלות כלים או הרשאות, או שהעבודה עצמאית ויכולה להחזיר סיכום |
+| **[skill](/advanced/skills)** | רוצים פרומפט או workflow לשימוש חוזר שרץ בהקשר של השיחה הראשית, ולא בהקשר מבודד |
+
+subagent שאינו fork מתחיל מאפס, ולכן לפעמים לוקח לו זמן לאסוף הקשר. זו הסיבה שלשינוי קטן עדיף להישאר בשיחה הראשית.
+
+## דוגמאות מעשיות
+**בידוד פלט כבד.** הרצת בדיקות מייצרת הרבה פלט. subagent מריץ אותן ומחזיר רק את מה שצריך:
+
+```text
+Use a subagent to run the test suite and report only the failing tests with their error messages
+```
+
+**מחקר במקביל.** לחקירות שלא תלויות זו בזו, כל subagent חוקר תחום אחר ו-Claude מאחד את הממצאים:
+
+```text
+Research the authentication, database, and API modules in parallel using separate subagents
+```
+
+**שרשור.** subagent אחד מסיים ומחזיר תוצאות ל-Claude, שמעביר את ההקשר הרלוונטי לבא בתור:
+
+```text
+Use the code-reviewer subagent to find performance issues, then use the optimizer subagent to fix them
+```
+
+<Callout type="warning">
+כש-subagents מסיימים, התוצאות שלהם חוזרות לשיחה הראשית. הרבה subagents שכל אחד מחזיר תוצאות מפורטות יכולים לצרוך הרבה הקשר. שים לב שהדוגמה הראשונה למעלה מבקשת במפורש רק את הבדיקות שנכשלו ("report only the failing tests").
+</Callout>
+
+## הצעד הבא
+- ← [Hooks: פעולות שרצות תמיד בנקודות קבועות](/advanced/hooks)
+- שיעורים קשורים: [Skills](/advanced/skills) · [סקירת דרכי ההרחבה](/advanced/extend-overview) · [מצבי הרשאות](/beginner-plus/permission-modes)
