@@ -65,3 +65,19 @@ export const referenceSchema = pageSchema.extend({
   faq: z.array(faqItemSchema).optional(),
   draft: z.boolean().default(false),
 });
+
+// פוסט (content/blog, content/research) לפי templates/post.mdx.
+// status: draft — לא מתפרסם בפרודקשן. הסוכן העתידי כותב תמיד draft; פרסום רק אחרי אישור אנושי.
+export const postSchema = pageSchema.extend({
+  description: z.string().min(1),
+  type: z.enum(['blog', 'research']),
+  status: z.enum(['draft', 'published']),
+  date: isoDate,
+  source: officialUrl,
+  sources: z.array(z.url({ protocol: /^https$/ })).optional(),
+  keywords: z.array(z.string().min(1)).min(1),
+  author: z.string().min(1).default('מערכת'),
+  faq: z.array(faqItemSchema).optional(),
+});
+
+export type PostType = z.infer<typeof postSchema>['type'];

@@ -3,7 +3,7 @@ import { lucideIconsPlugin } from 'fumadocs-core/source/lucide-icons';
 import { docsContentRoute, docsImageRoute, docsRoute } from './shared';
 import { defineDocs } from 'fumadocs-mdx/macro';
 import { metaSchema } from 'fumadocs-core/source/schema';
-import { lessonSchema, referenceSchema } from './lesson-schema';
+import { lessonSchema, postSchema, referenceSchema } from './lesson-schema';
 
 const docs = defineDocs({
   dir: 'content/lessons',
@@ -79,4 +79,37 @@ export const referenceSource = loader({
 export const demoSource = loader({
   baseUrl: '/demo',
   source: demo.toFumadocsSource(),
+});
+
+// בלוג ומחקרים: status: draft לא מתפרסם בפרודקשן (במצב פיתוח מוצג עם תווית טיוטה)
+// (macro של fumadocs-mdx חייב להיות initializer ישיר של const ברמה העליונה)
+const blog = defineDocs({
+  dir: 'content/blog',
+  docs: { schema: postSchema, postprocess: { includeProcessedMarkdown: true } },
+  meta: { schema: metaSchema },
+});
+
+const research = defineDocs({
+  dir: 'content/research',
+  docs: { schema: postSchema, postprocess: { includeProcessedMarkdown: true } },
+  meta: { schema: metaSchema },
+});
+
+function publishedOnly<T extends { files: { type: string; data: unknown }[] }>(files: T): T {
+  if (hideDrafts) {
+    files.files = files.files.filter(
+      (file) => file.type !== 'page' || (file.data as { status?: string }).status === 'published',
+    );
+  }
+  return files;
+}
+
+export const blogSource = loader({
+  baseUrl: '/blog',
+  source: publishedOnly(blog.toFumadocsSource()),
+});
+
+export const researchSource = loader({
+  baseUrl: '/research',
+  source: publishedOnly(research.toFumadocsSource()),
 });

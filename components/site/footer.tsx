@@ -5,6 +5,8 @@ const links = [
   { href: '/start', label: 'מאיפה להתחיל?' },
   { href: '/beginner', label: 'הקורס' },
   { href: '/reference', label: 'מרכז הרפרנס' },
+  { href: '/blog', label: 'בלוג' },
+  { href: '/research', label: 'מחקרים' },
   { href: '/faq', label: 'שאלות נפוצות' },
   { href: '/about', label: 'אודות' },
 ];

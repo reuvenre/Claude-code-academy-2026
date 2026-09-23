@@ -1,6 +1,6 @@
 import { levelInfo, levels } from '@/lib/levels';
 import { getReferencePages } from '@/lib/navigation';
-import { source } from '@/lib/source';
+import { blogSource, researchSource, source } from '@/lib/source';
 import { absoluteUrl, site } from './site';
 
 // llms.txt / llms-full.txt לפי templates/llms-txt.example.txt, מתוך ה-frontmatter.
@@ -45,10 +45,28 @@ export function buildLlmsIndex(): string {
         .join('\n')
     : undefined;
 
+  // בלוג ומחקרים: רק פוסטים שפורסמו, מהחדש לישן
+  const postSections = (
+    [
+      ['בלוג', blogSource],
+      ['מחקרים', researchSource],
+    ] as const
+  ).flatMap(([label, postSource]) => {
+    const pages = [...postSource.getPages()].sort((a, b) => b.data.date.localeCompare(a.data.date));
+    if (!pages.length) return [];
+    return [
+      `## ${label}\n` +
+        pages
+          .map((page) => `- [${page.data.title}](${absoluteUrl(page.url)}): ${page.data.description}`)
+          .join('\n'),
+    ];
+  });
+
   return [
     header,
     ...sections,
     ...(referenceSection ? [referenceSection] : []),
+    ...postSections,
     `## תוכן מלא\n- [llms-full.txt](${absoluteUrl('/llms-full.txt')})`,
   ].join('\n');
 }

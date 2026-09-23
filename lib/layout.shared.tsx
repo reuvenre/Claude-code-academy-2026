@@ -11,6 +11,7 @@ export function baseOptions(): BaseLayoutProps {
     links: [
       { text: 'הקורס', url: '/beginner' },
       { text: 'מרכז הרפרנס', url: '/reference' },
+      { text: 'בלוג', url: '/blog' },
     ],
   };
 }

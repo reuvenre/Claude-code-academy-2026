@@ -98,3 +98,32 @@ export function courseJsonLd(course: {
     teaches: course.teaches,
   };
 }
+
+// פוסט בבלוג (BlogPosting) או סיכום מחקר (Article)
+export function postJsonLd(post: {
+  url: string;
+  type: 'blog' | 'research';
+  title: string;
+  description: string;
+  date: string;
+  keywords: string[];
+  source: string;
+  author: string;
+}): JsonLd {
+  const url = absoluteUrl(post.url);
+  return {
+    '@context': 'https://schema.org',
+    '@type': post.type === 'blog' ? 'BlogPosting' : 'Article',
+    headline: post.title,
+    description: post.description,
+    url,
+    mainEntityOfPage: url,
+    inLanguage: site.language,
+    datePublished: post.date,
+    dateModified: post.date,
+    keywords: post.keywords.join(', '),
+    isBasedOn: post.source,
+    author: { '@type': 'Organization', name: post.author === 'מערכת' ? site.name : post.author },
+    publisher: organizationRef,
+  };
+}
