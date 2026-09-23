@@ -106,18 +106,8 @@ export default function HomePage() {
   const availableTotal = levels.reduce((sum, level) => sum + getLevelLessons(level).length, 0);
 
   return (
-    <div className="relative isolate w-full overflow-hidden">
-      {/* רקע: רשת + זוהר מותגי */}
-      <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 bg-grid" />
-      <div
-        aria-hidden
-        className="animate-glow pointer-events-none absolute -top-40 start-1/2 -z-10 size-[42rem] -translate-x-1/2 rounded-full bg-brand/25 blur-3xl rtl:translate-x-1/2"
-      />
-      <div
-        aria-hidden
-        className="animate-glow pointer-events-none absolute top-40 -start-40 -z-10 size-[28rem] rounded-full bg-brand-2/15 blur-3xl"
-      />
-
+    // הרקע (רשת + זוהר) משותף לכל האתר: components/site/site-background.tsx
+    <div className="relative w-full">
       <div className="mx-auto w-full max-w-6xl px-4 pb-20 pt-14 md:pt-24">
         <section className="grid items-center gap-12 lg:grid-cols-[1.1fr_1fr]">
           <div>

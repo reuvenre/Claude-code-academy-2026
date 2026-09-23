@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import './global.css';
 import { Heebo, JetBrains_Mono } from 'next/font/google';
 import { JsonLd } from '@/components/seo/json-ld';
+import { SiteBackground } from '@/components/site/site-background';
 import { organizationJsonLd } from '@/lib/seo/jsonld';
 import { site } from '@/lib/seo/site';
 import { heTranslations } from '@/lib/ui-translations';
@@ -45,6 +46,7 @@ export default function Layout({ children }: LayoutProps<'/'>) {
       {/* Fumadocs דורש dir גם על body וגם על RootProvider (שמעביר אותו ל-Base UI, כולל רכיבי shadcn) */}
       <body dir="rtl" className="flex flex-col min-h-screen font-sans">
         <JsonLd data={organizationJsonLd()} />
+        <SiteBackground />
         <RootProvider
           dir="rtl"
           i18n={{ locale: 'he', translations: heTranslations }}
