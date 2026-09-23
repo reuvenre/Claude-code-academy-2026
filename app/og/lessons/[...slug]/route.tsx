@@ -38,19 +38,21 @@ export async function GET(_req: Request, { params }: RouteContext<'/og/lessons/[
         height: '100%',
         padding: 72,
         fontFamily: 'Heebo',
-        color: '#fafafa',
-        backgroundColor: '#0a0a0a',
+        color: '#f2f4f8',
+        backgroundColor: '#121316',
+        // Tech Innovation: פס גרדיאנט כחול→ציאן בראש התמונה
+        borderTop: '12px solid #0066ff',
       }}
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-        <p style={{ fontSize: 28, color: '#a3a3a3', margin: 0 }}>
+        <p style={{ fontSize: 28, color: '#00e5ff', margin: 0 }}>
           {levelInfo[page.data.level].label}
         </p>
         <p style={{ fontSize: 60, fontWeight: 700, lineHeight: 1.2, margin: 0 }}>
           {page.data.title}
         </p>
       </div>
-      <p style={{ fontSize: 30, color: '#d4d4d4', margin: 0 }}>{site.name}</p>
+      <p style={{ fontSize: 30, color: '#3d8bff', margin: 0, fontWeight: 700 }}>{site.name}</p>
     </div>,
     { width: 1200, height: 630, format: 'png', fonts: await fontsPromise },
   );
