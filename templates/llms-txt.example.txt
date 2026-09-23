@@ -1,0 +1,29 @@
+# Claude Code Academy
+
+> אתר לימוד עברי (RTL) שמלמד לעבוד ב-Claude Code מאפס למאה — ממתחילים לחלוטין ועד
+> מקצוענים. כל התוכן מאומת מול התיעוד הרשמי של Anthropic ב-code.claude.com/docs.
+
+# הערה: קובץ זה נוצר אוטומטית מ-frontmatter של כל העמודים בזמן build.
+# הפורמט: לכל עמוד שורה אחת — [כותרת](URL מלא): תיאור קצר.
+# שמור על llms.txt תמציתי (~8KB). תוכן מלא נכנס ל-llms-full.txt.
+
+## מתחילים לחלוטין
+- [מה זה Claude Code](https://<domain>/beginner/what-is-claude-code): מה הוא עושה ובמה שונה מהשלמת קוד.
+- [התקנה לפי מערכת הפעלה](https://<domain>/beginner/installation): התקנת Claude Code ב-Windows/macOS/Linux.
+- [הסשן הראשון](https://<domain>/beginner/first-session): מה עושים אחרי שמריצים claude.
+
+## מתחילים פלוס
+- [ה-workflow הנכון](https://<domain>/beginner-plus/core-workflow): Explore, Plan, Implement, Commit.
+- [CLAUDE.md ו-/init](https://<domain>/beginner-plus/claude-md): איך Claude זוכר את הפרויקט.
+
+## מתקדמים
+- [Skills](https://<domain>/advanced/skills): יצירת והרחבת יכולות.
+- [MCP וקונקטורים](https://<domain>/advanced/mcp): חיבור כלים חיצוניים.
+
+## מקצוענים
+- [Agent Teams](https://<domain>/pro/agent-teams): תזמור כמה סשנים יחד.
+- [Agent SDK](https://<domain>/pro/agent-sdk): הרצה תכנותית.
+
+## רפרנס
+- [כל הפקודות](https://<domain>/reference/commands): רשימת פקודות הסלאש.
+- [CLI reference](https://<domain>/reference/cli-reference): דגלי שורת פקודה.
