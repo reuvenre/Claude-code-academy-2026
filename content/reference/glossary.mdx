@@ -1,0 +1,119 @@
+---
+title: "מילון מונחים של Claude Code: עברית-אנגלית עם הגדרות"
+description: "מילון מונחים עברית-אנגלית של Claude Code: agentic loop, compaction, CLAUDE.md, hooks, subagents, MCP, skills, מצבי הרשאות ועוד, עם הגדרה קצרה וקישור לשיעור."
+order: 9
+source: "https://code.claude.com/docs/en/glossary"
+lastVerified: "2026-09-23"
+keywords: ["Claude Code", "מילון מונחים", "glossary", "מונחים בעברית", "agentic loop", "לולאה אג'נטית", "compaction", "context window", "חלון הקשר", "CLAUDE.md", "subagent", "hooks", "MCP", "permission mode"]
+faq:
+  - q: "מה ההבדל בין CLAUDE.md ל-auto memory?"
+    a: "את CLAUDE.md אתה כותב: הוראות קבועות שנטענות בתחילת כל סשן. auto memory הן הערות ש-Claude כותב לעצמו על סמך התיקונים וההעדפות שלך, ונשמרות לכל ריפו תחת ~/.claude/projects/."
+  - q: "מה ההבדל בין subagent ל-agent teams?"
+    a: "subagent רץ בתוך סשן אחד ומחזיר סיכום רק לשיחה הראשית. ב-agent teams כמה סשנים עצמאיים מתואמים על ידי team lead, לכל אחד חלון הקשר משלו, ואפשר לדבר עם כל אחד מהם ישירות. agent teams ניסיוני וכבוי כברירת מחדל."
+  - q: "איך קוראים היום ל-headless mode?"
+    a: "Non-interactive mode. זה אותו דגל -p ואותה התנהגות: מריצים פרומפט אחד ו-Claude Code יוצא."
+  - q: "מה זה compaction?"
+    a: "סיכום אוטומטי של השיחה כשחלון ההקשר מתקרב למגבלה. קודם מנוקים פלטי כלים ישנים ואז השיחה מסוכמת. אפשר להפעיל ידנית עם /compact."
+---
+
+המילון מתרגם את מונחי Claude Code לעברית ומגדיר כל מונח במשפט או שניים, לפי [ה-Glossary הרשמי](https://code.claude.com/docs/en/glossary). השתמש בו כשנתקלת במונח לא מוכר בתיעוד או כשאתה מחפש את השם האנגלי של מושג. בכל מונח שיש לו שיעור באתר מופיע קישור.
+
+## מונחים A–B: מ-AGENTS.md עד Bundled skills
+
+| מונח (EN) | בעברית | הגדרה |
+| --- | --- | --- |
+| `AGENTS.md` | קובץ הוראות לסוכנים | קובץ Markdown עם הוראות פרויקט לסוכני קוד. אם יש בריפו `AGENTS.md` ואין CLAUDE.md, ‏Claude קורא אותו כהוראות הפרויקט; ההגדרה **Project instructions** ב-`/config` קובעת אם לקרוא את שניהם או רק את `CLAUDE.md`. [שיעור](/beginner-plus/claude-md) |
+| Agent teams | צוותי סוכנים | כמה סשנים עצמאיים של Claude Code שמתואמים על ידי team lead, עם רשימת משימות משותפת והודעות ביניהם; לכל אחד חלון הקשר משלו. ניסיוני וכבוי כברירת מחדל. |
+| Agentic coding | תכנות אג'נטי | דרך עבודה שבה ה-AI קורא קבצים, מריץ פקודות ומבצע שינויים בעצמו, בניגוד לעוזר צ'אט שרק מחזיר טקסט. [שיעור](/beginner/what-is-claude-code) |
+| Agentic harness | רתמה אג'נטית | הכלים, ניהול ההקשר וסביבת ההרצה שהופכים מודל שפה לסוכן קוד. Claude Code הוא ה-harness ו-Claude הוא המודל שבתוכו. [שיעור](/beginner/how-it-works) |
+| Agentic loop | הלולאה האג'נטית | המחזור של כל משימה: איסוף הקשר, ביצוע פעולה, אימות התוצאה, וחוזר חלילה עד הסיום. אפשר לעצור אותו בכל שלב ולכוון מחדש. [שיעור](/beginner/how-it-works) |
+| Artifact | ארטיפקט | עמוד web חי ואינטראקטיבי ש-Claude Code מפרסם מהסשן לכתובת פרטית ב-claude.ai, ומתעדכן במקום כשהסשן מפרסם שוב. [שיעור](/advanced/artifacts) |
+| Auto memory | זיכרון אוטומטי | הערות ש-Claude כותב לעצמו לפי התיקונים וההעדפות שלך, לכל ריפו תחת `~/.claude/projects/`. ‏200 השורות או 25 KB הראשונים של האינדקס `MEMORY.md` נטענים בכל סשן. [שיעור](/beginner-plus/auto-memory) |
+| Auto mode | מצב אוטומטי | מצב הרשאות שבו מודל classifier נפרד בודק פעולות במקומך, כך שרובן רצות בלי לשאול. הוא חוסם הרחבת היקף, תשתית לא מהימנה ו-prompt injection. [שיעור](/beginner-plus/permission-modes) |
+| Bare mode | מצב מינימלי | עם `--bare`, ‏Claude Code עולה בלי hooks,‏ skills,‏ custom commands,‏ subagents,‏ plugins,‏ שרתי MCP,‏ auto memory ו-CLAUDE.md. מומלץ ל-CI ולסקריפטים שצריכים תוצאה זהה בכל מכונה. |
+| Bundled skills | skills מובנים | playbooks מבוססי פרומפט שמגיעים עם Claude Code, כמו `/batch`,‏ `/code-review`,‏ `/debug` ו-`/loop`. בניגוד לפקודות מובנות עם לוגיקה קבועה, הם נותנים ל-Claude פרומפט מפורט ומשאירים לו לתזמר את העבודה. [שיעור](/advanced/skills) |
+
+## מונחים C–D: מ-Channel עד Dispatch
+
+| מונח (EN) | בעברית | הגדרה |
+| --- | --- | --- |
+| Channel | ערוץ | שרת MCP שדוחף אירועים לסשן פעיל כדי ש-Claude יגיב גם כשאתה לא ליד הטרמינל; יכול להיות דו-כיווני. Telegram,‏ Discord ו-iMessage כלולים ב-research preview. |
+| Checkpoint | נקודת שחזור | נקודת שחזור שנוצרת בכל פרומפט שפותח turn. ‏`Esc` פעמיים או `/rewind` משחזרים קוד, שיחה או את שניהם. נפרד מ-git ולא עוקב אחרי שינויים דרך ה-Bash tool. [שיעור](/beginner-plus/checkpointing) |
+| `.claude` directory | תיקיית ‎.claude | התיקייה שממנה Claude Code קורא הגדרות ברמת פרויקט: settings,‏ hooks,‏ skills,‏ subagents,‏ rules ו-auto memory. ברמת המשתמש היא `~/.claude/`. [שיעור](/advanced/claude-directory) |
+| `CLAUDE.md` | קובץ ההוראות של Claude | קובץ Markdown עם הוראות קבועות שאתה כותב, נטען בתחילת כל סשן. כל הקבצים שנמצאו (פרויקט, משתמש, מדיניות ארגונית) משורשרים להקשר ולא דורסים זה את זה. [שיעור](/beginner-plus/claude-md) |
+| Cloud session | סשן ענן | סשן שממשיך לרוץ גם כשסוגרים את המחשב, כי הוא רץ בתשתית ענן ולא אצלך. מתחילים אותו מ-claude.ai/code, מאפליקציית Claude בנייד, מ-Desktop עם **Cloud** או עם `claude --cloud`. |
+| Command | פקודה | הוראה לשימוש חוזר שמפעילים בהקלדת `/name`, כמו `/clear`,‏ `/model` ו-`/compact`. אפשר להגדיר פקודות משלך ב-`.claude/commands/`; ‏skills הן הדרך המומלצת לארוז פקודות מרובות שלבים. [שיעור](/beginner/essential-commands) |
+| Compaction | דחיסת שיחה | סיכום אוטומטי של השיחה כשחלון ההקשר מתקרב למגבלה. CLAUDE.md בשורש הפרויקט ו-auto memory שורדים; הוראות שנתת רק בשיחה עלולות ללכת לאיבוד. ידנית: `/compact`. [שיעור](/beginner-plus/costs-context) |
+| Connector | קונקטור | שרת MCP שנוסף לחשבון claude.ai שלך ולא הוגדר ב-Claude Code. כשמתחברים עם אותו חשבון, הקונקטורים מופיעים ב-`/mcp`. [שיעור](/advanced/connectors) |
+| Context window | חלון ההקשר | זיכרון העבודה של הסשן: היסטוריית שיחה, תוכן קבצים, פלטי פקודות, CLAUDE.md,‏ auto memory,‏ skills טעונים והוראות מערכת. ‏`/context` מראה מה תופס מקום. [שיעור](/beginner-plus/costs-context) |
+| Dispatch | ניתוב מהנייד | מנתב משימות שפותח סשן Claude Code באפליקציית Desktop כששולחים משימת קוד מאפליקציית Claude בנייד. זמין בתוכניות Pro ו-Max. |
+
+## מונחים E–H: מ-Effort level עד Hook
+
+| מונח (EN) | בעברית | הגדרה |
+| --- | --- | --- |
+| Effort level | רמת מאמץ | הגדרה ששולטת ב-adaptive reasoning: כמה המודל חושב בכל שלב. מאמץ גבוה = יותר thinking tokens והסקה עמוקה יותר; נמוך = מהיר וזול יותר. נתמך רק בחלק מהמודלים, ראה [model-config](https://code.claude.com/docs/en/model-config). |
+| Extended thinking | חשיבה מורחבת | הסקה צעד-אחר-צעד גלויה שהמודל מבצע לפני התשובה. מכווננים אותה עם effort level או מגבילים עם `MAX_THINKING_TOKENS` במודלים עם תקציב חשיבה קבוע; היא מוצגת בטקסט נטוי אפור. |
+| Frontmatter | בלוק frontmatter | בלוק הגדרות YAML בראש קובץ Markdown, בין שתי שורות `---`. ‏skills,‏ subagents,‏ output styles ו-rules קוראים ממנו את ההגדרות שלהם; השורה `---` הפותחת חייבת להיות הראשונה בקובץ. [שיעור](/advanced/skills) |
+| Hook | הוק | handler שמוגדר על ידך ורץ אוטומטית בנקודה קבועה במחזור החיים (לפני כלי, אחרי עריכה, בתחילת סשן). בנוי משלוש רמות: hook event,‏ matcher ו-hook handler. דטרמיניסטי, לא לפי שיקול המודל. [שיעור](/advanced/hooks) |
+
+## מונחים M–O: מ-Managed settings עד Output style
+
+| מונח (EN) | בעברית | הגדרה |
+| --- | --- | --- |
+| Managed settings | הגדרות מנוהלות | הגדרות שנאכפות ברמת הארגון על ידי IT או DevOps, מהשרתים של Anthropic או מנתיב מערכת מחוץ ל-`~/.claude`. הגדרות משתמש ופרויקט לא יכולות לדרוס אותן. [שיעור](/advanced/settings) |
+| MCP (Model Context Protocol) | פרוטוקול MCP | תקן פתוח לחיבור כלי AI למקורות מידע ולשירותים חיצוניים. מחברים שרתים דרך `/mcp` או ב-`.mcp.json`. [שיעור](/advanced/mcp) |
+| MCP server | שרת MCP | תוכנה שנותנת ל-Claude כלים, prompts או resources דרך MCP. מוסיפים עם `claude mcp add`, ב-`.mcp.json`, דרך plugin או כקונקטור של claude.ai. [שיעור](/advanced/mcp) |
+| MCP Tool Search | חיפוש כלי MCP | מנגנון חיסכון בהקשר: בהפעלה נטענים רק שמות הכלים והוראות השרת, והסכמה המלאה נשלפת רק כש-Claude מחליט להשתמש בכלי. [שיעור](/advanced/mcp) |
+| Non-interactive mode | מצב לא אינטראקטיבי | הרצה של פרומפט אחד ויציאה, עם `-p` או `--print`, ל-CI, לסקריפטים ול-pipe. נשמרת כסשן שאפשר להמשיך, אלא אם מעבירים `--no-session-persistence`. בעבר: headless mode. |
+| Output style | סגנון פלט | הגדרה שמשנה את ההוראות ש-Claude Code נותן ל-Claude כדי לקבוע התנהגות, טון או פורמט. בניגוד ל-CLAUDE.md, סגנון מותאם יכול להחליף את הוראות ברירת המחדל. [שיעור](/advanced/output-styles) |
+
+## מונחים P–R: מ-Permission mode עד Rules
+
+| מונח (EN) | בעברית | הגדרה |
+| --- | --- | --- |
+| Permission mode | מצב הרשאות | התנהגות האישור הבסיסית של הסשן. מחליפים עם `Shift+Tab` ב-CLI. המצבים: `default`,‏ `acceptEdits`,‏ `plan`,‏ `auto`,‏ `dontAsk`,‏ `bypassPermissions`; ‏`default` מוצג כ-Manual. [שיעור](/beginner-plus/permission-modes) |
+| Permission rule | כלל הרשאה | רשומה בהגדרות שמאשרת, שואלת או חוסמת הפעלת כלי לפי שם הכלי ותבנית הארגומנט. סדר ההערכה deny→ask→allow, וההתאמה הראשונה קובעת. [שיעור](/advanced/permissions-sandbox) |
+| Plan mode | מצב תכנון | מצב הרשאות שבו Claude חוקר ומציע שינויים בלי לערוך קבצי מקור, ומציג תוכנית לאישור. נכנסים עם `/plan` או `Shift+Tab`. [שיעור](/beginner-plus/permission-modes) |
+| Plugin | תוסף | חבילה של skills,‏ hooks,‏ subagents ושרתי MCP שמותקנת כיחידה אחת. ‏skills של plugin מקבלים namespace בפורמט `plugin-name:skill-name`. [שיעור](/advanced/plugins) |
+| Project trust | אמון בפרויקט | דיאלוג שמאשר תיקייה לפני ש-Claude Code טוען את ההגדרות שלה. עד שמאשרים, חלק מהתוכן שהריפו מספק (כמו allow rules של הפרויקט) לא נטען. [שיעור](/advanced/settings) |
+| Prompt injection | הזרקת פרומפט | הוראות עוינות בתוך קובץ, עמוד web או תוצאת כלי שמנסות להסיט את Claude לפעולות שלא ביקשת. ההגנות כוללות את מערכת ההרשאות, זיהוי command injection ואימות אמון. [שיעור](/advanced/security) |
+| Remote Control | שליטה מרחוק | דרך להמשיך סשן מקומי מהטלפון או מהדפדפן דרך claude.ai. הקוד והקבצים נשארים על המחשב שלך; רק הממשק מרוחק. |
+| Rules | כללים | קבצי הוראות מודולריים ב-`.claude/rules/` שנטענים לצד CLAUDE.md. עם `paths:` ב-frontmatter, כלל נטען רק כש-Claude קורא קובץ תואם. [שיעור](/advanced/claude-directory) |
+
+## מונחים S: מ-Sandboxing עד Surface
+
+| מונח (EN) | בעברית | הגדרה |
+| --- | --- | --- |
+| Sandboxing | ארגז חול | בידוד של מערכת הקבצים והרשת ברמת מערכת ההפעלה עבור ה-Bash tool. פקודות רצות בגבולות שהוגדרו מראש, בלי אישור לכל פקודה. שכבה נפרדת מ-permission rules. [שיעור](/advanced/permissions-sandbox) |
+| Session | סשן | שיחה שקשורה לתיקייה הנוכחית, עם חלון הקשר עצמאי. ממשיכים עם `claude -c`, מפצלים עם `--fork-session`; ‏`/clear` פותח סשן חדש והקודם זמין ב-`/resume`. [שיעור](/beginner-plus/sessions) |
+| Settings layers | שכבות הגדרות | סדר הקדימות מהגבוה לנמוך: managed policy, ארגומנטים בשורת הפקודה, `.claude/settings.local.json`,‏ `.claude/settings.json`,‏ `~/.claude/settings.json`. מערכים מתמזגים; ערכים בודדים בשכבה גבוהה דורסים. [שיעור](/advanced/settings) |
+| Skill | סקיל | קובץ `SKILL.md` עם הוראות, ידע או workflow. ‏Claude טוען אותו אוטומטית כשרלוונטי, או שמפעילים ישירות עם `/skill-name`. היורש המומלץ של custom commands. [שיעור](/advanced/skills) |
+| Subagent | סוכן משנה | עוזר AI ייעודי שרץ בחלון הקשר משלו, עם system prompt, כלים והרשאות משלו, ומחזיר סיכום לשיחה הראשית. מובנים: Explore,‏ Plan ו-general-purpose. [שיעור](/advanced/subagents) |
+| Surface | ממשק גישה | כל מקום שבו ניגשים ל-Claude Code: ‏CLI,‏ VS Code,‏ JetBrains,‏ Desktop או claude.ai. כולם חולקים אותו מנוע; ‏Slack ותוסף Chrome הם אינטגרציות, לא surfaces. |
+
+## מונחים T–W: מ-Teleport עד Worktree isolation
+
+| מונח (EN) | בעברית | הגדרה |
+| --- | --- | --- |
+| Teleport | טלפורט | הפקודה `/teleport` מושכת סשן ענן לטרמינל המקומי: שולפת את ה-branch, טוענת את היסטוריית השיחה וממשיכה מהמצב האחרון. הכיוון ההפוך הוא `--cloud`. |
+| Tool | כלי | פעולה ש-Claude יכול לבצע: לקרוא קובץ, לערוך קוד, להריץ פקודת shell, לחפש ברשת, להפעיל subagent. הכלים הם מה שהופך את Claude Code לאג'נטי. [שיעור](/beginner/how-it-works) |
+| Turn | סבב | תגובה שלמה אחת של Claude בסשן: מתחילה כששולחים הודעה ומסתיימת כש-Claude מסיים, עם כל מספר של קריאות לכלים באמצע. Stop hooks רצים בסוף כל turn. |
+| Verification loop | לולאת אימות | בדיקה ש-Claude יכול להריץ (בדיקות, build, השוואת צילום מסך) והוא חוזר עליה עד שהיא עוברת, במקום לעצור אחרי ניסיון אחד. תנאי מקדים ל-`/goal` ולהרצות ללא השגחה. [שיעור](/beginner-plus/core-workflow) |
+| Worktree isolation | בידוד worktree | מצב שבו Claude רץ ב-git worktree נפרד תחת `.claude/worktrees/`, עם הדגל `-w` או `isolation: worktree` בהגדרת subagent. השינויים נשארים ב-branch ובתיקייה נפרדים, כך שסוכנים שרצים במקביל לא דורסים זה לזה קבצים. |
+
+## אילו מונחים הוחלפו או שונה שמם?
+
+| שם ישן | השם היום | הערה |
+| --- | --- | --- |
+| Headless mode | Non-interactive mode | אותו דגל `-p`, אותה התנהגות. |
+| Web session | Cloud session | ‏"Claude Code on the web" הוא היום רק שם הממשק בדפדפן ב-claude.ai/code. |
+| Custom commands | Skills | קבצים ב-`.claude/commands/` עדיין עובדים. |
+| Slash commands | Commands | המילה "Slash" הוסרה מהטקסטים של המוצר. |
+
+## איפה לומדים עוד?
+
+- [איך Claude Code עובד? הלולאה האג'נטית והכלים המובנים](/beginner/how-it-works)
+- [Skill,‏ Subagent,‏ Hook או MCP: מה מתאים ומתי?](/advanced/extend-overview)
+- [ה-Glossary הרשמי של Claude Code](https://code.claude.com/docs/en/glossary)
+- [ה-Glossary של פלטפורמת Claude (tokens,‏ RAG ועוד)](https://platform.claude.com/docs/en/about-claude/glossary)
