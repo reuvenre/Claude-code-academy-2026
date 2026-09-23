@@ -1,0 +1,217 @@
+---
+title: "Claude apps gateway או LLM gateway: מה מתאים ל-Claude Code?"
+description: "Gateway הוא proxy ארגוני בין Claude Code לספק המודל. Claude apps gateway מובנה ב-claude עם SSO ומדיניות לפי קבוצה; LLM gateway קיים מתחבר עם ANTHROPIC_BASE_URL."
+level: "enterprise"
+order: 64
+source: "https://code.claude.com/docs/en/gateways"
+lastVerified: "2026-09-23"
+keywords: ["Claude Code", "gateway", "גייטוויי", "Claude apps gateway", "LLM gateway", "ANTHROPIC_BASE_URL", "ANTHROPIC_AUTH_TOKEN", "apiKeyHelper", "SSO", "OIDC", "proxy", "פרוקסי", "ארגון", "managed settings"]
+canDo: "עכשיו אתה יכול להסביר מה gateway עושה, לבחור בין Claude apps gateway ל-LLM gateway קיים, ולחבר את Claude Code לכל אחד מהם."
+relatedSlugs: ["admin", "environments", "settings"]
+faq:
+  - q: "מה ההבדל בין Claude apps gateway ל-LLM gateway?"
+    a: "Claude apps gateway הוא ה-gateway של Anthropic, מובנה בקובץ ההרצה claude ומשוחרר יחד עם כל גרסה, עם כניסת SSO דרך /login ומדיניות לפי קבוצות IdP. LLM gateway הוא מוצר gateway שהארגון כבר מפעיל; Claude Code מתחבר אליו דרך ANTHROPIC_BASE_URL ו-credential, והארגון אחראי לעדכן אותו כש-Claude Code משתנה."
+  - q: "האם המנוי שלי ב-claude.ai מחויב כשעובדים דרך gateway?"
+    a: "כשמתחברים עם credential של ה-gateway, המנוי לא בשימוש והשימוש מחויב לפי תעריפי API בחשבון הספק של הארגון. היוצא מן הכלל: אם מוגדר רק ANTHROPIC_BASE_URL בלי credential של ה-gateway, הכניסה השמורה ל-claude.ai נשארת פעילה ומגבלות המנוי והחיוב שלו חלים."
+  - q: "אפשר להריץ CI דרך Claude apps gateway?"
+    a: "לא ישירות. הכניסה ל-Claude apps gateway היא תמיד תהליך דפדפן עם SSO ואין תהליך service token, ולכן pipeline בלי מפתח שמאשר את הכניסה לא יכול להזדהות. את ה-CI מגדירים מול הספק ישירות. על מכונה שמפתח כבר נכנס בה, גם claude -p ו-Agent SDK משתמשים בסשן ה-gateway."
+  - q: "האם ה-gateway קובע באיזה מודל Claude Code משתמש?"
+    a: "לא. ה-gateway קובע לאן הבקשות הולכות, ואת המודל בוחרים עם /model או עם משתני סביבה של מודל. Claude apps gateway יכול להגביל את הבחירה לרשימת availableModels לכל קבוצה, אבל המפתח עדיין בוחר מתוכה."
+  - q: "איך בודקים ש-Claude Code באמת עובד דרך ה-gateway?"
+    a: "מריצים /status ובודקים בלשונית Status שהשורה Anthropic base URL מציגה את כתובת ה-gateway, ושיש שורת Auth token או API key שמציינת את המשתנה שהוגדר. אחר כך שולחים הודעה ומוודאים שמתקבלת תשובה בלי שגיאה."
+---
+
+import { CommandBlock, Callout, StepList } from "@/components/lesson";
+
+Gateway הוא proxy שהארגון מפעיל בין Claude Code לספק המודל: המפתחים מזדהים מול ה-gateway, והוא מעביר את הבקשות עם credential של הארגון. Claude apps gateway מובנה בקובץ `claude` ומספק כניסת SSO ומדיניות לפי קבוצות. LLM gateway הוא מוצר שהארגון כבר מפעיל, ומתחברים אליו עם `ANTHROPIC_BASE_URL`.
+
+## למה זה חשוב
+בלי gateway, כל מפתח מחזיק credential משלו לספק, והשליטה מפוזרת. עם gateway, [לפי התיעוד](https://code.claude.com/docs/en/gateways), ההזדהות, מעקב השימוש, התקציבים ו-audit logging קורים במקום אחד שבשליטת הארגון. יש שני סוגי credential:
+
+- **credential של המפתח:** כל מפתח מקבל אחד מה-gateway. הוא מזהה אותו מול ה-gateway ובמעקב השימוש.
+- **credential של הספק:** ה-gateway מחזיק credential אחד לחשבון הספק, ומשתמש בו לכל הבקשות שהוא מעביר.
+
+הספק יכול להיות ה-API של Anthropic או ספק ענן כמו Amazon Bedrock,‏ Google Cloud's Agent Platform או Microsoft Foundry. ההגדרה של ה-gateway קובעת לאן הבקשות הולכות.
+
+## איזה gateway לבחור?
+הבחירה תלויה בשאלה אם כבר יש לכם gateway שעונה על הצרכים.
+
+| | Claude apps gateway | LLM gateway קיים |
+| --- | --- | --- |
+| מה זה | ה-gateway של Anthropic, מובנה בקובץ `claude` | מוצר gateway שהארגון כבר מפעיל |
+| כניסת מפתחים | SSO מול ה-IdP הארגוני דרך `/login` | credential שה-gateway מנפיק, במשתנה סביבה או `apiKeyHelper` |
+| מדיניות | הרשאות מודלים ו-managed settings לפי קבוצת IdP | לפי מה שמוצר ה-gateway מספק |
+| עדכונים | משתחרר יחד עם ה-CLI, בלי רשימות העברה לתחזק | צריך לעדכן את כללי ההעברה כש-Claude Code משתנה |
+| תמיכה של Anthropic | מוצר של Anthropic | Anthropic אינה נותנת חסות או מאשרת מוצרי gateway אחרים, אינה מתחזקת אותם ואינה מבקרת (audit) אותם |
+
+<Callout type="note">
+[לפי התיעוד](https://code.claude.com/docs/en/claude-apps-gateway), Claude apps gateway מיועד לארגונים שצריכים או מעדיפים להריץ inference דרך ספק הענן שלהם, למשל בגלל דרישות data residency. אם אין לכם דרישה כזו ואתם רוצים פיצ'רים נוספים כמו SCIM provisioning או Claude Code ב-web ובמובייל, ייתכן ש-Claude Enterprise מתאים יותר. ההשוואה המלאה נמצאת ב[זמינות פיצ'רים לפי שיטת פריסה](/enterprise/feature-availability).
+</Callout>
+
+Anthropic לא תומכת בניתוב של Claude Code למודלים שאינם Claude דרך אף gateway.
+
+## איך עובד Claude apps gateway?
+Claude apps gateway הוא שירות self-hosted שמריצים מאותו קובץ `claude` שמריץ את Claude Code. [לפי התיעוד](https://code.claude.com/docs/en/claude-apps-gateway), הוא נותן:
+
+- **credentials:** מפתח ה-API או ה-credential של הענן נשארים רק בתשתית שלכם. המפתחים נכנסים עם SSO ומקבלים tokens קצרי-חיים. משתמש שמוסר ב-IdP מאבד גישה תוך אורך הסשן, שעה כברירת מחדל.
+- **בקרת גישה:** קבוצות ה-IdP ממופות לרשימות מודלים ולמדיניות [managed settings](/enterprise/admin). בקשה למודל שלא הותר נדחית בצד השרת.
+- **טלמטריה:** מדדי OTLP עם ספירת tokens, מודל, זהות משתמש ו-latency נשלחים ל-collector שלכם.
+- **ניתוב:** ה-gateway מתרגם לכל upstream, כולל failover ביניהם, בלי שהמפתחים צריכים לשנות הגדרות.
+
+### מה צריך לפני שמתחילים?
+
+| דרישה | פירוט |
+| --- | --- |
+| ספק זהויות OIDC | למשל Okta,‏ Microsoft Entra ID,‏ Google Workspace,‏ Keycloak או Dex. SAML ו-LDAP לא נתמכים |
+| PostgreSQL 14 ומעלה | שומר את מצב תהליך הכניסה ומוני rate limit |
+| upstream למודל | credentials ל-Amazon Bedrock,‏ Claude Platform on AWS,‏ Google Cloud,‏ Microsoft Foundry או מפתח Anthropic API |
+| HTTPS | ה-gateway חייב להיות נגיש ב-`https://` מהמחשבים של המפתחים |
+| כתובת ברשת פרטית | ב-`/login`, ‏Claude Code דורש שהכתובת של ה-gateway תתורגם לכתובות פרטיות בלבד |
+| שרת Linux | השרת רץ רק על הבינארי של Linux. ‏macOS לפיתוח מקומי בלבד, Windows לא נתמך כשרת |
+
+<Callout type="warning">
+פורסים את ה-gateway ברשת הפרטית בלבד. זו הגנת אבטחה: gateway מהימן יכול לדחוף הגדרות שמריצות פקודות על מחשבי המפתחים.
+</Callout>
+
+### איך מגדירים את השרת?
+כותבים קובץ `gateway.yaml`. סודות נקראים דרך `${ENV_VAR}`, כך שהקובץ עצמו יכול לשבת ב-version control. זו התצורה המינימלית מהתיעוד, עם upstream של Amazon Bedrock:
+
+```yaml
+listen:
+  host: 0.0.0.0
+  port: 8080
+  public_url: https://claude-gateway.internal.example.com
+
+oidc:
+  issuer: https://login.example.com
+  client_id: 0oa1example2
+  client_secret: ${OIDC_CLIENT_SECRET}
+  allowed_email_domains: [example.com]
+  userinfo_fallback: true
+
+session:
+  jwt_secret: ${GATEWAY_JWT_SECRET}
+  ttl_hours: 1
+
+store:
+  postgres_url: ${GATEWAY_POSTGRES_URL}
+
+upstreams:
+  - provider: bedrock
+    region: us-east-1
+    auth: {}
+
+auto_include_builtin_models: true
+```
+
+מריצים את השרת:
+
+<CommandBlock>claude gateway --config gateway.yaml</CommandBlock>
+
+אם ההגדרות, החיבור ל-Postgres, ה-OIDC discovery או ה-upstream לא תקינים, ה-gateway יוצא עם שגיאה ולא מגיש תעבורה במצב חלקי. הגדרות מתקדמות כמו מדיניות לפי קבוצות, telemetry ו-failover מופיעות ב[מדריך התצורה](https://code.claude.com/docs/en/claude-apps-gateway-config).
+
+### איך מחברים את המפתחים?
+מפתח לא יכול להגדיר את החיבור בעצמו. המנהל מפיץ שלוש הגדרות בקובץ [managed settings](/enterprise/admin) דרך MDM או ישירות על הדיסק:
+
+```json
+{
+  "forceLoginMethod": "gateway",
+  "forceLoginGatewayUrl": "https://claude-gateway.internal.example.com",
+  "parentSettingsBehavior": "merge"
+}
+```
+
+`forceLoginMethod` ו-`forceLoginGatewayUrl` פותחים את `/login` ישירות במסך **Cloud gateway** עם הכתובת ממולאת. `parentSettingsBehavior: "merge"` נדרש כדי ש-Claude Desktop יעביר את מדיניות ה-egress לסשנים של Claude Code שהוא מפעיל. מהצד של המפתח:
+
+<StepList>
+
+1. מריצים `/login` ולוחצים Enter במסך **Cloud gateway**.
+2. בחיבור הראשון מאשרים את טביעת האצבע של תעודת ה-TLS. הארגון צריך לפרסם אותה יחד עם כתובת ה-gateway.
+3. משלימים את כניסת ה-SSO בדפדפן עם חשבון העבודה.
+
+</StepList>
+
+אחרי הכניסה, בורר `/model` מציג רק את המודלים ברשימת `availableModels` של הקבוצה. `/logout` מוחק את ה-credential של ה-gateway מהמחשב.
+
+## איך מחברים את Claude Code ל-LLM gateway קיים?
+כל gateway שחושף [פורמט API נתמך](https://code.claude.com/docs/en/llm-gateway-protocol#api-formats) עובד. צריך שני דברים מצוות ה-gateway: כתובת בסיס ו-credential. [לפי מדריך החיבור](https://code.claude.com/docs/en/llm-gateway-connect), המשתנה ל-credential תלוי בסוג שלו:
+
+| משתנה | מתי | כותרת HTTP |
+| --- | --- | --- |
+| `ANTHROPIC_AUTH_TOKEN` | צוות ה-gateway אמר "bearer token" או "Authorization header" | `Authorization: Bearer` |
+| `ANTHROPIC_API_KEY` | צוות ה-gateway אמר "API key" או "x-api-key" | `x-api-key` |
+| `apiKeyHelper` | ה-credential מתחלף או מגיע מ-vault | שתי הכותרות |
+
+אם לא נאמר לך איזה סוג, התיעוד ממליץ להתחיל עם `ANTHROPIC_AUTH_TOKEN`. אם מתקבל `401`, עוברים למשתנה השני.
+
+### איפה מגדירים את המשתנים?
+לבדיקה ראשונה מגדירים בטרמינל. זה חל רק על הסשן הנוכחי:
+
+```bash
+export ANTHROPIC_BASE_URL=https://llm-gateway.example.com
+export ANTHROPIC_AUTH_TOKEN=YOUR_GATEWAY_TOKEN
+```
+
+כדי שההגדרה תחול בכל מקום, כולל background agents, מעבירים אותה לבלוק `env` ב-`~/.claude/settings.json` או ב-`.claude/settings.local.json` (ראו [שיעור ה-settings](/advanced/settings)):
+
+```json
+{
+  "env": {
+    "ANTHROPIC_BASE_URL": "https://llm-gateway.example.com",
+    "ANTHROPIC_AUTH_TOKEN": "YOUR_GATEWAY_TOKEN"
+  }
+}
+```
+
+<Callout type="warning">
+אל תשים את ה-credential בקובץ `.claude/settings.json` של הפרויקט. הקובץ הזה נכנס ל-git ומשותף עם כל מי שמשכפל את הריפו.
+</Callout>
+
+כשאותו משתנה מוגדר גם בטרמינל וגם בבלוק `env`, הערך מקובץ ההגדרות קובע.
+
+### איך מוודאים שזה עובד?
+מפעילים את `claude` מאותו טרמינל, שולחים הודעה ומריצים:
+
+<CommandBlock>/status</CommandBlock>
+
+בלשונית **Status** השורה `Anthropic base URL` צריכה להציג את כתובת ה-gateway. שורת `Auth token` או `API key` שמציינת את המשתנה שהגדרת מאשרת שה-credential של ה-gateway פעיל, ולא כניסה שמורה ל-claude.ai.
+
+### מה עוד אפשר להגדיר?
+את ההגדרות האלה מוסיפים רק אם המנהל ביקש או שהרשת מחייבת:
+
+- `ANTHROPIC_CUSTOM_HEADERS`: כותרות נוספות לניתוב או לתיוג, זוג `Name: Value` אחד בכל שורה.
+- `CLAUDE_CODE_ENABLE_GATEWAY_MODEL_DISCOVERY=1`: מוסיף לבורר `/model` מודלים שה-gateway מדווח עליהם.
+- `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1`: מכבה תעבורה לא-חיונית מחוץ לנתיב ה-gateway. שימו לב שזה מכבה גם עדכונים אוטומטיים.
+
+בארגון, המנהל מפיץ את הכתובת וה-credential דרך managed settings וכלי ניהול סודות, כך שהמפתחים לא מגדירים כלום בעצמם.
+
+## מה קורה למנוי ב-claude.ai?
+כשמתחברים עם credential של gateway, המנוי ב-claude.ai לא בשימוש. השימוש מחויב לפי תעריפי API בחשבון הספק שעומד מאחורי ה-gateway. הגדרת `ANTHROPIC_AUTH_TOKEN`, או כניסה ל-Claude apps gateway עם `/login`, מבטלת את כניסת המנוי לאותו סשן.
+
+היוצא מן הכלל: אם מגדירים רק `ANTHROPIC_BASE_URL` בלי credential של ה-gateway, הבקשות עדיין עוברות דרך ה-gateway, אבל הכניסה השמורה ל-claude.ai נשארת ה-credential הפעיל. אז מגבלות השימוש והחיוב של המנוי חלים.
+
+## מה לא עובד דרך Claude apps gateway?
+[טבלת הזמינות בתיעוד](https://code.claude.com/docs/en/claude-apps-gateway#availability-and-limitations) מפרטת מה מתנהג אחרת בסשן gateway. הפריטים שהכי סביר שתיתקלו בהם:
+
+| פיצ'ר | מצב |
+| --- | --- |
+| חיפוש ברשת (WebSearch) | לא זמין. ה-CLI לא יודע לאיזה upstream ה-gateway מנתב, ולכן מכבה אותו |
+| [Remote Control](https://code.claude.com/docs/en/remote-control) | לא זמין |
+| cache של שעה | לא זמין. prompt caching עובד עם TTL של 5 דקות |
+| pipeline של CI בלי מפתח שיאשר את הכניסה | אין תהליך service token. את ה-pipeline מגדירים מול הספק ישירות |
+| SAML,‏ LDAP | לא נתמכים. OIDC בלבד |
+| כמה IdP-ים ב-gateway אחד | לא נתמך. מריצים instance נפרד לכל issuer |
+| ממשק ניהול | אין. ההגדרות בקובץ YAML, ומשנים עם redeploy |
+
+על מכונה שמפתח כבר נכנס בה, גם הרצות `claude -p` וסשנים של Agent SDK משתמשים בסשן ה-gateway וכפופים למדיניות שלו. במכונה מרוחקת בלי מסך מריצים `/login` ב-SSH ופותחים את קישור האימות בדפדפן במחשב המקומי.
+
+## מה ה-gateway לא מטפל בו?
+Gateway מנתב בקשות למודל. כמה דברים מוגדרים בנפרד:
+
+- **בחירת מודל:** בוחרים עם `/model` או עם משתני סביבה, לפי [דף הגדרת המודלים](https://code.claude.com/docs/en/model-config). ה-gateway קובע לאן הבקשה הולכת, לא איזה מודל נבחר.
+- **תעבורה אחרת:** Claude Code שולח בדיקות גרסה והורדות ישירות ל-Anthropic, מחוץ לנתיב ה-gateway. הרשת צריכה לאפשר גישה ל[דומיינים הנדרשים](https://code.claude.com/docs/en/network-config), או שמגדירים `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC` כדי לכבות את הזרמים האופציונליים.
+- **proxy ארגוני:** `HTTPS_PROXY` יושב בין Claude Code לכל שרת, כולל ה-gateway, ולכן מגדירים אותו בנוסף. ב-Claude apps gateway, אם ה-proxy לא ברשת פרטית, מוסיפים את כתובת ה-gateway ל-`NO_PROXY`.
+
+## הצעד הבא
+- ← [Self-hosted ו-cloud environments](/enterprise/environments)
+- שיעורים קשורים: [ניהול Claude Code בארגון](/enterprise/admin) · [זמינות פיצ'רים](/enterprise/feature-availability) · [הגדרות settings](/advanced/settings)
