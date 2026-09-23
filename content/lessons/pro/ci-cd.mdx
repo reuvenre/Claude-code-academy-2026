@@ -1,0 +1,235 @@
+---
+title: "איך מריצים Claude Code ב-CI/CD עם GitHub Actions ו-GitLab?"
+description: "מריצים /install-github-app, מאשרים PR עם קובץ workflow, ואז @claude בתגובה מפעיל את Claude ב-GitHub Actions. ב-GitLab מוסיפים job ומשתנה CI/CD מוסתר."
+level: "pro"
+order: 51
+source: "https://code.claude.com/docs/en/github-actions"
+lastVerified: "2026-09-23"
+keywords: ["Claude Code", "CI/CD", "GitHub Actions", "claude-code-action", "/install-github-app", "@claude", "GitLab CI/CD", "workflow", "secrets", "ANTHROPIC_API_KEY", "GitHub Enterprise Server", "אוטומציה", "צינור CI", "להגדיר GitHub Actions"]
+canDo: "עכשיו אתה יכול לחבר את Claude Code ל-GitHub Actions עם /install-github-app, להפעיל אותו עם @claude או עם prompt אוטומטי, לשמור את פרטי ההתחברות כ-secret, ולהבין מה צריך כדי להריץ אותו ב-GitLab CI/CD."
+relatedSlugs: ["routines", "web", "ultrareview"]
+faq:
+  - q: "האם /install-github-app עובד עם GitLab או עם GitHub Enterprise Server?"
+    a: "לא. הפקודה עובדת רק עם ריפו ב-github.com. אם ה-remote נמצא ב-gitlab.com או ב-bitbucket.org, היא מציגה הודעה ויוצאת. ב-GitHub Enterprise Server מגדירים את ה-workflow ידנית, וב-GitLab מוסיפים job לקובץ .gitlab-ci.yml."
+  - q: "איזה secret צריך להוסיף לריפו?"
+    a: "אחד משניים: ANTHROPIC_API_KEY עם מפתח API מ-Claude Console, או CLAUDE_CODE_OAUTH_TOKEN שמתחבר עם מנוי Claude ונוצר בהרצת claude setup-token במחשב. לריפו משותף בארגון התיעוד ממליץ על מפתח API, כי token של OAuth קשור למנוי של מי שיצר אותו."
+  - q: "למה Claude לא מגיב כשאני כותב @claude?"
+    a: "בודקים שה-GitHub App מותקן על הריפו, שה-workflows מופעלים, שה-secret מוגדר, שהתגובה מכילה את @claude כמילה שלמה, ושלמשתמש שכתב את התגובה יש הרשאת write לריפו."
+  - q: "למה ה-CI לא רץ על ה-commits ש-Claude דוחף?"
+    a: "GitHub לא מפעיל workflows על commits שנעשו עם ה-GITHUB_TOKEN הרגיל. אם העברת github_token עם secrets.GITHUB_TOKEN, מסירים אותו כדי ש-Claude יתחבר כ-Claude GitHub App, או מעבירים token של app מותאם."
+  - q: "האם אפשר להריץ את Claude ב-GitHub Actions בלי מפתח של Claude API?"
+    a: "כן, דרך ספק ענן. מגדירים use_bedrock, use_vertex או use_foundry, ומתחברים עם OIDC, כך שלא שומרים בריפו פרטי התחברות קבועים לענן. אפשר גם להשתמש במנוי Claude דרך CLAUDE_CODE_OAUTH_TOKEN."
+---
+
+import { CommandBlock, Callout, StepList } from "@/components/lesson";
+
+מריצים `/install-github-app` בתוך Claude Code. הוא מתקין את ה-Claude GitHub App, שומר secret ופותח PR עם קובץ workflow. אחרי ה-merge, כותבים `@claude` בתגובה על issue או PR, ו-Claude מנתח, מתקן ודוחף commits. ב-GitLab מוסיפים job ל-`.gitlab-ci.yml` ומשתנה CI/CD מוסתר.
+
+## למה זה חשוב
+ב-CI, ‏Claude Code עובד בתוך הריפו בלי שתפתח טרמינל. חבר צוות כותב `@claude` בתגובה, ו-Claude הופך issue ל-PR, מתקן באג או עונה על שאלה, באותו שרשור. אפשר גם לתת לו `prompt` קבוע שרץ על כל אירוע GitHub, למשל פתיחת PR או cron.
+
+זה ה-Action ‏[claude-code-action](https://github.com/anthropics/claude-code-action), שמגדירים עם קובצי workflow בריפו. זה לא אותו מוצר כמו [Code Review](https://code.claude.com/docs/en/code-review), שעושה review אוטומטי לכל PR בלי לכתוב workflow, ולא כמו [סשנים בענן](/pro/web).
+
+## איך מגדירים את זה עם /install-github-app?
+זו הדרך המהירה. צריך הרשאת admin לריפו, ו-[GitHub CLI](https://cli.github.com) מותקן ומחובר עם `gh auth login`.
+
+<StepList>
+
+1. פותחים `claude` בתיקיית הריפו ומריצים:
+   <CommandBlock>/install-github-app</CommandBlock>
+2. עוקבים אחרי ההנחיות. Claude Code מתקין את ה-Claude GitHub App ושואל אם להמשיך להגדרת GitHub Actions. **Skip for now** עוצר אחרי התקנת ה-App בלבד.
+3. בוחרים איך להתחבר. אם ל-Claude Code כבר יש מפתח API, הוא משתמש בו. אחרת בוחרים בין token ארוך-טווח מהמנוי שלך לבין הדבקת מפתח API.
+4. Claude Code שומר את פרטי ההתחברות כ-secret בריפו, דוחף branch עם קובצי ה-workflow שבחרת, ופותח את GitHub בדפדפן עם PR מוכן.
+5. יוצרים את ה-PR ומבצעים merge. מעכשיו `@claude` עובד בריפו.
+
+</StepList>
+
+שם ה-secret תלוי בסוג ההתחברות: `ANTHROPIC_API_KEY` למפתח API, ו-`CLAUDE_CODE_OAUTH_TOKEN` ל-token של מנוי. אם בחרת גם ב-review workflow, ‏Claude מפרסם כל review על ה-PR עצמו.
+
+<Callout type="note">
+`/install-github-app` עובד רק עם ריפו ב-github.com. אם ה-remote נמצא ב-gitlab.com או ב-bitbucket.org, הפקודה מציגה הודעה ויוצאת. ההגדרה המהירה עובדת עם Claude API ועם מנויי Claude. לספקי ענן יש [דף נפרד](https://code.claude.com/docs/en/github-actions-cloud-providers).
+</Callout>
+
+## איך מגדירים ידנית?
+ההגדרה הידנית מתאימה כשלא מריצים Claude Code במחשב, כשהפקודה נכשלת, או כשרוצים שליטה מלאה בקבצים.
+
+<StepList>
+
+1. מתקינים את ה-[Claude GitHub App](https://github.com/apps/claude) על הריפו. ה-Action משתמש בשלוש הרשאות שלו: Contents,‏ Issues ו-Pull requests, כולן read and write.
+2. מוסיפים secret לריפו: `ANTHROPIC_API_KEY` עם מפתח מ-[Claude Console](https://platform.claude.com), או `CLAUDE_CODE_OAUTH_TOKEN`, שיוצרים בהרצת `claude setup-token` במחשב (בתוכניות Pro,‏ Max,‏ Team ו-Enterprise).
+3. מעתיקים את [examples/claude.yml](https://github.com/anthropics/claude-code-action/blob/main/examples/claude.yml) לתיקייה `.github/workflows/` בריפו.
+
+</StepList>
+
+כדי לבדוק שהכול עובד, כותבים `@claude` בתגובה על issue או PR.
+
+<Callout type="warning">
+כשמתקינים את ה-App, מאשרים את כל ההרשאות שלו, ולא רק את השלוש שה-Action צריך. ה-App משותף לכל הפיצ'רים של Claude שמתחברים ל-GitHub, ו-GitHub לא מאפשר לאשר חלק מההרשאות. ארגון שרוצה רק את השלוש יכול ליצור GitHub App מותאם לפי [מדריך ההגדרה של ה-Action](https://github.com/anthropics/claude-code-action/blob/main/docs/setup.md).
+</Callout>
+
+## איך נראה קובץ ה-workflow?
+זה ה-workflow מהתיעוד הרשמי שמגיב ל-`@claude` בתגובות על issues ו-PRs:
+
+```yaml
+name: Claude Code
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+jobs:
+  claude:
+    if: contains(github.event.comment.body, '@claude')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      id-token: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+      - uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+```
+
+מה לא boilerplate בקובץ:
+
+| שורה | תפקיד |
+| --- | --- |
+| `id-token: write` | נדרש להתחברות ברירת המחדל של ה-Action דרך ה-GitHub App |
+| `actions: read` | מאפשר ל-Claude לקרוא תוצאות CI ב-PRs |
+| `actions/checkout` | נותן ל-Claude עותק מקומי של הריפו לעבוד עליו |
+| `if` | מונע הפעלת runner על תגובות שלא מזכירות את `@claude` |
+
+אם אתה מתחבר עם מנוי, מחליפים את שורת `anthropic_api_key` ב-`claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}`.
+
+אחרי שה-workflow בריפו, כותבים בקשה בתגובה. דוגמאות מהתיעוד:
+
+```text
+@claude implement this feature based on the issue description
+@claude how should I implement user authentication for this endpoint?
+@claude fix the TypeError in the user dashboard component
+```
+
+Claude עונה בתגובה באותו issue או PR ומעדכן אותה תוך כדי עבודה.
+
+## מה ההבדל בין interactive mode ל-automation mode?
+ה-Action מזהה את המצב לבד, לפי השדה `prompt` ב-workflow:
+
+| מצב | מתי | איפה רואים את התוצאה |
+| --- | --- | --- |
+| Interactive | אין `prompt`. ‏Claude מחכה ל-`@claude` בתגובה, ב-review או בגוף/כותרת של issue חדש | תגובה על ה-issue או ה-PR |
+| Automation | יש `prompt`. ‏Claude רץ על כל אירוע GitHub, כולל `schedule` | ב-log של ריצת ה-workflow, אלא אם ה-prompt מורה לו לפרסם ויש לו כלי לכך |
+
+השדה `prompt` מקבל טקסט רגיל או הפעלה של [skill](/advanced/skills), למשל `/skill-name`. בפרומפט של טקסט רגיל ב-automation mode, ל-Claude אין גישה ל-shell או ל-GitHub API עד שמאשרים את הכלים, עם `--allowedTools` בתוך `claude_args`.
+
+### מי יכול להפעיל את Claude?
+לפני כל ריצה, ה-Action בודק את מי שהפעיל אותה:
+
+- **הרשאת write:** באירועי issue ו-PR, למשתמש צריכה להיות הרשאת write לריפו.
+- **אדם, לא בוט:** בוט נדחה אלא אם הוא ברשימה `allowed_bots`. כך בוטים לא מפעילים את Claude בלולאה.
+
+## מתי עדיף Code Review המנוהל על פני workflow?
+אם כל מה שצריך הוא review ל-PRs, לא חייבים לכתוב workflow. [Code Review](https://code.claude.com/docs/en/code-review) הוא שירות שרץ על התשתית של Anthropic דרך ה-Claude GitHub App. Owner בארגון Claude מפעיל אותו פעם אחת בהגדרות הניהול של Claude Code, מתקין את ה-App, בוחר ריפוזיטוריז וקובע לכל ריפו מתי ה-review רץ: פעם אחת כשנפתח PR, אחרי כל push, או ידנית עם `@claude review`.
+
+כמה סוכנים בודקים את ה-diff בהקשר של כל הקוד, והממצאים מתפרסמים כתגובות inline על השורות הרלוונטיות, מתויגים לפי חומרה. Code Review לא מאשר ולא חוסם PR, וההחלטה נשארת אצלכם. הוא ב-research preview, בתוכניות Team ו-Enterprise.
+
+את התיקונים עושים מקומית: `/code-review --fix` מריץ review על ה-diff במחשב שלך ומחיל את הממצאים על ה-working tree. ל-review עמוק יותר שמפעילים מהטרמינל, ראה [Ultrareview](/pro/ultrareview). ה-workflow עם claude-code-action מתאים כשהעבודה היא יותר מ-review, למשל מימוש שינויים מתגובה או דוח מתוזמן. להרחבה: [קורס רשמי](https://academy.claude.com/courses/claude-code-in-action/github-actions-and-code-review) של Claude Academy.
+
+## איך שומרים על ה-secrets?
+לעולם לא מכניסים מפתחות API או tokens לקוד בריפו. שומרים אותם כ-GitHub Secrets ומפנים אליהם ב-workflow עם `${{ secrets.ANTHROPIC_API_KEY }}`. נותנים ל-workflow רק את ההרשאות שהוא צריך, ובודקים את השינויים של Claude לפני merge.
+
+בארגון אפשר לשמור את ה-secret פעם אחת כ-Actions secret ברמת הארגון. ל-secret משותף התיעוד ממליץ על מפתח API מ-Claude Console ולא על token של OAuth, כי ה-token קשור למנוי של מי שהריץ `claude setup-token`. כדי לא לשמור secret ארוך-טווח בכלל, אפשר להתחבר עם workload identity federation. הפרטים [בתיעוד הרשמי](https://code.claude.com/docs/en/github-actions#set-up-for-an-organization).
+
+## איך מריצים דרך Bedrock,‏ Agent Platform או Foundry?
+מוסיפים ל-`with:` שדה אחד לפי הספק, ומגדירים בענן אמון ב-token ה-OIDC ש-GitHub מנפיק ל-workflow:
+
+| ספק | שדה |
+| --- | --- |
+| Amazon Bedrock | `use_bedrock: "true"` |
+| Google Cloud's Agent Platform | `use_vertex: "true"` |
+| Microsoft Foundry | `use_foundry: "true"` |
+
+בשלושת הספקים מתחברים עם OIDC במקום מפתח Claude API, ולכן לא שומרים בריפו פרטי התחברות קבועים לענן. צריך גם גישה למודלים של Claude אצל הספק, ו-GitHub identity שה-Action דוחף ומגיב דרכו. השלבים המלאים לכל ספק נמצאים בדף [GitHub Actions עם ספקי ענן](https://code.claude.com/docs/en/github-actions-cloud-providers).
+
+## מה עם GitHub Enterprise Server?
+GitHub Actions נתמך גם ב-[GitHub Enterprise Server](https://code.claude.com/docs/en/github-enterprise-server) ‏(GHES), אבל רק בהגדרה ידנית של ה-workflow, כי `/install-github-app` עובד רק עם github.com. תמיכה ב-GHES זמינה בתוכניות Team ו-Enterprise. Owner בארגון מחבר את ה-GHES פעם אחת בהגדרות הניהול, וזה מאפשר גם סשנים בענן ו-Code Review. שרת ה-GitHub MCP לא עובד עם GHES.
+
+## איך מחברים את Claude Code ל-GitLab CI/CD?
+מוסיפים job ל-`.gitlab-ci.yml` ומשתנה CI/CD מוסתר (masked) עם מפתח ה-API. האינטגרציה ב-beta, ו-GitLab מתחזקת אותה. הפרטים בדף [Claude Code GitLab CI/CD](https://code.claude.com/docs/en/gitlab-ci-cd).
+
+<StepList>
+
+1. ב-GitLab נכנסים ל-**Settings** ← **CI/CD** ← **Variables** ומוסיפים `ANTHROPIC_API_KEY` כמשתנה masked (ו-protected לפי הצורך).
+2. מוסיפים ל-`.gitlab-ci.yml` את ה-job מהתיעוד:
+
+</StepList>
+
+```yaml
+stages:
+  - ai
+
+claude:
+  stage: ai
+  image: node:24-alpine3.21
+  # Adjust rules to fit how you want to trigger the job:
+  # - manual runs
+  # - merge request events
+  # - web/API triggers when a comment contains '@claude'
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+  variables:
+    GIT_STRATEGY: fetch
+  before_script:
+    - apk update
+    - apk add --no-cache git curl bash
+    - curl -fsSL https://claude.ai/install.sh | bash
+    # The installer places claude in ~/.local/bin, which isn't on PATH in this image
+    - export PATH="$HOME/.local/bin:$PATH"
+  script:
+    # Optional: start a GitLab MCP server if your setup provides one
+    - /bin/gitlab-mcp-server || true
+    # Use AI_FLOW_* variables when invoking via web/API triggers with context payloads
+    - echo "$AI_FLOW_INPUT for $AI_FLOW_CONTEXT on $AI_FLOW_EVENT"
+    - >
+      claude
+      -p "${AI_FLOW_INPUT:-'Review this MR and implement the requested changes'}"
+      --permission-mode acceptEdits
+      --allowedTools "Bash Read Edit Write mcp__gitlab"
+      --debug
+```
+
+בודקים בהרצה ידנית של ה-job מ-**CI/CD** ← **Pipelines**, או מפעילים אותו מ-MR. ב-GitLab ה-job רץ ב-runners שלך. בשונה מ-GitHub, ‏`@claude` בתגובה לא מפעיל את ה-job מעצמו: צריך webhook על "Comments (notes)" ו-listener שקורא ל-API של ה-pipeline trigger עם משתנים כמו `AI_FLOW_INPUT`. גם ב-GitLab אפשר להריץ דרך Amazon Bedrock או Google Cloud's Agent Platform, עם OIDC.
+
+## איך שולטים בעלויות?
+כל ריצה צורכת דקות CI (GitHub Actions minutes או זמן GitLab Runner) וגם tokens. אם מתחברים עם token של OAuth, הריצות נספרות מהמנוי ולא מחיוב API. מה שעוזר:
+
+- בקשות `@claude` ספציפיות, כדי ש-Claude יצטרך פחות סבבים.
+- תבניות issue שנותנות הקשר מראש.
+- `CLAUDE.md` קצר, כי Claude קורא אותו בכל ריצה. ראה [שיעור CLAUDE.md](/beginner-plus/claude-md).
+- `--max-turns` בתוך `claude_args` כדי להגביל סבבים.
+- timeout ברמת ה-workflow ו-concurrency של GitHub כדי להגביל ריצות מקבילות.
+
+<Callout type="warning">
+GitHub לא מפעיל workflows על commits שנעשו עם ה-`GITHUB_TOKEN` הרגיל. אם העברת ל-Action ‏`github_token: ${{ secrets.GITHUB_TOKEN }}`, ה-CI לא ירוץ על ה-commits של Claude. מסירים את השורה כדי שהוא יתחבר כ-Claude GitHub App, או מעבירים token של app מותאם.
+</Callout>
+
+## מה עושים כש-@claude לא מגיב?
+עוברים על הרשימה מהתיעוד:
+
+- ה-GitHub App מותקן על הריפו.
+- ה-workflows מופעלים בריפו.
+- ה-secret עם המפתח או ה-token מוגדר בריפו.
+- התגובה מכילה `@claude` כמילה שלמה, ולא `/claude` או `@claude-bot`.
+- למשתמש שכתב את התגובה יש הרשאת write לריפו.
+
+בשגיאות התחברות, בודקים קודם שהמפתח או ה-token תקינים בהרצה מקומית של `claude`, ורק אחר כך מחפשים בעיה ב-workflow.
+
+## הצעד הבא
+- ← [חזרה לרמת המקצוען](/pro) (השיעור הבא הוא Desktop)
+- שיעורים קשורים: [Routines: אוטומציה בענן](/pro/routines) · [Claude Code באינטרנט](/pro/web) · [Ultrareview](/pro/ultrareview)
