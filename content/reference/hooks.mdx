@@ -1,0 +1,230 @@
+---
+title: "מדריך מהיר ל-hooks ב-Claude Code: אירועים, קודי יציאה ו-JSON"
+description: "רפרנס hooks ב-Claude Code: כל אירועי ה-hook, מתי כל אחד רץ ואם הוא יכול לחסום, איך עובד matcher, חמשת סוגי ה-handler, שדות הקלט והפלט ב-JSON וקודי היציאה."
+order: 6
+source: "https://code.claude.com/docs/en/hooks"
+lastVerified: "2026-09-23"
+keywords: ["Claude Code", "hooks", "הוקים", "hook events", "אירועי hook", "matcher", "PreToolUse", "PostToolUse", "exit code 2", "קודי יציאה", "hookSpecificOutput", "permissionDecision", "settings.json", "JSON output"]
+faq:
+  - q: "איזה קוד יציאה חוסם פעולה ב-hook?"
+    a: "ברוב האירועים רק exit 2 חוסם בזכות הקוד לבדו. exit 1 בלי JSON תקין נחשב שגיאה לא חוסמת והפעולה ממשיכה. חריגים: ב-WorktreeCreate וב-WorktreeRemove כל קוד שאינו 0 גורם לכישלון."
+  - q: "איך hook מסוג command מקבל את המידע על האירוע?"
+    a: "כ-JSON ב-stdin. hook מסוג http מקבל את אותו JSON כגוף של בקשת POST. בכל קלט יש שדות משותפים כמו session_id,‏ cwd ו-hook_event_name, ועוד שדות שתלויים באירוע."
+  - q: "מה ההבדל בין matcher לשדה if?"
+    a: "matcher מסנן קבוצת hooks לפי שדה אחד של האירוע, למשל שם הכלי. if מוגדר על handler בודד, משתמש בתחביר של כללי הרשאות כמו Bash(git *), ונבדק רק באירועי כלים."
+  - q: "האם hook של PostToolUse יכול לבטל פעולה?"
+    a: "לא. הכלי כבר רץ. exit 2 ב-PostToolUse רק מציג את ה-stderr ל-Claude. כדי לחסום קריאה לכלי משתמשים ב-PreToolUse."
+---
+
+Hooks הם פקודות shell,‏ נקודות HTTP,‏ כלי MCP,‏ פרומפטים או subagents ש-Claude Code מריץ אוטומטית בנקודות קבועות בסשן. העמוד מרכז את כל האירועים, את ה-matcher, את סוגי ה-handler, את שדות ה-JSON ואת קודי היציאה. להסבר מעשי ראה את השיעור [Hooks](/advanced/hooks).
+
+## אילו אירועי hook קיימים ואילו יכולים לחסום?
+
+העמודה "חוסם ב-exit 2" מתארת מה קורה כשה-hook יוצא עם קוד 2, לפי טבלת המקור.
+
+| אירוע | מתי הוא רץ | חוסם ב-exit 2? |
+| :-- | :-- | :-- |
+| `SessionStart` | כשסשן מתחיל או ממשיך | לא. stderr מוצג למשתמש בלבד |
+| `Setup` | בהפעלה עם `--init-only`, או עם `--init` / `--maintenance` במצב `-p`. להכנה חד-פעמית ב-CI או בסקריפטים | לא. מתעלמים מקוד היציאה ומה-stderr |
+| `UserPromptSubmit` | כששולחים פרומפט, לפני ש-Claude מעבד אותו | כן. חוסם את עיבוד הפרומפט ומוחק אותו |
+| `UserPromptExpansion` | כשפקודה שהמשתמש הקליד מתרחבת לפרומפט, לפני שהוא מגיע ל-Claude | כן. חוסם את ההרחבה |
+| `PreToolUse` | לפני שקריאה לכלי מתבצעת | כן. חוסם את הקריאה לכלי |
+| `PermissionRequest` | כשקריאה לכלי צריכה החלטת הרשאה | לא. exit 2 לא נתמך; דוחים דרך אובייקט `decision` |
+| `PermissionDenied` | כש-auto mode דוחה קריאה לכלי | לא. הדחייה כבר קרתה; `retry: true` ב-JSON מאפשר למודל לנסות שוב (מתעלמים ממנו בדחייה בלי verdict של ה-classifier) |
+| `PostToolUse` | אחרי שקריאה לכלי הצליחה | לא. stderr מוצג ל-Claude; הכלי כבר רץ |
+| `PostToolUseFailure` | אחרי שקריאה לכלי נכשלה | לא. stderr מוצג ל-Claude; הכלי כבר נכשל |
+| `PostToolBatch` | אחרי שכל אצוות קריאות מקבילות הסתיימה, לפני הקריאה הבאה למודל | כן. עוצר את הלולאה האג'נטית לפני הקריאה הבאה למודל |
+| `Notification` | כש-Claude Code שולח התראה | לא. מתעלמים מקוד היציאה ומה-stderr |
+| `MessageDisplay` | בזמן שטקסט של הודעת assistant מוצג | לא. הטקסט המקורי מוצג |
+| `SubagentStart` | כש-subagent נוצר | לא. stderr מוצג למשתמש בלבד |
+| `SubagentStop` | כש-subagent מסיים | כן. מונע מה-subagent לעצור |
+| `TaskCreated` | כשמשימה נוצרת דרך `TaskCreate` | כן. מבטל את יצירת המשימה |
+| `TaskCompleted` | כשמשימה מסומנת כהושלמה | כן. מונע את הסימון כהושלמה |
+| `Stop` | כש-Claude מסיים להגיב | כן. מונע מ-Claude לעצור וממשיך את השיחה |
+| `StopFailure` | כשהתור מסתיים בגלל שגיאת API | לא. הפלט והקוד מתעלמים, חוץ מ-`terminalSequence` |
+| `TeammateIdle` | כשחבר ב-agent team עומד לעבור למצב idle | כן. מונע ממנו לעבור ל-idle |
+| `InstructionsLoaded` | כשקובץ CLAUDE.md או `.claude/rules/*.md` נטען להקשר | לא. מתעלמים מקוד היציאה |
+| `ConfigChange` | כשקובץ הגדרות משתנה במהלך הסשן | כן. חוסם את השינוי (חוץ מ-`policy_settings`) |
+| `CwdChanged` | כשתיקיית העבודה משתנה, למשל אחרי `cd` | לא. stderr מוצג למשתמש בלבד |
+| `DirectoryAdded` | כשתיקיית עבודה נוספת באמצע הסשן דרך `/add-dir` | לא. stderr נכתב ללוג ה-debug |
+| `FileChanged` | כשקובץ שנמצא במעקב משתנה בדיסק; ה-`matcher` קובע אילו קבצים | לא. stderr מוצג למשתמש בלבד |
+| `WorktreeCreate` | כש-worktree נוצר דרך `--worktree`,‏ `isolation: "worktree"` או לסשן ברקע. מחליף את התנהגות git הרגילה | כן. כל קוד שאינו 0 מכשיל את היצירה |
+| `WorktreeRemove` | כש-worktree מוסר ביציאה מסשן, כש-subagent מסיים או כשמוחקים סשן ברקע | כן. כל קוד שאינו 0 מכשיל את ההסרה אם התיקייה עדיין קיימת |
+| `PreCompact` | לפני דחיסת הקשר | כן. חוסם את הדחיסה |
+| `PostCompact` | אחרי שדחיסת ההקשר הסתיימה | לא. stderr מוצג למשתמש בלבד |
+| `PreModelSwitch` | לפני ש-Claude Code מחליף מודל לבקשתך או לבקשת לקוח | כן. חוסם את ההחלפה ומציג את ה-stderr |
+| `PostModelSwitch` | אחרי שהמודל של הסשן השתנה, כולל שינויים ש-Claude Code עושה בעצמו | לא. המודל כבר הוחלף |
+| `Elicitation` | כששרת MCP מבקש קלט מהמשתמש במהלך קריאה לכלי | כן. דוחה את הבקשה |
+| `ElicitationResult` | אחרי שהמשתמש ענה ל-elicitation, לפני שהתשובה נשלחת לשרת | כן. חוסם את התשובה (הפעולה הופכת ל-decline) |
+| `SessionEnd` | כשהסשן מסתיים | לא. stderr מוצג למשתמש בלבד |
+
+## איך עובד ה-matcher?
+
+ה-`matcher` בקבוצת hooks קובע מתי היא מופעלת. אופן הבדיקה תלוי בתווים שבו:
+
+| ערך matcher | איך הוא נבדק | דוגמה |
+| :-- | :-- | :-- |
+| `"*"`, `""` או בלי matcher | תואם הכול | רץ בכל פעם שהאירוע קורה |
+| רק אותיות, ספרות, `_`, `-`, רווחים, `,` ו-`\|` | מחרוזת מדויקת, או רשימה מופרדת ב-`\|` או ב-`,` | `Bash`,‏ `Edit\|Write`,‏ `Edit, Write` |
+| כל תו אחר | ביטוי רגולרי של JavaScript, לא מעוגן | `^Notebook`,‏ `mcp__memory__.*` |
+
+ב-`FileChanged` וב-`StopFailure` רק אותיות, ספרות, `_` ו-`\|` נחשבים התאמה מדויקת. matcher באירוע שלא תומך בו פשוט מתעלמים ממנו.
+
+### לפי איזה שדה כל אירוע מסנן?
+
+| אירוע | מה ה-matcher בודק | ערכים לדוגמה |
+| :-- | :-- | :-- |
+| `PreToolUse`, `PostToolUse`, `PostToolUseFailure`, `PermissionRequest`, `PermissionDenied` | שם הכלי | `Bash`,‏ `Edit\|Write`,‏ `mcp__.*` |
+| `SessionStart` | איך הסשן התחיל | `startup`,‏ `resume`,‏ `clear`,‏ `compact`,‏ `fork` |
+| `Setup` | איזה דגל הפעיל את ה-setup | `init`,‏ `maintenance` |
+| `SessionEnd` | למה הסשן הסתיים | `clear`,‏ `resume`,‏ `logout`,‏ `prompt_input_exit`,‏ `other` |
+| `Notification` | סוג ההתראה | `permission_prompt`,‏ `idle_prompt`,‏ `auth_success` ועוד |
+| `SubagentStart`, `SubagentStop` | סוג ה-agent | `general-purpose`,‏ `Explore`,‏ `Plan`, או שם agent מותאם |
+| `PreCompact`, `PostCompact` | מה הפעיל את הדחיסה | `manual`,‏ `auto` |
+| `PreModelSwitch`, `PostModelSwitch` | השם הקנוני של המודל שעוברים אליו | ראה [model-config](https://code.claude.com/docs/en/model-config) |
+| `ConfigChange` | מקור ההגדרות | `user_settings`,‏ `project_settings`,‏ `local_settings`,‏ `policy_settings`,‏ `skills` |
+| `DirectoryAdded` | איך התיקייה נוספה | `slash_command`,‏ `register_repo_root` |
+| `FileChanged` | שמות קבצים מדויקים למעקב | `.envrc\|.env` |
+| `StopFailure` | סוג השגיאה | `rate_limit`,‏ `overloaded`,‏ `server_error`,‏ `unknown` ועוד |
+| `InstructionsLoaded` | סיבת הטעינה | `session_start`,‏ `nested_traversal`,‏ `path_glob_match`,‏ `include`,‏ `compact` |
+| `UserPromptExpansion` | שם הפקודה | שמות ה-skills או הפקודות שלך |
+| `Elicitation`, `ElicitationResult` | שם שרת ה-MCP | שמות שרתי ה-MCP שהגדרת |
+| `UserPromptSubmit`, `PostToolBatch`, `Stop`, `TeammateIdle`, `TaskCreated`, `TaskCompleted`, `WorktreeCreate`, `WorktreeRemove`, `MessageDisplay`, `CwdChanged` | אין תמיכה ב-matcher | רץ תמיד |
+
+כלי MCP נקראים בתבנית `mcp__<server>__<tool>`. כדי לתפוס את כל הכלים של שרת צריך `.*` בסוף, למשל `mcp__memory__.*`.
+
+```json
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          { "type": "command", "command": "/path/to/lint-check.sh" }
+        ]
+      }
+    ]
+  }
+}
+```
+
+## אילו סוגי hook handler יש?
+
+| `type` | מה הוא עושה |
+| :-- | :-- |
+| `"command"` | מריץ פקודת shell. הקלט מגיע ב-stdin, והתוצאה חוזרת דרך קוד היציאה ו-stdout |
+| `"http"` | שולח את הקלט כבקשת POST ל-URL. התשובה חוזרת בגוף התגובה באותו פורמט JSON |
+| `"mcp_tool"` | קורא לכלי בשרת MCP שכבר מחובר. פלט הטקסט של הכלי מטופל כמו stdout |
+| `"prompt"` | שולח פרומפט למודל Claude להערכה בסבב אחד. המודל מחזיר החלטה ב-JSON |
+| `"agent"` | מפעיל subagent שיכול להשתמש בכלים כמו Read,‏ Grep ו-Glob לפני החלטה. ניסיוני |
+
+כל ה-hooks שתואמים רצים במקביל.
+
+### שדות משותפים לכל handler
+
+| שדה | חובה | תיאור |
+| :-- | :-- | :-- |
+| `type` | כן | `"command"`,‏ `"http"`,‏ `"mcp_tool"`,‏ `"prompt"` או `"agent"` |
+| `if` | לא | כלל בתחביר הרשאות, כמו `"Bash(git *)"`. נבדק רק באירועי כלים; באירועים אחרים handler עם `if` לא רץ אף פעם |
+| `timeout` | לא | שניות עד ביטול. ברירת מחדל: 600 ל-`command`,‏ `http` ו-`mcp_tool`; 30 ל-`prompt`; 60 ל-`agent` |
+| `statusMessage` | לא | הודעת spinner שמוצגת בזמן שה-hook רץ |
+| `once` | לא | אם `true`, ה-hook מוסר אחרי הריצה המוצלחת הראשונה. נתמך רק ב-frontmatter של skill |
+
+### שדות של command hook
+
+| שדה | חובה | תיאור |
+| :-- | :-- | :-- |
+| `command` | כן | פקודת ה-shell להרצה. עם `args` — קובץ ההרצה שמופעל ישירות |
+| `args` | לא | רשימת ארגומנטים. כשהיא קיימת, הפקודה מופעלת ישירות בלי shell |
+| `async` | לא | אם `true`, רץ ברקע בלי לחסום |
+| `asyncRewake` | לא | אם `true`, רץ ברקע ומעיר את Claude כשהוא יוצא עם קוד 2 |
+| `shell` | לא | `"bash"` או `"powershell"` |
+
+## איפה מגדירים hooks?
+
+| מיקום | היקף |
+| :-- | :-- |
+| `~/.claude/settings.json` | כל הפרויקטים שלך, רק במחשב שלך |
+| `.claude/settings.json` | פרויקט אחד; אפשר לעשות לו commit |
+| `.claude/settings.local.json` | פרויקט אחד, לא משותף |
+| Managed policy settings | כל הארגון, בשליטת מנהל |
+| `hooks/hooks.json` של plugin | כשה-plugin מופעל |
+| frontmatter של skill | משהפעילו את ה-skill ועד סוף הסשן |
+| frontmatter של subagent | בזמן שה-subagent רץ |
+
+## אילו שדות מגיעים בקלט ה-JSON?
+
+כל אירוע מקבל את השדות האלה, ובנוסף שדות שתלויים באירוע (למשל `tool_name`,‏ `tool_input` ו-`tool_use_id` באירועי כלים).
+
+| שדה | תיאור |
+| :-- | :-- |
+| `session_id` | מזהה הסשן הנוכחי |
+| `prompt_id` | UUID של הפרומפט שמעובד כרגע |
+| `transcript_path` | נתיב ל-JSON של השיחה. נכתב באופן אסינכרוני ועלול לפגר |
+| `cwd` | תיקיית העבודה ברגע שה-hook הופעל |
+| `scratchpad_dir` | נתיב לתיקיית ה-scratchpad של הסשן, אם יש |
+| `permission_mode` | מצב ההרשאות: `"default"`,‏ `"plan"`,‏ `"acceptEdits"`,‏ `"auto"`,‏ `"dontAsk"` או `"bypassPermissions"`. לא כל האירועים מקבלים אותו |
+| `effort` | אובייקט עם `level` של רמת ה-effort, באירועים שרצים בהקשר של שימוש בכלים |
+| `hook_event_name` | שם האירוע שהופעל |
+| `agent_id` | מזהה ה-subagent; רק כשה-hook רץ בתוך subagent |
+| `agent_type` | שם ה-agent; עם `--agent` או בתוך subagent |
+
+## מה המשמעות של כל קוד יציאה?
+
+| קוד יציאה | משמעות |
+| :-- | :-- |
+| `0` | הצלחה. זה הקוד כשמדפיסים JSON לשליטה מובנית. ב-`UserPromptSubmit`,‏ `UserPromptExpansion`,‏ `SessionStart` ו-`PostModelSwitch` טקסט רגיל ב-stdout נוסף כהקשר ל-Claude |
+| `2` | שגיאה חוסמת. באירועים שיכולים לחסום, החסימה תקפה גם אם ה-JSON אומר `"allow"`. ההודעה היא ה-`reason` מה-JSON, או ה-stderr |
+| כל קוד אחר | ברוב האירועים לא חוסם. עם JSON תקין — ה-JSON לבדו קובע. בלי JSON — שגיאה לא חוסמת והפעולה ממשיכה |
+
+שימו לב: `exit 1` בלי JSON תקין **לא** חוסם. hook שנועד לאכוף מדיניות צריך `exit 2`. ב-`WorktreeCreate` וב-`WorktreeRemove` כל קוד שאינו 0 גורם לכישלון.
+
+hook מסוג `http` לא יכול לחסום דרך קוד סטטוס. כדי לחסום מחזירים תשובת 2xx עם גוף JSON שמכיל את שדות ההחלטה.
+
+## אילו שדות אפשר להחזיר ב-JSON?
+
+ה-JSON נכתב ל-stdout (ורק הוא). יש שלושה סוגי שדות: שדות אוניברסליים, `decision` ו-`reason` ברמה העליונה, ו-`hookSpecificOutput` שדורש `hookEventName`.
+
+| שדה | ברירת מחדל | תיאור |
+| :-- | :-- | :-- |
+| `continue` | `true` | אם `false`, Claude מפסיק לעבד לגמרי. גובר על שדות ההחלטה של האירוע |
+| `stopReason` | אין | הודעה למשתמש כש-`continue` הוא `false` |
+| `suppressOutput` | `false` | אין לו השפעה |
+| `systemMessage` | אין | הודעת אזהרה שמוצגת למשתמש |
+| `terminalSequence` | אין | רצף escape ש-Claude Code כותב במקומך, כמו התראת desktop או צלצול |
+
+השדות `additionalContext`,‏ `systemMessage` ו-`initialUserMessage`, וגם stdout רגיל, מוגבלים ל-10,000 תווים כל אחד. פלט ארוך יותר נשמר לקובץ, ו-Claude מקבל את הנתיב ותצוגה מקדימה.
+
+### איך כל אירוע מחזיר החלטה?
+
+| אירועים | דפוס ההחלטה | שדות עיקריים |
+| :-- | :-- | :-- |
+| `UserPromptSubmit`, `UserPromptExpansion`, `PostToolUse`, `PostToolUseFailure`, `PostToolBatch`, `Stop`, `SubagentStop`, `ConfigChange`, `PreCompact` | `decision` ברמה העליונה | `decision: "block"`,‏ `reason` |
+| `PreToolUse` | `hookSpecificOutput` | `permissionDecision` (allow/deny/ask/defer),‏ `permissionDecisionReason` |
+| `PreModelSwitch` | `hookSpecificOutput` או `decision` | `permissionDecision` (allow/deny/ask),‏ `permissionDecisionReason` |
+| `PermissionRequest` | `hookSpecificOutput` | `decision.behavior` (allow/deny) |
+| `PermissionDenied` | `hookSpecificOutput` | `retry: true` |
+| `TeammateIdle`, `TaskCompleted` | קוד יציאה או `continue: false` | exit 2 חוסם עם משוב מ-stderr |
+| `TaskCreated` | קוד יציאה או `decision` | exit 2 או `decision: "block"` מבטלים את המשימה |
+| `WorktreeCreate` | החזרת נתיב | command מדפיס נתיב ל-stdout; http מחזיר `hookSpecificOutput.worktreePath` |
+| `WorktreeRemove` | קוד יציאה | קוד שאינו 0 מכשיל את ההסרה |
+| `Elicitation`, `ElicitationResult` | `hookSpecificOutput` | `action` (accept/decline/cancel),‏ `content` |
+| `MessageDisplay` | `hookSpecificOutput` | `displayContent` מחליף את הטקסט שמוצג על המסך בלבד |
+| `SessionStart`, `SubagentStart`, `PostModelSwitch` | הקשר בלבד | `hookSpecificOutput.additionalContext` |
+| `Setup`, `Notification`, `SessionEnd`, `PostCompact`, `InstructionsLoaded`, `StopFailure`, `CwdChanged`, `DirectoryAdded`, `FileChanged` | אין | לתופעות לוואי כמו לוגים או ניקוי |
+
+```json
+{
+  "hookSpecificOutput": {
+    "hookEventName": "PreToolUse",
+    "permissionDecision": "deny",
+    "permissionDecisionReason": "Database writes are not allowed"
+  }
+}
+```
+
+## איפה לומדים עוד?
+
+- [Hooks — איך מריצים פקודה בכל אירוע](/advanced/hooks)
+- [סקירת דרכי ההרחבה של Claude Code](/advanced/extend-overview)
+- [Hooks reference — הדף הרשמי](https://code.claude.com/docs/en/hooks)
