@@ -1,0 +1,189 @@
+---
+title: "איך דוחפים אירועים ל-Claude Code עם channels ו-deep links?"
+description: "Channel הוא שרת MCP שדוחף הודעות, התראות ו-webhooks לסשן Claude Code פתוח. Deep link מסוג claude-cli:// פותח סשן חדש בריפו הנכון עם פרומפט מוכן."
+level: "pro"
+order: 47
+source: "https://code.claude.com/docs/en/channels"
+lastVerified: "2026-09-23"
+keywords: ["Claude Code", "channels", "channel", "ערוצים", "--channels", "Telegram", "Discord", "iMessage", "fakechat", "deep links", "deep link", "claude-cli://", "קישור עמוק", "webhook", "research preview"]
+canDo: "עכשיו אתה יכול לחבר channel לסשן פעיל כדי ש-Claude יקבל הודעות והתראות מבחוץ, ולבנות קישור claude-cli:// שפותח סשן בריפו הנכון עם פרומפט מוכן."
+relatedSlugs: ["mobile", "scheduled", "plugins"]
+faq:
+  - q: "מה ההבדל בין channel לשרת MCP רגיל?"
+    a: "שרת MCP רגיל מחכה ש-Claude ישאל אותו במהלך משימה, ושום דבר לא נדחף לסשן. Channel הוא שרת MCP שדוחף אירועים לסשן שכבר פתוח, למשל הודעת צ'אט או webhook מ-CI, ו-Claude מגיב להם. חוץ מזה, שרת שמופיע ב-.mcp.json לא יכול לדחוף הודעות אם הוא לא מופיע גם בדגל --channels."
+  - q: "האם channel עובד כשהסשן סגור?"
+    a: "אירועים מגיעים רק כשהסשן פתוח. להגדרה שעובדת כל הזמן מריצים את Claude Code בתהליך רקע או בטרמינל שנשאר פתוח. אם Claude נתקע בבקשת הרשאה כשאתה לא ליד המחשב, הסשן ממתין עד שתגיב."
+  - q: "למה הפקודה claude --help לא מציגה את הדגל --channels?"
+    a: "Channels נמצאים ב-research preview, ובתקופה הזו הדגלים --channels ו---dangerously-load-development-channels לא מופיעים ב-help. הם עובדים למרות זאת. התחביר וחוזה הפרוטוקול עשויים להשתנות."
+  - q: "האם לחיצה על deep link מריצה משהו על המחשב שלי?"
+    a: "לא. הקישור רק בוחר תיקיית עבודה וממלא את תיבת הפרומפט. שום דבר לא מגיע למודל עד שאתה קורא את הטקסט ולוחץ Enter. מתחת לתיבה מופיעה אזהרה Prompt from an external link, והרשאות, CLAUDE.md ובקשות trust חלים כרגיל."
+  - q: "למה deep link ב-README של GitHub לא לחיץ?"
+    a: "GitHub מאפשר רק קישורי http ו-https ומסיר סכמות אחרות, ולכן מוצגת רק התווית. הפתרון מהתיעוד הוא לשים את הקישור בבלוק קוד, כדי שהקורא יעתיק אותו לשורת הכתובת בדפדפן."
+---
+
+import { CommandBlock, Callout, StepList } from "@/components/lesson";
+
+Channel הוא שרת MCP שדוחף אירועים לסשן Claude Code שכבר פתוח: הודעות מ-Telegram,‏ Discord או iMessage, התראות CI ו-webhooks. Claude מגיב, ויכול גם לענות בחזרה דרך אותו ערוץ. Deep link הוא כתובת `claude-cli://` שפותחת סשן חדש בתיקייה הנכונה עם פרומפט ממולא מראש.
+
+## למה זה חשוב
+שני הכלים מחברים את Claude Code לעולם שמחוץ לטרמינל, מכיוונים הפוכים. Channel מביא את האירוע אל הסשן שכבר פתוח, שבו Claude כבר מכיר את הקבצים וזוכר מה דיבגת. Deep link מביא אותך אל סשן חדש, בלחיצה אחת מתוך runbook, התראה או דשבורד.
+
+<Callout type="note">
+Channels נמצאים ב-[research preview](https://code.claude.com/docs/en/channels#research-preview). הם דורשים התחברות ל-Anthropic דרך claude.ai או Console API key, ולא זמינים ב-Amazon Bedrock,‏ Google Cloud's Agent Platform או Microsoft Foundry. בארגוני Team ו-Enterprise צריך להפעיל אותם במפורש.
+</Callout>
+
+## מה channel עושה, ובמה הוא שונה מכלים אחרים?
+Channel דוחף אירועים ממקורות חיצוניים לסשן המקומי שכבר רץ. זה הפער שהוא ממלא בין הכלים הקיימים:
+
+| כלי | מה הוא עושה |
+| --- | --- |
+| סשני ענן | מריצים משימה בסביבת ענן חדשה, משוכפלת מ-GitHub |
+| Claude in Slack | פותח סשן ענן מאזכור `@Claude` בשיחה |
+| שרת MCP רגיל | Claude שואל אותו במהלך משימה. שום דבר לא נדחף לסשן |
+| Remote Control | אתה מנהל את הסשן המקומי מ-claude.ai או מאפליקציית המובייל |
+| **Channel** | אירוע חיצוני נדחף לסשן המקומי שכבר פתוח |
+
+שני שימושים עיקריים מהתיעוד:
+
+- **גשר צ'אט:** שולחים שאלה מהטלפון ב-Telegram,‏ Discord או iMessage. העבודה רצה על המחשב שלך מול הקבצים האמיתיים, והתשובה חוזרת לאותו צ'אט.
+- **מקבל webhooks:** webhook מ-CI, ממערכת מעקב שגיאות או מ-deploy pipeline מגיע למקום שבו Claude כבר פתח את הקבצים.
+
+כש-Claude עונה דרך channel, הטרמינל מציג את ההודעה הנכנסת ואת קריאת הכלי עם אישור (כמו "sent"), אבל לא את טקסט התשובה. התשובה עצמה מופיעה בפלטפורמה השנייה.
+
+## איך מנסים channel בלי להגדיר בוט?
+Fakechat הוא channel הדגמה רשמי שמריץ ממשק צ'אט על localhost, בלי התחברות ובלי שירות חיצוני. צריך Claude Code מחובר עם חשבון claude.ai או Console API key, ואת [Bun](https://bun.sh) מותקן. בודקים עם `bun --version`.
+
+<StepList>
+
+1. מתקינים את הפלאגין מתוך סשן. כשנשאלים על scope, בוחרים user כדי שיהיה זמין בכל הפרויקטים:
+   <CommandBlock>/plugin install fakechat@claude-plugins-official</CommandBlock>
+2. יוצאים מ-Claude Code ומפעילים מחדש עם הדגל `--channels`:
+   <CommandBlock>claude --channels plugin:fakechat@claude-plugins-official</CommandBlock>
+3. פותחים את `http://localhost:8787` בדפדפן ושולחים הודעה, למשל `what's in my working directory?`.
+4. ההודעה מגיעה לסשן כשורה נכנסת כמו `← fakechat · web: ...`. Claude עושה את העבודה וקורא לכלי `reply` של fakechat. אם מתבקש אישור לתשובה הראשונה, מאשרים. התשובה מופיעה בממשק הצ'אט.
+
+</StepList>
+
+אם ההתקנה נכשלת עם `Marketplace "claude-plugins-official" not found`, מוסיפים את ה-marketplace ומנסים שוב:
+
+<CommandBlock>/plugin marketplace add anthropics/claude-plugins-official</CommandBlock>
+
+אפשר להעביר ל-`--channels` כמה פלאגינים, מופרדים ברווח.
+
+## איך מחברים Telegram,‏ Discord או iMessage?
+כל channel נתמך הוא פלאגין שדורש Bun. זרימת העבודה דומה: יוצרים בוט, מתקינים, מגדירים token, מפעילים עם `--channels`, ומצמידים (pair) את החשבון שלך. דוגמה עם Telegram:
+
+<StepList>
+
+1. ב-[BotFather](https://t.me/BotFather) שולחים `/newbot`, נותנים שם ו-username שמסתיים ב-`bot`, ומעתיקים את ה-token.
+2. מתקינים את הפלאגין:
+   <CommandBlock>/plugin install telegram@claude-plugins-official</CommandBlock>
+3. שומרים את ה-token. הוא נשמר ב-`~/.claude/channels/telegram/.env`. אפשר גם להגדיר `TELEGRAM_BOT_TOKEN` בסביבה לפני ההפעלה:
+   ```text
+   /telegram:configure <token>
+   ```
+4. יוצאים ומפעילים מחדש עם הערוץ:
+   <CommandBlock>claude --channels plugin:telegram@claude-plugins-official</CommandBlock>
+5. שולחים הודעה כלשהי לבוט ב-Telegram. הוא מחזיר קוד צימוד. בסשן מריצים `/telegram:access pair <code>`.
+6. נועלים את הגישה כך שרק החשבון שלך יוכל לשלוח:
+   <CommandBlock>/telegram:access policy allowlist</CommandBlock>
+
+</StepList>
+
+ב-Discord הזרימה זהה, עם הפקודות `/discord:configure` ו-`/discord:access`. צריך גם להפעיל את **Message Content Intent** בהגדרות הבוט ולהזמין אותו לשרת. iMessage עובד רק ב-macOS, בלי token: הוא קורא ישירות את מסד ההודעות, ולכן צריך לאשר Full Disk Access לטרמינל. הודעה לעצמך עוברת אוטומטית, ואנשי קשר נוספים מוסיפים עם `/imessage:access allow`. את השלבים המלאים לכל פלטפורמה תמצא ב[תיעוד הרשמי](https://code.claude.com/docs/en/channels#supported-channels).
+
+<Callout type="tip">
+אם הבוט לא מגיב, בדוק ש-Claude Code רץ עם `--channels`. הבוט עונה רק כשה-channel פעיל.
+</Callout>
+
+## מי יכול לשלוח הודעות לסשן שלך?
+רק מי שנמצא ב-allowlist של ה-channel. כל channel מאושר מחזיק רשימת שולחים, ושולחים אחרים נזרקים בשקט. יש שלוש שכבות הגנה:
+
+- **Allowlist של שולחים:** ב-Telegram וב-Discord נבנית בצימוד. ב-iMessage מוסיפים handle ידנית.
+- **`--channels` לכל סשן:** אתה בוחר אילו שרתים פעילים. שרת שמופיע ב-`.mcp.json` אבל לא ב-`--channels` לא יכול לדחוף הודעות.
+- **מדיניות ארגון:** `channelsEnabled` ו-`allowedChannelPlugins` ב-managed settings.
+
+<Callout type="warning">
+Channel שתומך ב-permission relay מעביר אליך בקשות הרשאה, ומי שיכול לענות דרך הערוץ יכול לאשר או לדחות שימוש בכלים בסשן שלך. הוסף ל-allowlist רק שולחים שאתה סומך עליהם בסמכות הזו.
+</Callout>
+
+אם Claude נתקל בבקשת הרשאה כשאתה לא ליד הטרמינל, הסשן ממתין עד שתגיב. לשימוש בלי השגחה התיעוד מזכיר את `--dangerously-skip-permissions`, רק בסביבות שאתה סומך עליהן. גם אז, [פעולות שאף מצב לא מאשר אוטומטית](https://code.claude.com/docs/en/permission-modes#actions-no-mode-auto-approves) עדיין חלות.
+
+## מה צריך לדעת על ארגונים ועל ה-research preview?
+ההתנהגות תלויה בסוג החשבון:
+
+| חשבון | ברירת מחדל |
+| --- | --- |
+| Pro,‏ Max בלי ארגון | זמין. מפעילים לכל סשן עם `--channels` |
+| claude.ai Team,‏ Enterprise | חסום עד שמפעילים אותו ב-Admin settings (דורש תפקיד Owner) או עם `channelsEnabled` ב-managed settings |
+| Console עם API key | מותר, אלא אם הארגון מפיץ managed settings |
+
+בזמן ה-preview, `--channels` מקבל רק פלאגינים מ-allowlist של Anthropic (ברירת המחדל: פלאגיני ה-channel ב-`claude-plugins-official`) או מ-allowlist של הארגון. פלאגין אחר לא נרשם, והודעת הפתיחה מסבירה למה. הדגלים לא מופיעים ב-`claude --help`, אבל עובדים. לבדיקה של channel שאתה בונה משתמשים ב-`--dangerously-load-development-channels`.
+
+לבניית channel משלך, כולל פורמט האירועים, permission relay ודוגמת webhook, ראה את [רפרנס ה-channels](/reference/channels).
+
+## מה זה deep link ואיך הוא עובד?
+Deep link הוא כתובת `claude-cli://` שפותחת את Claude Code בחלון טרמינל חדש, בתיקייה שנבחרה ועם פרומפט ממולא. ([תיעוד deep links](https://code.claude.com/docs/en/deep-links))
+
+<StepList>
+
+1. הדפדפן או האפליקציה מעבירים את הכתובת למערכת ההפעלה.
+2. מערכת ההפעלה מזהה את `claude-cli://` ומפעילה את Claude Code.
+3. נפתח טרמינל חדש עם Claude Code בתיקייה שבקישור, והפרומפט כבר בתיבת הקלט.
+4. אתה קורא, עורך אם צריך, ולוחץ Enter.
+
+</StepList>
+
+ה-handler נרשם אוטומטית ב-macOS,‏ Linux ו-Windows כששולחים את הפרומפט הראשון בסשן אינטראקטיבי. הפעלה ויציאה בלי לשלוח פרומפט לא רושמות אותו. לחסימת הרישום מגדירים `disableDeepLinkRegistration` ל-`"disable"` ב-`settings.json`.
+
+## איך בונים deep link?
+כל קישור מתחיל ב-`claude-cli://open`, וזה הנתיב היחיד שה-handler מקבל. מוסיפים פרמטרים:
+
+| פרמטר | מה הוא עושה |
+| --- | --- |
+| `q` | טקסט למילוי בתיבת הפרומפט. מקודדים ב-URL-encoding, `%0A` לשבירת שורה. עד 5,000 תווים |
+| `cwd` | נתיב מוחלט לתיקיית העבודה. נתיבי רשת ו-UNC, ונתיבים עם `..`, נדחים |
+| `repo` | slug של GitHub בפורמט `owner/name`. נפתח ב-clone המקומי שבו הרצת `claude` לאחרונה |
+
+אם מעבירים גם `cwd` וגם `repo`, ‏`cwd` קובע ו-`repo` מתעלמים ממנו. `cwd` מתאים כשלכולם אותו נתיב, למשל devcontainer. `repo` מתאים לקישור משותף, כשכל אחד שכפל למקום אחר. הקישור לא מחליף branch: הסשן נפתח במצב הנוכחי של התיקייה.
+
+דוגמה מהתיעוד:
+
+```text
+claude-cli://open?repo=acme/payments&q=Investigate%20the%20failed%20deploy%20of%20payments-api.%0ACheck%20recent%20commits%20to%20main%20and%20the%20last%20successful%20build.
+```
+
+כדי לנסות קישור, מדביקים אותו בשורת הכתובת של הדפדפן, או פותחים מה-shell. ב-PowerShell:
+
+```powershell
+Start-Process "claude-cli://open?repo=acme/payments&q=review%20open%20PRs"
+```
+
+ב-macOS משתמשים ב-`open`, וב-Linux ב-`xdg-open`, עם אותה כתובת.
+
+<Callout type="warning">
+Deep link אף פעם לא מריץ משהו בעצמו. הוא רק בוחר תיקייה וממלא את הפרומפט. מתחת לתיבה מופיעה האזהרה `Prompt from an external link`. בפרומפט ארוך מ-1,000 תווים גלול וקרא את כולו לפני Enter, כי הוראות יכולות להסתתר מחוץ למסך.
+</Callout>
+
+## דוגמה מעשית: runbook לתקרית
+בצעד של runbook מוסיפים קישור שפותח את הריפו של השירות עם פרומפט אבחון. זו הדוגמה מהתיעוד:
+
+```markdown
+## High 5xx rate on web-gateway
+
+1. Acknowledge the page in PagerDuty.
+2. [Open Claude Code in the gateway repo](claude-cli://open?repo=acme/web-gateway&q=5xx%20rate%20is%20elevated%20on%20web-gateway.%20Check%20recent%20deploys%2C%20error%20logs%20from%20the%20last%2030%20minutes%2C%20and%20open%20incidents%20in%20Linear.)
+3. Post initial findings in #incident.
+```
+
+מחליפים את `acme/web-gateway` ב-slug של הריפו שלך. מקודדים את הפרומפט עם `encodeURIComponent` בקונסולת הדפדפן. לפרומפט ארוך אפשר לשמור אותו כ-[skill](/advanced/skills) בריפו, ולשים ב-`q` רק את שם ה-skill.
+
+<Callout type="warning">
+GitHub מסיר קישורים שאינם `http` או `https`. ב-README,‏ issue או wiki, קישור `claude-cli://` יוצג כתווית בלבד. שם שמים את הקישור בבלוק קוד, והקורא מעתיק אותו לדפדפן.
+</Callout>
+
+אם הסשן נפתח בתיקיית הבית במקום בריפו, Claude Code עוד לא ראה את ה-clone. מריצים `claude` פעם אחת בתוכו, או עוברים ל-`cwd`. אם לחיצה לא עושה כלום, ה-handler כנראה לא נרשם: פותחים סשן אינטראקטיבי, שולחים פרומפט כלשהו, ומנסים שוב.
+
+## הצעד הבא
+- ← [Computer use: Claude שולט במסך](/pro/computer-use)
+- שיעורים קשורים: [Claude Code מהמובייל](/pro/mobile) · [Scheduled tasks](/pro/scheduled) · [פלאגינים](/advanced/plugins)
