@@ -31,7 +31,8 @@ function frontmatter(src) {
 // הפסקה הראשונה בגוף ה-MDX (אחרי frontmatter, imports והערות)
 function answerFirst(src) {
   const body = src
-    .replace(/^---[\s\S]*?---/, '')
+    // סוף ה-frontmatter הוא שורת --- שלמה (לא --- בתוך טקסט כמו --dangerously-…)
+    .replace(/^---\r?\n[\s\S]*?\r?\n---(?=\r?\n)/, '')
     .replace(/^import .*$/gm, '')
     .replace(/\{\/\*[\s\S]*?\*\/\}/g, '');
   const para = body.split(/\r?\n\s*\r?\n/).map((p) => p.trim()).find((p) => p && !p.startsWith('<') && !p.startsWith('#'));
