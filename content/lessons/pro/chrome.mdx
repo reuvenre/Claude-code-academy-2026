@@ -1,0 +1,158 @@
+---
+title: "איך מחברים את Claude Code לדפדפן Chrome לבדיקות ולאוטומציה?"
+description: "מתקינים את התוסף Claude in Chrome ומריצים claude --chrome. כך Claude Code בודק אפליקציות ווב, קורא שגיאות console, ממלא טפסים ומחלץ נתונים בדפדפן גלוי."
+level: "pro"
+order: 49
+source: "https://code.claude.com/docs/en/chrome"
+lastVerified: "2026-09-23"
+keywords: ["Claude Code", "Chrome", "Claude in Chrome", "--chrome", "/chrome", "דפדפן", "בדיקות בדפדפן", "אוטומציה", "אוטומציית דפדפן", "browser automation", "console", "מילוי טפסים", "Edge", "תוסף"]
+canDo: "עכשיו אתה יכול לחבר את Claude Code לדפדפן, לבקש ממנו לבדוק אפליקציית ווב מקומית, לקרוא שגיאות console ולאוטמט משימות בדפדפן, ולנהל את החיבור וההרשאות עם /chrome."
+relatedSlugs: ["computer-use", "permission-modes", "mcp"]
+faq:
+  - q: "באילו דפדפנים עובד החיבור של Claude Code ל-Chrome?"
+    a: "החיבור עובד עם Google Chrome ו-Microsoft Edge. Claude Code מזהה את התוסף ומגדיר את החיבור גם בדפדפנים אחרים מבוססי Chromium, כמו Brave,‏ Arc,‏ Vivaldi ו-Opera. החיבור לא נתמך ב-WSL."
+  - q: "האם אפשר להשתמש בחיבור ל-Chrome עם מפתח API?"
+    a: "החיבור דורש תוכנית ישירה של Anthropic, כלומר Pro,‏ Max,‏ Team או Enterprise, והתחברות עם /login. כשמתחברים עם מפתח API או עם טוקן ארוך-טווח מ-claude setup-token, Claude Code משאיר את החיבור כבוי גם עם הדגל --chrome. הוא גם לא זמין דרך ספקי צד שלישי כמו Amazon Bedrock."
+  - q: "האם Claude רואה אתרים שאני מחובר אליהם?"
+    a: "כן. Claude פותח לשוניות חדשות ומשתף את מצב ההתחברות של הדפדפן, ולכן יכול לגשת לכל אתר שכבר מחוברים אליו. כשהוא מגיע לדף התחברות או ל-CAPTCHA הוא עוצר ומבקש שתטפל בזה בעצמך. את האתרים שהוא רשאי לגלוש בהם ולפעול בהם מנהלים בהגדרות התוסף."
+  - q: "מה עושים כש-Claude Code לא מזהה את התוסף?"
+    a: "בודקים שהתוסף מותקן ומופעל ב-chrome://extensions, ש-Claude Code מעודכן ושהדפדפן פתוח, ואז מריצים /chrome ובוחרים Reconnect extension. בחיבור הראשון Claude Code מתקין קובץ הגדרות ש-Chrome קורא רק בעלייה, ולכן לפעמים צריך להפעיל את Chrome מחדש."
+  - q: "למה לא להפעיל את Chrome כברירת מחדל בכל סשן?"
+    a: "כשהחיבור מופעל כברירת מחדל, כלי הדפדפן נטענים תמיד, וזה מגדיל את צריכת חלון ההקשר. אם שמים לב לצריכה גבוהה, מכבים את ההגדרה ומפעילים את החיבור עם הדגל --chrome רק כשצריך."
+---
+
+import { CommandBlock, Callout, StepList } from "@/components/lesson";
+
+מתקינים את התוסף Claude in Chrome ומפעילים את Claude Code עם `claude --chrome`. מעכשיו Claude פותח לשוניות, לוחץ, מקליד, קורא שגיאות console ומחלץ נתונים, בחלון דפדפן גלוי. הפקודה `/chrome` בודקת את החיבור, מנהלת הרשאות ומאפשרת להפעיל אותו כברירת מחדל.
+
+## למה זה חשוב
+בלי חיבור לדפדפן, Claude כותב קוד לאפליקציית ווב אבל לא רואה אותה רצה. אתה עובר לדפדפן, בודק, מעתיק שגיאות מה-console וחוזר לטרמינל. עם Chrome מחובר, Claude בונה את הקוד ואז בודק ומדבג אותו בדפדפן, באותו workflow ובלי להחליף הקשר.
+
+## מה Claude יכול לעשות בדפדפן?
+לפי התיעוד הרשמי, אפשר לשלב פעולות בדפדפן עם משימות קוד:
+
+| יכולת | דוגמה |
+| --- | --- |
+| דיבוג חי | קורא שגיאות console ומצב DOM, ומתקן את הקוד שגרם להן |
+| אימות עיצוב | בונה UI מ-mock ב-Figma ובודק בדפדפן שהוא תואם |
+| בדיקת אפליקציות ווב | בודק ולידציה של טפסים, רגרסיות ויזואליות ו-user flows |
+| אפליקציות עם התחברות | עובד ב-Google Docs,‏ Gmail,‏ Notion או כל אפליקציה שמחוברים אליה, בלי connectors של API |
+| חילוץ נתונים | שולף מידע מובנה מדפי ווב ושומר אותו מקומית |
+| אוטומציה | הזנת נתונים, מילוי טפסים ו-workflows על פני כמה אתרים |
+| העלאת קבצים | מצרף קבצים מהמחשב לשדות העלאה בדף |
+| הקלטת סשן | מקליט אינטראקציות בדפדפן כ-GIF |
+
+הפעולות רצות בחלון Chrome גלוי, בזמן אמת. Claude מקבץ את הלשוניות שהוא פותח ל-tab group של Chrome שקשור לסשן.
+
+## מה צריך לפני שמתחילים?
+- Google Chrome,‏ Microsoft Edge או דפדפן אחר מבוסס Chromium, כמו Brave,‏ Arc,‏ Vivaldi או Opera.
+- התוסף [Claude in Chrome](https://chromewebstore.google.com/detail/claude/fcoeoabgfenejglbffodgkkbkcdhcgfn) מה-Chrome Web Store, בגרסה עדכנית.
+- Claude Code מותקן.
+- תוכנית ישירה של Anthropic: Pro,‏ Max,‏ Team או Enterprise, עם התחברות דרך `/login`.
+
+<Callout type="note">
+עם מפתח API או טוקן ארוך-טווח מ-`claude setup-token`, ‏Claude Code משאיר את החיבור כבוי, גם עם `--chrome`. החיבור לא זמין דרך ספקי צד שלישי כמו Amazon Bedrock, ולא נתמך ב-WSL.
+</Callout>
+
+## איך מחברים את Claude Code ל-Chrome?
+
+<StepList>
+
+1. מפעילים את Claude Code עם הדגל `--chrome`:
+
+   ```bash
+   claude --chrome
+   ```
+
+   בפעם הראשונה מופיע חלון הסבר חד-פעמי על החיבור ועל הרשאות האתרים. לוחצים Enter.
+2. מבקשים מ-Claude להשתמש בדפדפן. זו הדוגמה מהתיעוד:
+
+   ```text
+   Go to code.claude.com/docs, click on the search box,
+   type "hooks", and tell me what results appear
+   ```
+3. אם מופיעה בקשת הרשאה שמתחילה ב-`Claude in Chrome wants to`, מאשרים. אפשר לאשר את כל הפעולות באתר הזה לכל הסשן. Claude פותח לשונית חדשה ומתחיל במשימה.
+
+</StepList>
+
+אם Claude צריך את הדפדפן בסשן אינטראקטיבי ולא מזהה את התוסף, Claude Code מציג חלון בשם "Claude wants to use your browser". בוחרים **Install extension** להתקנה מודרכת באותו סשן, **Not now** כדי להמשיך בלי הדפדפן, או **Don't ask again** כדי להפסיק את השאלה. תמיד אפשר להשלים את ההגדרה אחר כך עם `/chrome`.
+
+## מה עושה הפקודה /chrome?
+מריצים בתוך הסשן:
+
+<CommandBlock>/chrome</CommandBlock>
+
+הפקודה בודקת את מצב החיבור, מנהלת הרשאות, מחברת מחדש את התוסף ובוחרת באיזה דפדפן מחובר להשתמש. החיבור עובד כשהסטטוס מציג "Status: Enabled" ו-"Extension: Installed".
+
+- **Enabled by default:** מפעיל את Chrome בכל סשן, בלי הדגל `--chrome`.
+- **Reconnect extension:** מחבר מחדש את התוסף כשהחיבור נפל.
+- **Select browser…:** בוחר דפדפן כשכמה דפדפנים מחוברים. Claude ממשיך להשתמש בבחירה הזו גם כשדפדפן נוסף מתחבר.
+
+<Callout type="tip">
+הפעלה כברירת מחדל טוענת את כלי הדפדפן תמיד, ולכן צורכת יותר מחלון ההקשר. אם הצריכה עולה, מכבים את ההגדרה ומשתמשים ב-`--chrome` רק כשצריך. כדי לראות את כל כלי הדפדפן, מריצים `/mcp`, בוחרים `claude-in-chrome` ואז **View tools**.
+</Callout>
+
+## איך נראים פרומפטים טובים לדפדפן?
+הדוגמאות האלה לקוחות מהתיעוד הרשמי, כלשונן.
+
+### בדיקת אפליקציה מקומית
+```text
+I just updated the login form validation. Can you open localhost:3000,
+try submitting the form with invalid data, and check if the error
+messages appear correctly?
+```
+
+### דיבוג עם console
+הלוגים יכולים להיות ארוכים, ולכן עדיף להגיד ל-Claude מה לחפש במקום לבקש את כל הפלט:
+
+```text
+Open the dashboard page and check the console for any errors when
+the page loads.
+```
+
+### מילוי טפסים מקובץ מקומי
+```text
+I have a spreadsheet of customer contacts in contacts.csv. For each row,
+go to the CRM at crm.example.com, click "Add Contact", and fill in the
+name, email, and phone fields.
+```
+
+### חילוץ נתונים לקובץ
+```text
+Go to the product listings page and extract the name, price, and
+availability for each item. Save the results as a CSV file.
+```
+
+### הקלטת GIF להדגמה
+```text
+Record a GIF showing how to complete the checkout flow, from adding
+an item to the cart through to the confirmation page.
+```
+
+## מה חשוב לדעת על הרשאות ובטיחות?
+Claude משתף את מצב ההתחברות של הדפדפן, ולכן יכול לגשת לכל אתר שאתה כבר מחובר אליו. כמה דברים שכדאי לזכור:
+
+- **הרשאות אתרים** נקבעות בתוסף. מנהלים בהגדרות של Claude in Chrome באילו אתרים Claude רשאי לגלוש, ללחוץ ולהקליד.
+- **התחברות ו-CAPTCHA:** כש-Claude מגיע לדף התחברות או ל-CAPTCHA, הוא עוצר ומבקש שתטפל בזה ידנית.
+- **העלאת קבצים:** Claude מעלה רק קבצים שהסשן רשאי לקרוא. כלל [הרשאה](/advanced/permissions-sandbox) שחוסם `Read` לקובץ חוסם גם את העלאתו. כל העלאה מוגבלת ל-10 MB בסך הכול.
+- **Plan mode:** ב-[plan mode](/beginner-plus/permission-modes) מופיעה בקשת הרשאה לפני הקלטת GIF, פתיחת לשונית חדשה או הרצת shortcut.
+
+<Callout type="warning">
+הקלטת GIF לוכדת את כל מה שמוצג בדפדפן, כולל פרטי חשבון בדפים שמחוברים אליהם. בודקים את ההקלטה לפני ששולחים אותה מחוץ לצוות.
+</Callout>
+
+## מה המגבלות ומה עושים כשמשהו לא עובד?
+החיבור תלוי בתוסף, בדפדפן פתוח ובחיבור פעיל ביניהם. אלה התקלות הנפוצות לפי התיעוד:
+
+| תקלה | מה עושים |
+| --- | --- |
+| התוסף לא מזוהה | בודקים שהוא מותקן ומופעל ב-`chrome://extensions` ושהדפדפן פתוח, ואז `/chrome` ← Reconnect extension. בחיבור הראשון ייתכן שצריך להפעיל את Chrome מחדש |
+| הדפדפן לא מגיב | חלון JavaScript כמו alert או confirm חוסם את הדף. סוגרים אותו ידנית ומבקשים מ-Claude להמשיך |
+| החיבור נופל בסשן ארוך | ה-service worker של התוסף נכנס למצב סרק. מריצים `/chrome` ← Reconnect extension |
+| "No tab available" | מבקשים מ-Claude לפתוח לשונית חדשה ולנסות שוב |
+
+ב-Windows, שגיאת `EADDRINUSE` מעידה על התנגשות ב-named pipe: מפעילים מחדש את Claude Code וסוגרים סשנים אחרים שמשתמשים ב-Chrome. משימה שאי אפשר לבצע בדפדפן, כמו שליטה באפליקציה מקומית, שייכת ל-[computer use](/pro/computer-use).
+
+## הצעד הבא
+- ← [Ultrareview](/pro/ultrareview)
+- שיעורים קשורים: [Computer use](/pro/computer-use) · [מצבי הרשאות](/beginner-plus/permission-modes) · [MCP](/advanced/mcp)
