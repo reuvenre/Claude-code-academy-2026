@@ -20,7 +20,8 @@ export function organizationJsonLd(): JsonLd {
     name: site.name,
     url: site.url,
     description: site.description,
-    inLanguage: site.language,
+    // ל-Organization אין inLanguage ב-schema.org; השדה המתאים הוא knowsLanguage
+    knowsLanguage: site.language,
   };
 }
 
