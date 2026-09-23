@@ -1,0 +1,218 @@
+---
+title: "איך מגדירים הרשאות ו-sandbox ב-Claude Code ומה ההבדל ביניהם?"
+description: "כללי allow,‏ ask ו-deny קובעים מה Claude Code מריץ בלי לשאול, ו-/sandbox מבודד פקודות Bash ברמת מערכת ההפעלה. תחביר הכללים, סדר העדיפויות והפעלת ה-sandbox."
+level: "advanced"
+order: 32
+source: "https://code.claude.com/docs/en/permissions"
+lastVerified: "2026-09-23"
+keywords: ["Claude Code", "הרשאות", "permissions", "/permissions", "כללי הרשאה", "allow", "deny", "sandbox", "/sandbox", "ארגז חול", "sandboxing", "בידוד", "settings.json", "bubblewrap"]
+canDo: "עכשיו אתה יכול לכתוב כללי allow,‏ ask ו-deny מדויקים, לדעת איזה כלל גובר, ולהפעיל את ה-sandbox עם /sandbox כדי לבודד פקודות Bash."
+relatedSlugs: ["hooks", "settings", "security"]
+faq:
+  - q: "מה קורה כשכלל allow וכלל deny תופסים את אותה פקודה?"
+    a: "כלל ה-deny גובר. Claude Code בודק קודם deny, אחר כך ask ורק בסוף allow, וההתאמה הראשונה קובעת. ספציפיות לא משנה את הסדר, ולכן כלל allow צר לא יכול לפתוח חריג בתוך כלל deny רחב."
+  - q: "האם ה-sandbox עובד ב-Windows?"
+    a: "ה-sandbox רץ על macOS,‏ Linux ו-WSL2. Windows נייטיב ו-WSL1 לא נתמכים. ב-Windows מריצים את Claude Code בתוך הפצת WSL2, או משתמשים ב-container או במכונה וירטואלית."
+  - q: "למה צריך sandbox אם כבר יש כלל deny ל-curl?"
+    a: "כלל Bash בודק את טקסט הפקודה ש-Claude כותב. הוא לא תופס את אותה תוכנה בצורה אחרת, למשל דרך נתיב מלא או בתוך sh -c. ה-sandbox נאכף על ידי מערכת ההפעלה על התהליך ועל כל תהליכי הבן שלו, בלי קשר לאיך הפקודה נוסחה."
+  - q: "איפה נשמר כלל שאישרתי עם Yes, and don't ask again?"
+    a: "בדרך כלל בקובץ .claude/settings.local.json בשורש ריפו ה-git, והוא חל על סשנים עתידיים בכל הריפו. מחוץ לריפו git או ב-Windows המיקום עשוי להיות שונה. אישור של עריכת קבצים לא נשמר לקובץ ונמשך רק עד סוף הסשן."
+  - q: "האם ה-sandbox מגן גם על MCP servers ועל hooks?"
+    a: "לא. ה-sandbox המובנה מבודד רק פקודות Bash,‏ PowerShell ו-Monitor ותהליכי הבן שלהן. כלי הקבצים המובנים כפופים לכללי ההרשאות, ו-MCP servers ו-hooks רצים ישירות על המחשב. כדי לשים את כל Claude Code בתוך גבול אחד משתמשים ב-sandbox runtime, ב-container או במכונה וירטואלית."
+---
+
+import { CommandBlock, Callout, StepList } from "@/components/lesson";
+
+כללי הרשאות (`allow`,‏ `ask`,‏ `deny`) ב-`settings.json` או דרך `/permissions` קובעים באילו כלים Claude Code משתמש בלי לשאול, מתי הוא שואל ומה חסום לגמרי. כלל deny תמיד גובר. ה-sandbox, שמפעילים עם `/sandbox`, מוסיף שכבה ברמת מערכת ההפעלה שמגבילה לאילו קבצים ורשת פקודות Bash מגיעות.
+
+## למה זה חשוב
+מצבי הרשאות קובעים את ההתנהגות הכללית, וכללים נותנים שליטה מדויקת: להריץ `npm run` בלי שאלות, לשאול לפני `git push`, ולחסום לגמרי קריאה של `.env`. את המצבים עצמם כיסינו ב[שיעור על מצבי ההרשאות](/beginner-plus/permission-modes), וכאן מתמקדים בכללים וב-sandbox.
+
+שתי השכבות משלימות זו את זו. כללים חלים על כל כלי, אבל הם בודקים את טקסט הפקודה. ה-sandbox חל רק על פקודות shell, אבל מערכת ההפעלה אוכפת אותו על התהליך שרץ בפועל. התיעוד הרשמי ממליץ להשתמש בשתיהן, כי מגבלות ה-sandbox ממשיכות לחול גם אם prompt injection עוקף את שיקול הדעת של Claude.
+
+<Callout type="note">
+כללי הרשאות נאכפים על ידי Claude Code, לא על ידי המודל. הוראה ב-CLAUDE.md משפיעה על מה ש-Claude מנסה לעשות, אבל לא משנה מה מותר לו.
+</Callout>
+
+## איך נראה כלל הרשאה?
+כלל נכתב בצורה `Tool` או `Tool(specifier)`. שם כלי בלי סוגריים תופס כל שימוש בכלי, ו-specifier בסוגריים מצמצם:
+
+| כלל | מה הוא תופס |
+| --- | --- |
+| `Bash` | כל פקודות Bash |
+| `Bash(npm run build)` | בדיוק את הפקודה `npm run build` |
+| `Read(./.env)` | קריאת קובץ `.env` בתיקייה הנוכחית |
+| `WebFetch(domain:example.com)` | בקשות fetch ל-example.com |
+| `mcp__puppeteer` | כל כלי של שרת ה-MCP בשם `puppeteer` |
+| `Agent(Explore)` | ה-subagent בשם Explore |
+
+כל כלל נכנס לאחת משלוש רשימות:
+
+- **allow**: Claude Code משתמש בכלי בלי לבקש אישור.
+- **ask**: Claude Code מבקש אישור בכל פעם.
+- **deny**: Claude Code לא משתמש בכלי.
+
+כלל deny עם שם כלי בלבד, כמו `Bash`, מסיר את הכלי מההקשר של Claude לגמרי. כלל עם specifier, כמו `Bash(rm *)`, משאיר את הכלי זמין וחוסם רק קריאות שמתאימות לו.
+
+## איך כותבים כללי Bash עם כוכבית?
+`*` בכלל Bash תופס כל טקסט, כולל רווחים. כותבים את הפקודה שרוצים לאשר ומחליפים ב-`*` את החלק שמשתנה. בדוגמה מהתיעוד, Claude Code מריץ סקריפטים של npm ו-`git commit` בלי לשאול, ומסרב לפקודות שמתחילות ב-`git push`:
+
+```json
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "Bash(git commit *)"
+    ],
+    "deny": [
+      "Bash(git push *)"
+    ]
+  }
+}
+```
+
+| כלל | תופס | לא תופס |
+| --- | --- | --- |
+| `Bash(npm run build)` | `npm run build` | `npm run build --watch` |
+| `Bash(npm run *)` | `npm run build`, `npm run test --watch`, `npm run` | `npm install` |
+| `Bash(ls *)` | `ls -la`, `ls` | `lsof` |
+| `Bash(ls*)` | `ls -la`, `lsof` | |
+
+שלושה דברים ששווה לזכור:
+
+- **שמים את `*` אחרי ה-subcommand.** `Bash(git log *)` מאשר רק פקודות `git log`, אבל `Bash(git *)` מאשר כל פקודת git.
+- **הרווח לפני `*` הוא חלק מהכלל.** לכן `Bash(ls *)` לא תופס את `lsof`.
+- **פקודות מורכבות נבדקות בחלקים.** Claude Code מכיר את המפרידים `&&`,‏ `||`,‏ `;`,‏ `|`,‏ `|&`,‏ `&` ושורות חדשות, כך ש-`Bash(safe-cmd *)` לא מאשר את `safe-cmd && other-cmd`. כל תת-פקודה צריכה להתאים לכלל בעצמה.
+
+## איך חוסמים קבצים רגישים עם Read ו-Edit?
+כדי לחסום קריאה של קובץ או תיקייה, מוסיפים כלל deny של `Read`, למשל `Read(./.env)` או `Read(./secrets/**)`. כלל deny של `Read` חוסם גם עריכה וכתיבה באותו נתיב. כללי `Edit` חלים על כל הכלים המובנים שעורכים קבצים.
+
+הנתיבים כתובים בתחביר gitignore, ויש ארבעה סוגי עוגנים:
+
+| תבנית | משמעות | דוגמה |
+| --- | --- | --- |
+| `//path` | נתיב מוחלט משורש מערכת הקבצים | `Read(//Users/alice/secrets/**)` |
+| `~/path` | נתיב מתיקיית הבית | `Read(~/Documents/*.pdf)` |
+| `/path` | יחסי למקור ההגדרות | `Edit(/src/**/*.ts)` |
+| `path` או `./path` | יחסי לתיקייה הנוכחית | `Read(*.env)` |
+
+<Callout type="warning">
+`/Users/alice/file` הוא לא נתיב מוחלט. לוכסן בודד מעגן את הנתיב למקור ההגדרות: כשהכלל ב-`.claude/settings.json` הוא מתייחס לתיקיית העבודה הראשית, וכשהכלל ב-`~/.claude/settings.json` הוא מתייחס ל-`~/.claude`. לנתיב מוחלט כותבים `//Users/alice/file`. ב-Windows הנתיבים מנורמלים לצורת POSIX לפני ההתאמה, כך ש-`C:\Users\alice` הופך ל-`/c/Users/alice`, ולכן `//c/**/.env` תופס קובצי `.env` בכל הכונן.
+</Callout>
+
+כללי deny של `Read` ו-`Edit` חלים על כלי הקבצים של Claude, על פקודות קבצים ש-Claude Code מזהה ב-Bash, כמו `cat` ו-`sed`, ועל יעדי הפניות כמו `> file`. הם לא חלים על סקריפט Python או Node שפותח קבצים בעצמו. לחסימה ברמת מערכת ההפעלה, לכל תהליך, מפעילים את ה-sandbox.
+
+## איזה כלל גובר כשכמה כללים מתאימים?
+Claude Code בודק את הכללים בסדר קבוע: deny, אחר כך ask, ואחר כך allow. ההתאמה הראשונה בסדר הזה קובעת, וספציפיות לא משנה אותו.
+
+לכן כלל deny רחב כמו `Bash(aws *)` חוסם כל קריאה מתאימה, גם אם כלל allow צר כמו `Bash(aws s3 ls)` תופס אותה. כלל allow לא יכול לפתוח חריג בתוך כלל deny. באותו אופן, כלל ask שמתאים גורם לבקשת אישור גם כשכלל allow ספציפי יותר מתאים.
+
+אותו עיקרון חל בין קובצי הגדרות. אם ה-user settings מאשרים משהו וה-project settings חוסמים אותו, הוא חסום, וגם להפך. managed settings של הארגון נמצאות בראש סדר העדיפויות, ושום רמה אחרת, כולל ארגומנטים בשורת הפקודה, לא יכולה לעקוף כלל managed. על סדר העדיפויות בין קובצי ההגדרות יש [שיעור נפרד](/advanced/settings).
+
+## איך מנהלים כללים עם /permissions?
+מריצים בתוך הסשן:
+
+<CommandBlock>/permissions</CommandBlock>
+
+הדיאלוג מציג את כל כללי ההרשאות ואת קובץ ה-`settings.json` שממנו מגיע כל כלל. אפשר להוסיף ולהסיר כללים גם בזמן ש-Claude עובד, והשינוי חל מקריאת הכלי הבאה.
+
+כשעונים "Yes, and don't ask again" לבקשת אישור של פקודת Bash או של דומיין ל-WebFetch, Claude Code שומר את הכלל ב-`.claude/settings.local.json` בשורש ריפו ה-git. הכלל חל על סשנים עתידיים בכל הריפו, כולל תתי-תיקיות ו-worktrees. מחוץ לריפו git, או ב-Windows, Claude Code לא משתמש בשורש הריפו, ו[דף ההגדרות](https://code.claude.com/docs/en/settings#where-claude-code-looks-for-each-file) מפרט איפה הכלל נשמר במקרים האלה. אישור של עריכת קובץ לא נשמר לקובץ ונמשך רק עד סוף הסשן.
+
+## למה כללי Bash לא מספיקים לבד?
+כלל Bash בודק את הטקסט ש-Claude כותב, ולא את התוכנה שרצה בפועל. הוא לא תופס את אותה תוכנה כשהיא מופעלת בצורה אחרת. אלה דוגמאות מהתיעוד לכללים ב-deny:
+
+| כלל | עוצר | לא עוצר |
+| --- | --- | --- |
+| `Bash(curl *)` | `curl https://example.com` | `/usr/bin/curl https://example.com`, `sh -c 'curl https://example.com'` |
+| `Bash(rm *)` | `rm -rf build/` | `/bin/rm -rf build/`, `bash -c 'rm -rf build/'` |
+
+לאכיפה של קבצים ורשת שלא תלויה בניסוח הפקודה, התיעוד מפנה ל-sandbox. לבדיקה של הפקודה עם לוגיקה משלך לפני שהיא רצה, אפשר להשתמש ב-[hook של PreToolUse](/advanced/hooks).
+
+## מה זה ה-sandbox ואיך מפעילים אותו?
+ה-sandbox הוא מנגנון מובנה ב-Claude Code שמגביל כל פקודת Bash,‏ PowerShell או Monitor, וכל תהליכי הבן שלה, ברמת מערכת ההפעלה. במקום לאשר כל פקודה, מגדירים לאילו קבצים ודומיינים הפקודות רשאיות לגשת.
+
+<StepList>
+
+1. מריצים בתוך הסשן:
+
+   <CommandBlock>/sandbox</CommandBlock>
+
+   נפתח פאנל עם הלשוניות **Mode**,‏ **Overrides** ו-**Config**. ב-Linux מופיעה לצדן גם לשונית **Dependencies** כשחסר מסנן ה-seccomp האופציונלי. אם Dependencies היא הלשונית היחידה, חסרה חבילה נדרשת.
+2. בלשונית **Mode** בוחרים מצב:
+   - **auto-allow**: פקודות שרצות בתוך ה-sandbox מאושרות בלי לשאול.
+   - **regular permissions**: בקשות האישור הרגילות נשארות גם לפקודות בתוך ה-sandbox.
+3. מבקשים מ-Claude להריץ פקודה, למשל build או בדיקות. בפעם הראשונה שפקודה צריכה דומיין חדש, Claude Code מבקש אישור.
+
+</StepList>
+
+הבחירה בפאנל נשמרת ב-`.claude/settings.local.json` של הפרויקט. כדי להפעיל את ה-sandbox בכל הפרויקטים, מגדירים `sandbox.enabled` ל-`true` ב-`~/.claude/settings.json`. לסשן אחד בלבד, בלי לכתוב לקובץ הגדרות:
+
+```bash
+claude --settings '{"sandbox": {"enabled": true, "allowUnsandboxedCommands": false}}'
+```
+
+גם במצב auto-allow, כללי deny תמיד נאכפים, וכלל ask שמכוון לתוכן, כמו `Bash(git push *)`, עדיין מבקש אישור.
+
+## מה ה-sandbox מגביל?
+ל-sandbox שתי שכבות עצמאיות: קבצים ורשת.
+
+- **כתיבה:** כברירת מחדל, רק לתיקיית העבודה ולתתי-התיקיות שלה, לתיקיות שהוספת עם `--add-dir` או `/add-dir`, ולתיקיית ה-temp של הסשן.
+- **קריאה:** כברירת מחדל, כל המחשב חוץ מתיקיות חסומות מסוימות.
+- **רשת:** דרך proxy שרץ מחוץ ל-sandbox. אף דומיין לא מאושר מראש, ו-Claude Code מבקש אישור בפעם הראשונה שפקודה צריכה דומיין חדש.
+
+<Callout type="warning">
+ברירת המחדל של הקריאה עדיין מאפשרת לקרוא קבצי credentials כמו `~/.aws/credentials` ו-`~/.ssh/`. כדי לחסום אותם, מוסיפים אותם ל-`sandbox.credentials` או ל-`denyRead`.
+</Callout>
+
+אם כלי כמו `kubectl` או `npm` צריך לכתוב מחוץ לתיקיות האלה, מאשרים נתיב ספציפי עם `sandbox.filesystem.allowWrite`, ולא מוציאים את הכלי מה-sandbox:
+
+```json
+{
+  "sandbox": {
+    "enabled": true,
+    "filesystem": {
+      "allowWrite": ["~/.kube", "/tmp/build"]
+    }
+  }
+}
+```
+
+שים לב שנתיבי ה-sandbox משתמשים בקונבנציה רגילה: `/tmp/build` הוא נתיב מוחלט. זה שונה מכללי `Read` ו-`Edit`, שבהם נתיב מוחלט מתחיל ב-`//`.
+
+## מה קורה כשפקודה לא יכולה לרוץ ב-sandbox?
+Claude Code מדווח ל-Claude מה ה-sandbox חסם, ו-Claude עשוי לנסות שוב מחוץ ל-sandbox עם הפרמטר `dangerouslyDisableSandbox`. ניסיון כזה עובר בתהליך ההרשאות הרגיל, וב-Manual mode תקבל בקשת אישור. בקשת האישור של פקודה שרצה מחוץ ל-sandbox נקראת "Bash command (unsandboxed)", כדי שתדע להבחין.
+
+כדי לבטל את האפשרות הזו, מגדירים `"allowUnsandboxedCommands": false` בהגדרות ה-sandbox. בלשונית **Overrides** היא מופיעה בשם **Strict sandbox mode**.
+
+## באילו מערכות ה-sandbox עובד?
+ה-sandbox רץ על macOS,‏ Linux ו-WSL2. **Windows נייטיב לא נתמך**, וגם WSL1 לא. ב-Windows מריצים את Claude Code בתוך הפצת WSL2, או משתמשים ב-container או במכונה וירטואלית. ה-sandbox אמנם מכסה גם פקודות PowerShell, אבל רק בפלטפורמות הנתמכות, לא ב-Windows נייטיב.
+
+| מערכת | מנגנון | מה צריך להתקין |
+| --- | --- | --- |
+| macOS | Seatbelt המובנה | כלום |
+| Linux ו-WSL2 | bubblewrap | `bubblewrap` ו-`socat` |
+
+ב-Ubuntu או Debian:
+
+```bash
+sudo apt-get install bubblewrap socat
+```
+
+אחרי ההתקנה מפעילים מחדש את Claude Code, כי בדיקת התלויות רצה בהפעלה.
+
+<Callout type="warning">
+כברירת מחדל, אם ה-sandbox לא מצליח לעלות, בגלל תלות חסרה או פלטפורמה שלא נתמכת, Claude Code מציג אזהרה ומריץ פקודות **בלי** sandbox. כדי שזה ייכשל במקום זאת, מגדירים `sandbox.failIfUnavailable` ל-`true`.
+</Callout>
+
+## מה ה-sandbox לא מכסה?
+ה-sandbox המובנה מבודד רק פקודות shell ותהליכי הבן שלהן:
+
+- **Read,‏ Edit ו-Write** עובדים ישירות מול מערכת ההרשאות, ולא דרך ה-sandbox.
+- **MCP servers ו-command hooks** הם תהליכים נפרדים שרצים על המחשב בלי הגבלה, לפי [דף סביבות ה-sandbox](https://code.claude.com/docs/en/sandbox-environments).
+- **משתני סביבה** עוברים לפקודות בתוך ה-sandbox כברירת מחדל, כולל credentials שהוגדרו בהם.
+
+התיעוד מציין שה-sandbox מקטין סיכון אבל הוא לא גבול בידוד מלא. כדי לשים את כל תהליך Claude Code בתוך גבול אחד, כולל כלי קבצים, MCP servers ו-hooks, [דף סביבות ה-sandbox](https://code.claude.com/docs/en/sandbox-environments) משווה בין sandbox runtime,‏ dev container,‏ container משלך, מכונה וירטואלית וסשנים בענן. לריצה עם `--dangerously-skip-permissions` התיעוד מורה להשתמש תמיד באחת מהאפשרויות האלה.
+
+## הצעד הבא
+- ← [אבטחה ב-Claude Code](/advanced/security)
+- שיעורים קשורים: [מצבי הרשאות](/beginner-plus/permission-modes) · [קובצי הגדרות](/advanced/settings) · [Hooks](/advanced/hooks)
