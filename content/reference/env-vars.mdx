@@ -1,0 +1,161 @@
+---
+title: "משתני סביבה ב-Claude Code: איך מגדירים ואילו שימושיים?"
+description: "מדריך מהיר למשתני סביבה ב-Claude Code: הגדרה בטרמינל או במפתח env של settings.json, סדר קדימויות, וטבלה נבחרת לפי קטגוריות: התחברות, מודל, רשת וטלמטריה."
+order: 3
+source: "https://code.claude.com/docs/en/env-vars"
+lastVerified: "2026-09-23"
+keywords: ["Claude Code", "משתני סביבה", "environment variables", "env", "settings.json", "ANTHROPIC_API_KEY", "ANTHROPIC_MODEL", "HTTPS_PROXY", "CLAUDE_CONFIG_DIR", "טלמטריה", "פרוקסי", "הגדרות"]
+faq:
+  - q: "מה ההבדל בין משתנה בטרמינל למשתנה במפתח env של settings.json?"
+    a: "משתנה שהוגדר בטרמינל תקף לאותו סשן טרמינל בלבד. משתנה במפתח env של קובץ settings.json חל בכל פעם ש-claude רץ, לא משנה איך הופעל."
+  - q: "מה קורה אם אותו משתנה מוגדר גם בטרמינל וגם ב-settings.json?"
+    a: "הערך מקובץ ההגדרות גובר. Claude Code כותב כל ערך מבלוק env לסביבת התהליך ומחליף את הערך שהגיע מהטרמינל."
+  - q: "איך מדליקים או מכבים משתנה מסוג כן/לא?"
+    a: "ברוב המשתנים 1 או true מדליקים, ו-0 או false מכבים. חריגים כמו DISABLE_TELEMETRY נדלקים מכל ערך לא ריק, גם 0, וכדי לכבות אותם צריך להסיר את המשתנה או להגדיר לו ערך ריק."
+  - q: "האם שינוי משתנה נקלט בסשן שכבר רץ?"
+    a: "משתני טרמינל נקראים רק בהפעלה, אז צריך להפעיל את claude מחדש. משתנים במפתח env נקלטים מחדש כששומרים את הקובץ, חוץ מפיצ'רים שקוראים אותם רק בהפעלה, כמו OpenTelemetry."
+---
+
+import { Callout } from "@/components/lesson";
+
+משתני סביבה שולטים בהתנהגות של Claude Code: התחברות, בחירת מודל, ניתוב דרך פרוקסי והדלקה וכיבוי של פיצ'רים. מגדירים אותם בטרמינל לפני הפעלת `claude`, או במפתח `env` של `settings.json`. זו רשימה נבחרת. הרשימה המלאה (מאות משתנים) נמצאת [בדף הרשמי](https://code.claude.com/docs/en/env-vars#variables).
+
+## איך מגדירים משתנה סביבה?
+משתנה שמוגדר בטרמינל תקף לאותו סשן טרמינל. משתנה בקובץ הגדרות חל בכל פעם ש-`claude` רץ.
+
+| איפה | איך | הערה |
+| --- | --- | --- |
+| macOS,‏ Linux,‏ WSL | `export API_TIMEOUT_MS="1200000"` | לכל סשן: מוסיפים את שורת ה-`export` ל-`~/.bashrc`,‏ `~/.zshrc` או לקובץ ה-profile של ה-shell |
+| Windows PowerShell | `$env:API_TIMEOUT_MS = "1200000"` | לכל סשן: `[Environment]::SetEnvironmentVariable("API_TIMEOUT_MS", "1200000", "User")`, ופותחים טרמינל חדש |
+| Windows CMD | `set API_TIMEOUT_MS=1200000` | לכל סשן: `setx API_TIMEOUT_MS "1200000"`, ופותחים טרמינל חדש |
+| `settings.json` | מפתח `env` | Claude Code קורא ישירות מהקובץ, לא משנה איך `claude` הופעל |
+
+```json
+{
+  "env": {
+    "API_TIMEOUT_MS": "1200000",
+    "BASH_DEFAULT_TIMEOUT_MS": "300000"
+  }
+}
+```
+
+הקובץ שבוחרים קובע על מי המשתנה חל:
+
+| קובץ | חל על |
+| --- | --- |
+| `~/.claude/settings.json` | עליך, בכל פרויקט |
+| `.claude/settings.json` | על כל מי שעובד בפרויקט (נשמר ב-source control) |
+| `.claude/settings.local.json` | עליך, בפרויקט הזה בלבד |
+| Managed settings | על כל הארגון, מופץ על ידי אדמין |
+
+## מה גובר כשמשתנה מוגדר בכמה מקומות?
+- **טרמינל מול `env`:** הערך מקובץ ההגדרות גובר ומחליף את הערך מהטרמינל.
+- **בין קובצי הגדרות:** לפי סדר הקדימויות של settings, כך ש-managed settings גובר על הגדרות משתמש ופרויקט.
+- **לא ניתן להסיר משתנה מקובץ הגדרות**, רק להגדיר. כדי לעקוף משתנה שאי אפשר לבטל, כמו `CLAUDE_CODE_USE_VERTEX` שמגיע מ-profile של ה-shell, מגדירים אותו כמחרוזת ריקה: `"CLAUDE_CODE_USE_VERTEX": ""`. לצורך בחירת ספק, Claude Code מתייחס לערך ריק כלא מוגדר; תהליכי משנה עדיין יורשים את הערך הריק.
+- **מול דגלים ופקודות:** זה משתנה לפי פיצ'ר. `--model` ו-`/model` גוברים על `ANTHROPIC_MODEL`, אבל `CLAUDE_CODE_EFFORT_LEVEL` גובר על `--effort` ו-`/effort`.
+- **מתי נקלט:** משתני טרמינל נקראים בהפעלה בלבד. משתנים ב-`env` נקלטים מחדש כששומרים את הקובץ, חוץ מפיצ'רים שקוראים אותם רק בהפעלה (כמו OpenTelemetry). הסרת משתנה מהקובץ נכנסת לתוקף רק בהפעלה הבאה של `claude`.
+
+<Callout type="note">
+משתני כן/לא: `1` או `true` מדליקים, `0` או `false` מכבים (בלי תלות באותיות גדולות/קטנות). חריגים: `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC`,‏ `DISABLE_TELEMETRY`,‏ `DISABLE_ERROR_REPORTING`,‏ `CLAUDE_CODE_TMUX_TRUECOLOR`,‏ `FALLBACK_FOR_ALL_PRIMARY_MODELS` ו-`IS_DEMO` נדלקים מכל ערך לא ריק, כולל `0`. כדי לכבות אותם מסירים את המשתנה או מגדירים ערך ריק. `FORCE_HYPERLINK` קורא מספר, כך שרק `0` מכבה אותו.
+</Callout>
+
+## התחברות וספקים
+| משתנה | מה הוא עושה |
+| --- | --- |
+| `ANTHROPIC_API_KEY` | מפתח API שנשלח בכותרת `X-Api-Key`. כשהוא מוגדר הוא משמש במקום המנוי, גם אם התחברת; במצב אינטראקטיבי תתבקש לאשר אותו פעם אחת. |
+| `ANTHROPIC_AUTH_TOKEN` | ערך מותאם לכותרת `Authorization` (עם הקידומת `Bearer `). |
+| `CLAUDE_CODE_OAUTH_TOKEN` | טוקן OAuth להתחברות ל-claude.ai, חלופה ל-`/login` בסביבות אוטומטיות; מייצרים אותו עם `claude setup-token`. |
+| `ANTHROPIC_BASE_URL` | עוקף את כתובת ה-API כדי לנתב בקשות דרך פרוקסי או gateway. |
+| `CLAUDE_CODE_USE_BEDROCK` | עבודה דרך Amazon Bedrock. |
+| `AWS_BEARER_TOKEN_BEDROCK` | מפתח API של Amazon Bedrock להתחברות. |
+| `CLAUDE_CODE_USE_VERTEX` | עבודה דרך Google Cloud's Agent Platform. |
+| `ANTHROPIC_VERTEX_PROJECT_ID` | מזהה פרויקט GCP שאליו נשלחות הבקשות ב-Google Cloud's Agent Platform. |
+| `CLAUDE_CODE_USE_FOUNDRY` | עבודה דרך Microsoft Foundry. |
+
+## מודל וטוקנים
+שמות מודלים וערכי ברירת מחדל מתחלפים. לערכים העדכניים ראה [model-config](https://code.claude.com/docs/en/model-config).
+
+| משתנה | מה הוא עושה |
+| --- | --- |
+| `ANTHROPIC_MODEL` | שם המודל לשימוש. `--model` ו-`/model` גוברים עליו. |
+| `CLAUDE_CODE_SUBAGENT_MODEL` | מודל ברירת המחדל לסוכני משנה שלא הוקצה להם מודל בדרך אחרת. |
+| `CLAUDE_CODE_EFFORT_LEVEL` | רמת ה-effort:‏ `low`,‏ `medium`,‏ `high`,‏ `xhigh`,‏ `max` או `auto`. גובר על `--effort` ו-`/effort`. |
+| `CLAUDE_CODE_MAX_OUTPUT_TOKENS` | מספר טוקני הפלט המרבי לרוב הבקשות. ערך גבוה יותר מקטין את חלון ההקשר לפני compaction אוטומטי. |
+| `MAX_THINKING_TOKENS` | תקציב טוקנים קבוע ל-extended thinking. |
+| `CLAUDE_AUTOCOMPACT_PCT_OVERRIDE` | האחוז (1-100) מחלון ה-auto-compact שבו מתחיל compaction; משמש להקדמה בלבד, לא לדחייה. |
+| `CLAUDE_CODE_AUTO_COMPACT_WINDOW` | גודל חלון ה-auto-compact בטוקנים, מ-`100000` עד `1000000`, מספר שלם בלבד. |
+| `DISABLE_AUTO_COMPACT` | `1` מכבה compaction אוטומטי; `/compact` הידני נשאר זמין. |
+| `DISABLE_COMPACT` | `1` מכבה כל compaction, כולל הפקודה `/compact`. |
+| `CLAUDE_CODE_DISABLE_1M_CONTEXT` | `1` מכבה תמיכה בחלון הקשר של 1M. |
+| `MAX_MCP_OUTPUT_TOKENS` | מספר הטוקנים המרבי בתשובת כלי MCP (ברירת מחדל: 25000). |
+| `DISABLE_PROMPT_CACHING` | `1` מכבה prompt caching לכל המודלים. |
+| `ENABLE_PROMPT_CACHING_1H` | `1` מבקש TTL של שעה ל-prompt cache במקום 5 דקות; כתיבות כאלה מחויבות בתעריף גבוה יותר. |
+
+## הדלקה וכיבוי של פיצ'רים
+| משתנה | מה הוא עושה |
+| --- | --- |
+| `CLAUDE_CODE_DISABLE_AUTO_MEMORY` | `1` מכבה auto memory;‏ `0` מכריח אותו לפעול. |
+| `CLAUDE_CODE_DISABLE_CLAUDE_MDS` | `1` מונע טעינה של כל קובצי CLAUDE.md להקשר. |
+| `CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD` | `1` טוען קובצי זיכרון (כמו `CLAUDE.md`) מתיקיות שנוספו עם `--add-dir`. |
+| `CLAUDE_CODE_DISABLE_FILE_CHECKPOINTING` | `1` מכבה checkpointing, ואז `/rewind` לא יוכל לשחזר שינויי קוד. |
+| `CLAUDE_CODE_DISABLE_BACKGROUND_TASKS` | `1` מכבה את כל משימות הרקע, כולל הקיצור Ctrl+B. |
+| `CLAUDE_CODE_DISABLE_FAST_MODE` | `1` מכבה fast mode. |
+| `CLAUDE_CODE_DISABLE_GIT_INSTRUCTIONS` | `1` מסיר את הוראות ה-commit וה-PR המובנות ואת תמונת מצב ה-git מההקשר. |
+| `CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION` | `false` מכבה את הצעות ה-prompt האפורות בשורת הקלט. |
+| `CLAUDE_CODE_NO_FLICKER` | `1` מדליק fullscreen rendering (תצוגה מקדימה), שמפחית הבהובים. |
+| `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` | `1` מדליק agent teams (ניסיוני, כבוי כברירת מחדל). |
+| `CLAUDE_CODE_SIMPLE` | `1` מריץ עם system prompt מינימלי ורק כלי Bash, קריאת קבצים ועריכת קבצים; שקול ל-`--bare`. |
+| `CLAUDE_CODE_USE_POWERSHELL_TOOL` | שולט בכלי PowerShell:‏ `1` מדליק, `0` מכבה. ברירת המחדל תלויה בפלטפורמה ובסוג החשבון; ב-Linux,‏ macOS ו-WSL צריך `1` ו-`pwsh` ב-PATH. |
+| `ENABLE_TOOL_SEARCH` | שולט ב-MCP tool search:‏ `true`,‏ `auto`,‏ `auto:N` או `false`. |
+
+## כלים וזמני המתנה
+| משתנה | מה הוא עושה |
+| --- | --- |
+| `API_TIMEOUT_MS` | זמן המתנה לבקשות API במילישניות (ברירת מחדל: 600000, כלומר 10 דקות). |
+| `CLAUDE_CODE_MAX_RETRIES` | מספר הניסיונות החוזרים לבקשות API שנכשלו (ברירת מחדל: 10). |
+| `BASH_DEFAULT_TIMEOUT_MS` | זמן המתנה ברירת מחדל לפקודות bash ארוכות (ברירת מחדל: 120000, כלומר 2 דקות). |
+| `BASH_MAX_TIMEOUT_MS` | זמן ההמתנה המרבי שהמודל יכול לקבוע לפקודות bash (ברירת מחדל: 600000, כלומר 10 דקות). |
+| `BASH_MAX_OUTPUT_LENGTH` | מספר התווים המרבי מפלט bash שנקרא חזרה לתוצאה (ברירת מחדל: 30000). |
+| `MCP_TIMEOUT` | זמן המתנה להפעלת שרת MCP במילישניות (ברירת מחדל: 30000). |
+| `MCP_TOOL_TIMEOUT` | זמן המתנה להרצת כלי MCP במילישניות. |
+
+## רשת ופרוקסי
+| משתנה | מה הוא עושה |
+| --- | --- |
+| `HTTP_PROXY` | שרת פרוקסי HTTP לחיבורי רשת. |
+| `HTTPS_PROXY` | שרת פרוקסי HTTPS לחיבורי רשת. |
+| `NO_PROXY` | רשימת דומיינים וכתובות IP שהבקשות אליהם עוקפות את הפרוקסי. |
+| `CLAUDE_CODE_CLIENT_CERT` | נתיב לקובץ תעודת לקוח לאימות mTLS. |
+| `CLAUDE_CODE_CLIENT_KEY` | נתיב לקובץ המפתח הפרטי של הלקוח לאימות mTLS. |
+
+## נתיבים והגדרות
+| משתנה | מה הוא עושה |
+| --- | --- |
+| `CLAUDE_CONFIG_DIR` | עוקף את תיקיית ההגדרות (ברירת מחדל: `~/.claude`). שימושי להרצת כמה חשבונות במקביל. |
+| `CLAUDE_CODE_GIT_BASH_PATH` | ב-Windows בלבד: נתיב ל-`bash.exe` של Git Bash, כשהוא מותקן אבל לא ב-PATH. |
+| `CLAUDE_ENV_FILE` | נתיב לסקריפט shell שרץ לפני כל פקודת Bash, למשל כדי לשמור הפעלה של virtualenv. |
+| `DEBUG` | `1` מדליק מצב debug, כמו הפעלה עם `--debug`. |
+| `CLAUDE_CODE_DEBUG_LOGS_DIR` | נתיב לקובץ לוג ה-debug (למרות השם, זה נתיב קובץ). לא מדליק debug בעצמו. |
+| `CLAUDECODE` | מוגדר ל-`1` בתהליכי משנה ש-Claude Code מפעיל, כדי שסקריפט יזהה שהוא רץ בתוכו. |
+
+## טלמטריה ועדכונים
+| משתנה | מה הוא עושה |
+| --- | --- |
+| `DISABLE_TELEMETRY` | כל ערך לא ריק מבטל טלמטריה, וגם את משיכת feature flags. |
+| `DO_NOT_TRACK` | `1` מבטל טלמטריה, באותה השפעה כמו `DISABLE_TELEMETRY`. |
+| `DISABLE_ERROR_REPORTING` | כל ערך לא ריק מבטל דיווח שגיאות. |
+| `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC` | כל ערך לא ריק מכבה תעבורת רשת לא חיונית: עדכונים אוטומטיים, טלמטריה, דיווח שגיאות ועוד. |
+| `DISABLE_GROWTHBOOK` | `1` מכבה משיכת feature flags ומשתמש בברירות המחדל שבקוד. |
+| `CLAUDE_CODE_ENABLE_TELEMETRY` | `1` מדליק איסוף OpenTelemetry למדדים ולוגים. נדרש לפני הגדרת exporters. |
+| `DISABLE_AUTOUPDATER` | `1` מכבה עדכונים אוטומטיים ברקע; `claude update` הידני עדיין עובד. |
+| `DISABLE_UPDATES` | `1` חוסם כל עדכון, כולל `claude update` ו-`claude install`. |
+
+<Callout type="warning">
+כיבוי משיכת feature flags (דרך `DISABLE_TELEMETRY`,‏ `DO_NOT_TRACK`,‏ `DISABLE_GROWTHBOOK` או `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC`) משבית חלק מהפיצ'רים, למשל Remote Control. הרשימה המלאה [בדף הרשמי](https://code.claude.com/docs/en/env-vars#features-that-need-feature-flag-fetching).
+</Callout>
+
+## איפה לומדים עוד?
+- [איך מתחברים ל-Claude Code](/beginner/login): מנוי, מפתח API וספקי ענן.
+- [עלויות וניהול הקשר](/beginner-plus/costs-context): compaction וחיסכון בטוקנים.
+- [הגדרות Claude Code](/advanced/settings): קובצי settings.json וסדר הקדימויות.
+- [Environment variables — התיעוד הרשמי](https://code.claude.com/docs/en/env-vars): הרשימה המלאה.
