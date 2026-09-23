@@ -1,0 +1,289 @@
+---
+title: "איך מריצים Claude Code מסקריפט עם claude -p ועם Agent SDK?"
+description: "מוסיפים -p לפקודת claude כדי להריץ אותה בלי ממשק, מקבלים JSON עם --output-format, ממשיכים עם --resume, ומטמיעים את הסוכן בקוד Python או TypeScript עם Agent SDK."
+level: "pro"
+order: 55
+source: "https://code.claude.com/docs/en/headless"
+lastVerified: "2026-09-23"
+keywords: ["Claude Code", "Agent SDK", "claude -p", "headless", "מצב לא אינטראקטיבי", "--output-format", "--json-schema", "structured output", "--resume", "--continue", "--bare", "סקריפט", "להריץ מסקריפט", "אוטומציה"]
+canDo: "עכשיו אתה יכול להריץ את Claude Code מסקריפט או מ-CI עם claude -p, לקבל תשובה כ-JSON שתואמת schema, להמשיך אותה שיחה בכמה שלבים עם --resume, ולבנות סוכן ראשון עם Agent SDK ב-Python או ב-TypeScript."
+relatedSlugs: ["ci-cd", "routines", "agents-overview"]
+faq:
+  - q: "מה ההבדל בין claude -p לבין claude --bare -p?"
+    a: "בלי --bare, ריצת -p טוענת את אותו הקשר כמו סשן אינטראקטיבי: hooks, skills, שרתי MCP, auto memory ו-CLAUDE.md מהתיקייה ומ-~/.claude. עם --bare כל הגילוי האוטומטי הזה מדולג, כך שהריצה מתחילה מהר יותר ונותנת אותה תוצאה בכל מחשב. את מה שצריך מעבירים בדגלים."
+  - q: "למה ריצה עם --bare נכשלת בהתחברות למרות שאני מחובר?"
+    a: "במצב bare, Claude Code לא קורא פרטי OAuth ולא את ה-keychain של המערכת, ולכן לא משתמש בהתחברות של המנוי. צריך להגדיר ANTHROPIC_API_KEY בסביבה עם מפתח מ-Claude Console, או apiKeyHelper בתוך ה-JSON של --settings. ספקי ענן ממשיכים לקרוא את פרטי ההתחברות שלהם כרגיל."
+  - q: "איך מקבלים מ-claude -p תשובה בפורמט JSON קבוע?"
+    a: "מוסיפים --output-format json יחד עם --json-schema ו-JSON Schema. התשובה כוללת מטא-דאטה כמו session ID, והאובייקט שתואם ל-schema נמצא בשדה structured_output. אפשר לחלץ אותו עם jq."
+  - q: "מתי להשתמש ב-Agent SDK ולא ב-claude -p?"
+    a: "claude -p מתאים לסקריפטים ול-CI. Agent SDK הוא ספרייה ל-Python ול-TypeScript שמטמיעה את אותו סוכן באפליקציה שלך, עם אובייקטי הודעות, callbacks לאישור כלים ו-structured outputs. משפה אחרת, התיעוד מציע להריץ את ה-CLI כתהליך משנה עם -p ועם --output-format json."
+  - q: "האם אפשר לבנות מוצר מבוסס Agent SDK עם התחברות של claude.ai?"
+    a: "לא, אלא אם קיבלת אישור מראש. Anthropic לא מאפשרת למפתחי צד שלישי להציע התחברות של claude.ai או את מגבלות השימוש שלה במוצרים שלהם, כולל סוכנים שנבנו עם Agent SDK. משתמשים בהתחברות עם מפתח API."
+---
+
+import { CommandBlock, Callout, StepList } from "@/components/lesson";
+
+מוסיפים `-p` לפקודת `claude` כדי להריץ אותה בלי ממשק אינטראקטיבי: היא מקבלת פרומפט, עובדת ומדפיסה תשובה. `--output-format json` מחזיר JSON שסקריפט יכול לפרק, ו-`--resume` ממשיך את אותה שיחה. כדי להטמיע את אותו סוכן באפליקציה, משתמשים ב-Agent SDK ל-Python או ל-TypeScript.
+
+## למה זה חשוב
+כשכבר סומכים על Claude במשימה, השלב הבא הוא להפסיק להפעיל אותה ביד. ה-[Agent SDK](https://code.claude.com/docs/en/agent-sdk/overview) נותן את אותם כלים, אותה לולאת סוכן ואותו ניהול הקשר שמפעילים את Claude Code. יש לו שתי צורות:
+
+| צורה | מתאימה ל |
+| --- | --- |
+| ה-CLI עם `claude -p` | סקריפטים, pipes ו-CI/CD |
+| חבילות Python ו-TypeScript | שליטה מלאה מתוך אפליקציה שלך |
+
+אם העבודה היא אותו פרומפט על טריגר קבוע ואין צורך בסביבה שלך, בדוק קודם את [Routines](/pro/routines), שרצים בענן בלי שתתחזק סקריפט.
+
+## איך מריצים את Claude Code בלי ממשק?
+מוסיפים `-p` (או `--print`) לפקודה, יחד עם הדגלים שצריך:
+
+<CommandBlock>claude -p "What does the auth module do?"</CommandBlock>
+
+Claude Code יוצא עם קוד 0 כשהריצה מצליחה, וקוד שונה מ-0 כשהיא נכשלת, כך שסקריפט יכול להסתעף לפי ה-exit status. דגל לא תקין מדווח ל-stderr לפני שהריצה מתחילה. כשל בתוך הריצה, למשל חוסר התחברות, מודפס כתוצאה ב-stdout.
+
+במצב לא אינטראקטיבי אף אחד לא עונה לבקשות הרשאה. לכן מאשרים מראש את הכלים עם `--allowedTools`:
+
+```bash
+claude -p "Run the test suite and fix any failures" \
+  --allowedTools "Bash,Read,Edit"
+```
+
+`--allowedTools` משתמש בתחביר של כללי הרשאות. למשל `Bash(git diff *)` מאשר כל פקודה שמתחילה ב-`git diff`. הרווח לפני `*` חשוב: בלעדיו, `Bash(git diff*)` יתאים גם ל-`git diff-index`. אפשר גם לקבוע בסיס לכל הסשן עם `--permission-mode`, למשל `acceptEdits` או `dontAsk`. הפירוט בדף [הרשמי](https://code.claude.com/docs/en/headless#auto-approve-tools).
+
+### איך מעבירים נתונים דרך pipe?
+במצב `-p`, ‏Claude Code קורא מ-stdin, כך שמעבירים אליו נתונים ומפנים את התשובה לקובץ כמו כל כלי שורת פקודה:
+
+```bash
+cat build-error.txt | claude -p 'concisely explain the root cause of this build error' > output.txt
+```
+
+stdin מוגבל ל-10MB. לקלט גדול יותר, כותבים אותו לקובץ ומזכירים את הנתיב בפרומפט.
+
+## באילו פורמטים אפשר לקבל את התשובה?
+`--output-format` קובע את הפורמט:
+
+| ערך | מה מקבלים |
+| --- | --- |
+| `text` (ברירת מחדל) | טקסט רגיל |
+| `json` | JSON עם התוצאה, session ID ומטא-דאטה |
+| `stream-json` | JSON מופרד בשורות, לסטרימינג בזמן אמת |
+
+ב-`json` הטקסט נמצא בשדה `result`, ואפשר לחלץ אותו עם [jq](https://jqlang.org/):
+
+```bash
+claude -p "Summarize this project" --output-format json | jq -r '.result'
+```
+
+התשובה ב-`json` כוללת גם `total_cost_usd` ופירוט עלויות, כך שסקריפט יכול לעקוב אחרי ההוצאה. אלה הערכות בצד הלקוח, והן יכולות להיות שונות מהחיוב בפועל.
+
+### איך מקבלים JSON שתואם schema?
+מוסיפים `--json-schema` עם הגדרת [JSON Schema](https://json-schema.org/). האובייקט שתואם ל-schema מגיע בשדה `structured_output`. הדוגמה מהתיעוד מחלצת שמות פונקציות כמערך:
+
+```bash
+claude -p "Extract function names from auth.py" \
+  --output-format json \
+  --json-schema '{"type":"object","properties":{"functions":{"type":"array","items":{"type":"string"}}},"required":["functions"]}' \
+  | jq '.structured_output'
+```
+
+אם הערך הוא לא JSON Schema תקין, `claude` יוצא עם שגיאה. זה מה שהופך את `-p` לחוליה בשרשרת: הפלט עובר ישר לסקריפט הבא או למסד נתונים.
+
+### ומה עם סטרימינג?
+`stream-json` יחד עם `--verbose` ו-`--include-partial-messages` מחזיר כל אירוע כשורת JSON נפרדת, תוך כדי העבודה. השורה האחרונה היא הודעת `result` עם התשובה הסופית, העלות ומטא-דאטה של הסשן.
+
+```bash
+claude -p "Explain recursion" --output-format stream-json --verbose --include-partial-messages
+```
+
+## איך ממשיכים את אותה שיחה בכמה שלבים?
+`--continue` ממשיך את השיחה האחרונה, ו-`--resume` עם session ID ממשיך שיחה מסוימת. כך לא דוחסים הכול לפקודה אחת: שלב ראשון מייצר, והשלבים הבאים ממשיכים עם כל ההקשר.
+
+```bash
+# First request
+claude -p "Review this codebase for performance issues"
+
+# Continue the most recent conversation
+claude -p "Now focus on the database queries" --continue
+claude -p "Generate a summary of all issues found" --continue
+```
+
+כשרצות כמה שיחות במקביל, `--continue` לא מספיק. שומרים את ה-session ID מפלט ה-JSON וממשיכים בדיוק אותה שיחה:
+
+```bash
+session_id=$(claude -p "Start a review" --output-format json | jq -r '.session_id')
+claude -p "Continue that review" --resume "$session_id"
+```
+
+אפשר להריץ את שתי הפקודות מתיקיות שונות, כי Claude Code מוצא את הסשן לפי ה-ID בכל פרויקט באותו מחשב. במקום ID אפשר להעביר ל-`--resume` נתיב מלא לקובץ ה-`.jsonl` של הסשן.
+
+<Callout type="note">
+כשממשיכים עם `--continue` או `--resume`, העלות שמדווחת ב-JSON היא הסכום של כל השיחה, כולל הריצות הקודמות.
+</Callout>
+
+## מה עושה --bare ואיך הוא קשור ל-`-p`?
+`--bare` מדלג על הגילוי האוטומטי של hooks,‏ skills, פקודות מותאמות, [subagents](/advanced/subagents), plugins, שרתי MCP, ‏auto memory ו-CLAUDE.md. בלעדיו, `claude -p` טוען את אותו הקשר שסשן אינטראקטיבי טוען, כולל כל מה שמוגדר בתיקיית העבודה או ב-`~/.claude`.
+
+<CommandBlock>claude --bare -p "Summarize README.md" --allowedTools "Read"</CommandBlock>
+
+זה חשוב ב-CI ובסקריפטים, כשרוצים אותה תוצאה בכל מחשב. hook ב-`~/.claude` של חבר צוות או שרת MCP ב-`.mcp.json` של הפרויקט לא ירוצו, כי מצב bare לא קורא אותם. במצב bare ל-Claude יש את Bash, קריאת קבצים ועריכת קבצים. את מה שצריך מעבירים בדגל:
+
+| כדי לטעון | משתמשים ב |
+| --- | --- |
+| תוספות ל-system prompt | `--append-system-prompt`, ‏`--append-system-prompt-file` |
+| הגדרות | `--settings <file-or-json>` |
+| שרתי MCP | `--mcp-config <file-or-json>` |
+| סוכנים מותאמים | `--agents <json>` |
+| plugin | `--plugin-dir <path>`, ‏`--plugin-url <url>` |
+
+התיעוד ממליץ על `--bare` לקריאות מסקריפט ומה-SDK, ומציין שבגרסה עתידית הוא יהפוך לברירת המחדל של `-p`.
+
+<Callout type="warning">
+בלי `--bare`, ריצת `-p` מריצה את ה-hooks שב-`.claude/settings.json` של הפרויקט ומחברת את השרתים שב-`.mcp.json`, גם בתיקייה שמעולם לא אישרת. אין דיאלוג workspace trust ואין אישור לכל שרת. לפני שמריצים `-p` על ריפו שלא בדקת, קרא [מה רץ לפני שמאשרים תיקייה](https://code.claude.com/docs/en/permissions#what-runs-before-you-trust-a-folder), או הוסף `--bare`.
+</Callout>
+
+<Callout type="note">
+במצב bare, ‏Claude Code לא קורא פרטי OAuth ולא את ה-keychain, ולכן לא משתמש בהתחברות של המנוי. מגדירים `ANTHROPIC_API_KEY` עם מפתח מ-[Claude Console](https://platform.claude.com), או `apiKeyHelper` בתוך ה-JSON של `--settings`. Amazon Bedrock,‏ Google Cloud's Agent Platform ו-Microsoft Foundry ממשיכים לקרוא את פרטי ההתחברות שלהם כרגיל.
+</Callout>
+
+## מה זה Agent SDK?
+Agent SDK הוא ספרייה שמריצה את ה-binary של Claude Code בתוך אפליקציה שלך, ב-Python או ב-TypeScript. מקבלים את היכולות של Claude Code: כלים מובנים, הרשאות, sessions,‏ hooks,‏ subagents,‏ MCP ו-plugins. skills, פקודות ו-memory נטענים אוטומטית מ-`.claude/` של הפרויקט ומ-`~/.claude/`, כמו ב-Claude Code. הפירוט בדף [Agent SDK overview](https://code.claude.com/docs/en/agent-sdk/overview).
+
+| רוצים | משתמשים ב |
+| --- | --- |
+| להטמיע את הסוכן של Claude Code באפליקציה שלך, בתהליך שאתה מריץ | Agent SDK |
+| עבודה אינטראקטיבית או משימות חד-פעמיות מהטרמינל | Claude Code CLI |
+| לקרוא ל-Claude API ישירות מהקוד שלך, ולכתוב את לולאת הכלים בעצמך או לתת ל-tool runner להריץ אותה | Client SDK |
+| ש-Anthropic תארח את הסוכן | Managed Agents |
+
+משפה שאינה Python או TypeScript, התיעוד מציע להריץ את ה-CLI כתהליך משנה עם `-p` ו-`--output-format json`.
+
+<Callout type="warning">
+אלא אם קיבלת אישור מראש, Anthropic לא מאפשרת למפתחי צד שלישי להציע התחברות של claude.ai או את מגבלות השימוש שלה במוצרים שלהם, כולל סוכנים שנבנו עם Agent SDK. משתמשים בהתחברות עם מפתח API.
+</Callout>
+
+## איך בונים סוכן ראשון עם Agent SDK?
+זה ה-[Quickstart הרשמי](https://code.claude.com/docs/en/agent-sdk/quickstart), בקיצור: סוכן שקורא קובץ, מוצא באגים ומתקן אותם. צריך Node.js 18+ או Python 3.10+, וחשבון Anthropic.
+
+<StepList>
+
+1. יוצרים תיקייה לפרויקט:
+   ```bash
+   mkdir my-agent
+   cd my-agent
+   ```
+2. מתקינים את החבילה. ב-TypeScript, בפרויקט חדש:
+   ```bash
+   npm init -y
+   npm pkg set type=module
+   npm install @anthropic-ai/claude-agent-sdk
+   npm install --save-dev tsx
+   ```
+   ב-Python עם [uv](https://docs.astral.sh/uv/):
+   ```bash
+   uv init
+   uv add claude-agent-sdk
+   ```
+   ב-Python עם pip, בתוך virtual environment פעיל: `pip install claude-agent-sdk`.
+3. מגדירים מפתח API מ-[Claude Console](https://platform.claude.com) בטרמינל שבו תריץ את הסוכן:
+   <CommandBlock>export ANTHROPIC_API_KEY=your-api-key</CommandBlock>
+   ב-PowerShell: `$env:ANTHROPIC_API_KEY = "your-api-key"`.
+4. יוצרים `utils.py` עם קוד שיש בו באגים (הקוד המלא [ב-Quickstart](https://code.claude.com/docs/en/agent-sdk/quickstart#create-a-buggy-file)), ואז את קובץ הסוכן.
+
+</StepList>
+
+שתי החבילות כוללות binary של Claude Code, כך שברוב ההתקנות לא צריך להתקין את Claude Code בנפרד. ה-SDK קורא את המפתח מהסביבה ולא טוען קובצי `.env` לבד.
+
+קובץ הסוכן ב-Python, `agent.py`:
+
+```python
+import asyncio
+from claude_agent_sdk import query, ClaudeAgentOptions, AssistantMessage, ResultMessage
+
+
+async def main():
+    # Agentic loop: streams messages as Claude works
+    async for message in query(
+        prompt="Review utils.py for bugs that would cause crashes. Fix any issues you find.",
+        options=ClaudeAgentOptions(
+            allowed_tools=["Read", "Edit", "Glob"],  # Auto-approve these tools
+            permission_mode="acceptEdits",  # Auto-approve file edits
+        ),
+    ):
+        # Print human-readable output
+        if isinstance(message, AssistantMessage):
+            for block in message.content:
+                if hasattr(block, "text"):
+                    print(block.text)  # Claude's reasoning
+                elif hasattr(block, "name"):
+                    print(f"Tool: {block.name}")  # Tool being called
+        elif isinstance(message, ResultMessage):
+            print(f"Done: {message.subtype}")  # Final result
+
+
+asyncio.run(main())
+```
+
+אותו סוכן ב-TypeScript, `agent.ts`:
+
+```typescript
+import { query } from "@anthropic-ai/claude-agent-sdk";
+
+// Agentic loop: streams messages as Claude works
+for await (const message of query({
+  prompt: "Review utils.py for bugs that would cause crashes. Fix any issues you find.",
+  options: {
+    allowedTools: ["Read", "Edit", "Glob"], // Auto-approve these tools
+    permissionMode: "acceptEdits" // Auto-approve file edits
+  }
+})) {
+  // Print human-readable output
+  if (message.type === "assistant" && message.message?.content) {
+    for (const block of message.message.content) {
+      if ("text" in block) {
+        console.log(block.text); // Claude's reasoning
+      } else if ("name" in block) {
+        console.log(`Tool: ${block.name}`); // Tool being called
+      }
+    }
+  } else if (message.type === "result") {
+    console.log(`Done: ${message.subtype}`); // Final result
+  }
+}
+```
+
+מריצים עם `uv run agent.py`, ‏`python agent.py` (עם ה-venv פעיל) או `npx tsx agent.ts`. הסוכן מדפיס את ההסבר שלו ואת כל כלי שהוא מפעיל, ומסיים ב-`Done: success`.
+
+### מה שלושת החלקים בקוד?
+- **`query`**: נקודת הכניסה שיוצרת את לולאת הסוכן. היא מחזירה async iterator, וכל איטרציה מחזירה הודעה: הסבר, קריאה לכלי, תוצאת כלי או התוצאה הסופית.
+- **`prompt`**: מה ש-Claude צריך לעשות. הוא בוחר לבד באילו כלים להשתמש.
+- **`options`**: ההגדרות. כאן `allowedTools` מאשר מראש את `Read`,‏ `Edit` ו-`Glob`, ו-`permissionMode: "acceptEdits"` מאשר עריכות קבצים. יש גם `systemPrompt`,‏ `mcpServers` ועוד.
+
+כדי לשנות מה הסוכן יכול לעשות, משנים את רשימת הכלים:
+
+| כלים | מה הסוכן יכול לעשות |
+| --- | --- |
+| `Read`, ‏`Glob`, ‏`Grep` | ניתוח לקריאה בלבד |
+| `Read`, ‏`Edit`, ‏`Glob` | ניתוח ושינוי קוד |
+| `Read`, ‏`Edit`, ‏`Bash`, ‏`Glob`, ‏`Grep` | אוטומציה מלאה |
+
+<Callout type="tip">
+אם מופיעה שגיאת התחברות כמו `Not logged in` או `Invalid API key`, בדוק ש-`ANTHROPIC_API_KEY` מוגדר באותו טרמינל שבו אתה מריץ את הסוכן.
+</Callout>
+
+## דוגמה מעשית: בדיקת typos בכל diff
+סקריפט `package.json` מהתיעוד מעביר את ה-diff מול `main` ל-Claude ומבקש לדווח על שגיאות כתיב. כיוון שה-diff מגיע דרך pipe, ‏Claude לא צריך הרשאת Bash כדי לקרוא אותו:
+
+```json
+{
+  "scripts": {
+    "lint:claude": "git diff main | claude -p \"you are a typo linter. for each typo in this diff, report filename:line on one line and the issue on the next. return nothing else.\""
+  }
+}
+```
+
+מריצים `npm run lint:claude`. ב-CI מוסיפים `--bare`, כדי שהריצה לא תטען hooks,‏ plugins,‏ auto memory או CLAUDE.md של המחשב שהיא רצה עליו. להרצה ב-GitHub Actions וב-GitLab, ראה [שיעור CI/CD](/pro/ci-cd).
+
+## הצעד הבא
+- ← [Claude Code בקוד בסיס גדול ו-monorepo](/pro/large-codebases)
+- שיעורים קשורים: [CI/CD עם GitHub Actions ו-GitLab](/pro/ci-cd) · [Routines: אוטומציה בענן](/pro/routines) · [סקירת הסוכנים](/pro/agents-overview)
