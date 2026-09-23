@@ -1,0 +1,258 @@
+---
+title: "אילו פרומפטים עובדים ב-Claude Code לבאגים, refactor ובדיקות?"
+description: "מתכונים מוכנים מהתיעוד הרשמי ל-Claude Code: להכיר קוד חדש, לתקן באג, לעשות refactor, לכתוב בדיקות ותיעוד, לצרף קבצים עם @ ולעבוד עם צילומי מסך."
+level: "beginner-plus"
+order: 15
+source: "https://code.claude.com/docs/en/common-workflows"
+lastVerified: "2026-09-23"
+keywords: ["Claude Code", "common workflows", "מתכוני פרומפטים", "פרומפטים", "דיבאג", "תיקון באגים", "refactor", "ריפקטור", "בדיקות", "לכתוב בדיקות", "תיעוד", "הפניה לקבצים", "@ file reference", "תמונות"]
+canDo: "עכשיו אתה יכול להשתמש במתכוני פרומפטים מוכנים כדי להכיר קוד חדש, לתקן באגים, לעשות refactor, להוסיף בדיקות ותיעוד, ולצרף קבצים ותמונות לשיחה."
+relatedSlugs: ["core-workflow", "prompt-library", "interactive-mode"]
+faq:
+  - q: "איך מבקשים מ-Claude Code להסביר פרויקט שלא מכירים?"
+    a: "פותחים סשן בתיקיית השורש של הפרויקט ומבקשים סקירה כללית, למשל give me an overview of this codebase. אחר כך שואלים שאלות ממוקדות יותר על ארכיטקטורה, מודלי נתונים או אימות משתמשים."
+  - q: "מה עושה @ לפני שם קובץ?"
+    a: "הפניה עם @ מכניסה לשיחה את כל תוכן הקובץ, בלי לחכות ש-Claude יקרא אותו. הפניה לתיקייה מציגה רשימת קבצים ולא את התוכן. אפשר להפנות לכמה קבצים באותה הודעה, בנתיב יחסי או מלא."
+  - q: "איך מדביקים צילום מסך ב-Claude Code?"
+    a: "גוררים את התמונה לחלון, מדביקים עם Ctrl+V (או Alt+V ב-Windows וב-WSL), או כותבים את הנתיב לקובץ התמונה בתוך הבקשה. אפשר לצרף כמה תמונות באותה שיחה."
+  - q: "איך עושים refactor בלי לשבור את הקוד?"
+    a: "מבקשים לשמור על אותה התנהגות, עובדים בצעדים קטנים שאפשר לבדוק, ובסוף מבקשים מ-Claude להריץ את הבדיקות של הקוד ששונה. אם צריך, מבקשים גם לשמור על תאימות לאחור."
+  - q: "אפשר לשאול את Claude Code שאלות על Claude Code עצמו?"
+    a: "אפשר. ל-Claude יש גישה לתיעוד של Claude Code, והוא עונה על שאלות כמו how does Claude Code handle permissions. לדוגמאות מונחות יש את הפקודה /powerup עם שיעורים אינטראקטיביים."
+---
+
+import { CommandBlock, Callout, StepList } from "@/components/lesson";
+
+לכל משימה יומיומית יש מתכון פרומפטים קצר: מתחילים בשאלה רחבה, מבקשים הצעות, ואז מבקשים ביצוע ובדיקה. התיעוד הרשמי מציע מתכונים להכרת קוד חדש, תיקון באגים, refactor, בדיקות ותיעוד. בנוסף מצרפים קבצים עם `@` ותמונות כדי לתת ל-Claude הקשר מדויק.
+
+## למה זה חשוב
+רוב העבודה היומיומית חוזרת על עצמה: להבין קוד, לתקן, לשפר, לבדוק ולתעד. כשיש לך מתכון מוכן, לא מתחילים כל פעם מאפס. כל המתכונים בשיעור הזה לקוחים מהתיעוד הרשמי ועובדים בכל ממשק של Claude Code. מתאימים את הניסוח לפרויקט שלך.
+
+השיעור משלים את [ה-workflow הנכון](/beginner-plus/core-workflow): שם למדת את המסגרת (לחקור, לתכנן, לממש, לשמור), וכאן יש פרומפטים קונקרטיים לכל סוג משימה.
+
+## איך מכירים פרויקט חדש?
+מתחילים בשאלה רחבה ומצמצמים בהדרגה. נניח שהצטרפת לפרויקט וצריך להבין אותו מהר:
+
+<StepList>
+
+1. נכנסים לתיקיית השורש של הפרויקט:
+   <CommandBlock>cd /path/to/project</CommandBlock>
+2. פותחים סשן:
+   <CommandBlock>claude</CommandBlock>
+3. מבקשים סקירה כללית:
+   ```text
+   give me an overview of this codebase
+   ```
+4. צוללים לחלקים ספציפיים:
+   ```text
+   explain the main architecture patterns used here
+   ```
+   ```text
+   what are the key data models?
+   ```
+   ```text
+   how is authentication handled?
+   ```
+
+</StepList>
+
+כדאי גם לשאול על מוסכמות הקוד בפרויקט ולבקש מילון מונחים של המונחים הייחודיים לו.
+
+### איך מוצאים את הקוד הרלוונטי?
+מבקשים מ-Claude לאתר את הקבצים, ואז להסביר איך הם מתחברים:
+
+```text
+find the files that handle user authentication
+```
+
+```text
+how do these authentication files work together?
+```
+
+```text
+trace the login process from front-end to database
+```
+
+היה ספציפי במה שאתה מחפש, והשתמש במונחים של הפרויקט עצמו.
+
+## איך מתקנים באג?
+משתפים את השגיאה, מבקשים כמה הצעות לתיקון, ואז מבקשים ליישם אחת מהן:
+
+<StepList>
+
+1. משתפים את השגיאה:
+   ```text
+   I'm seeing an error when I run npm test
+   ```
+2. מבקשים הצעות:
+   ```text
+   suggest a few ways to fix the @ts-ignore in user.ts
+   ```
+3. מיישמים את התיקון שבחרת:
+   ```text
+   update user.ts to add the null check you suggested
+   ```
+
+</StepList>
+
+מה שעוזר ל-Claude למצוא את המקור:
+
+- הפקודה שמשחזרת את הבעיה, כדי שיקבל stack trace.
+- הצעדים שמובילים לשגיאה.
+- האם השגיאה קורית תמיד או רק לפעמים.
+
+## איך עושים refactor בבטחה?
+מבקשים לשמור על אותה התנהגות, ומסיימים בהרצת בדיקות:
+
+<StepList>
+
+1. מאתרים קוד ישן:
+   ```text
+   find deprecated API usage in our codebase
+   ```
+2. מבקשים המלצות:
+   ```text
+   suggest how to refactor utils.js to use modern JavaScript features
+   ```
+3. מיישמים בלי לשנות התנהגות:
+   ```text
+   refactor utils.js to use ES2024 features while maintaining the same behavior
+   ```
+4. מוודאים:
+   ```text
+   run tests for the refactored code
+   ```
+
+</StepList>
+
+אפשר לבקש מ-Claude להסביר מה היתרון בגישה החדשה, ולבקש תאימות לאחור כשצריך.
+
+<Callout type="tip">
+התיעוד ממליץ לעשות refactor בצעדים קטנים שאפשר לבדוק, ולא בשינוי ענק אחד.
+</Callout>
+
+## איך מוסיפים בדיקות?
+מאתרים קוד שלא מכוסה, מבקשים בדיקות, מוסיפים מקרי קצה ומריצים:
+
+<StepList>
+
+1. מאתרים פונקציות בלי בדיקות:
+   ```text
+   find functions in NotificationsService.swift that are not covered by tests
+   ```
+2. יוצרים שלד בדיקות:
+   ```text
+   add tests for the notification service
+   ```
+3. מוסיפים מקרי קצה:
+   ```text
+   add test cases for edge conditions in the notification service
+   ```
+4. מריצים ומתקנים:
+   ```text
+   run the new tests and fix any failures
+   ```
+
+</StepList>
+
+Claude בוחן את קובצי הבדיקות הקיימים ומתאים את עצמו לסגנון, ל-framework ולדפוסי ה-assertion שכבר בשימוש. כדאי להגיד במדויק איזו התנהגות רוצים לבדוק, ולבקש ממנו לזהות מקרי קצה שפספסת: תנאי שגיאה, ערכי גבול וקלט לא צפוי.
+
+## איך מוסיפים תיעוד?
+אותו דפוס: לאתר, ליצור, לשפר ולוודא:
+
+```text
+find functions without proper JSDoc comments in the auth module
+```
+
+```text
+add JSDoc comments to the undocumented functions in auth.js
+```
+
+```text
+improve the generated documentation with more context and examples
+```
+
+```text
+check if the documentation follows our project standards
+```
+
+ציין את סגנון התיעוד שאתה רוצה (JSDoc,‏ docstrings וכו'), בקש דוגמאות, והתמקד ב-APIs ציבוריים, ממשקים ולוגיקה מורכבת.
+
+Claude Code עובד גם בתיקיות שאינן קוד, כמו תיקיית תיעוד או אוסף קובצי Markdown. אפשר לחפש, לערוך ולארגן בהן תוכן בדיוק כמו בקוד.
+
+## איך מצרפים קבצים ותיקיות עם @?
+כותבים `@` ואחריו נתיב, והקובץ נכנס לשיחה בלי לחכות ש-Claude יקרא אותו:
+
+```text
+Explain the logic in @src/utils/auth.js
+```
+
+```text
+What's the structure of @src/components?
+```
+
+| הפניה | מה נכנס לשיחה |
+| --- | --- |
+| קובץ | כל תוכן הקובץ |
+| תיקייה | רשימת הקבצים, לא התוכן שלהם |
+| משאב MCP, בפורמט `@server:resource` | נתונים משרת MCP מחובר |
+
+עוד כמה דברים שכדאי לדעת:
+
+- הנתיב יכול להיות יחסי או מלא.
+- מקלידים `@` כדי לפתוח תפריט הצעות נתיבים. `Enter` או `Tab` מאשרים את הנתיב, ו-`Enter` נוסף שולח את ההודעה.
+- אפשר להפנות לכמה קבצים באותה הודעה.
+- הפניה לקובץ מוסיפה להקשר גם את קובצי `CLAUDE.md` בתיקייה שלו ובתיקיות שמעליה.
+
+## איך עובדים עם תמונות?
+מצרפים צילום מסך, דיאגרמה או mockup כשתיאור בטקסט יהיה מסורבל. יש שלוש דרכים:
+
+- גוררים את התמונה לחלון של Claude Code.
+- מעתיקים תמונה ומדביקים עם `Ctrl+V`, או עם `Alt+V` ב-Windows וב-WSL.
+- כותבים את הנתיב לתמונה, למשל `Analyze this image: /path/to/your/image.png`.
+
+דוגמאות לבקשות מהתיעוד הרשמי:
+
+```text
+Here's a screenshot of the error. What's causing it?
+```
+
+```text
+This is our current database schema. How should we modify it for the new feature?
+```
+
+```text
+Generate CSS to match this design mockup
+```
+
+אפשר לצרף כמה תמונות באותה שיחה. כש-Claude מפנה לתמונה, למשל `[Image #1]`, לוחצים `Ctrl+Click` (או `Cmd+Click` ב-Mac) כדי לפתוח אותה.
+
+## אפשר לשאול את Claude על Claude Code עצמו?
+כן. ל-Claude יש גישה לתיעוד של Claude Code, והוא עונה על שאלות על הפיצ'רים והמגבלות שלו:
+
+```text
+how does Claude Code handle permissions?
+```
+
+```text
+what are the limitations of Claude Code?
+```
+
+לפי התיעוד, Claude תמיד ניגש לתיעוד העדכני, בלי קשר לגרסה שמותקנת אצלך. להדגמות מעשיות מריצים `/powerup`, שמציג שיעורים אינטראקטיביים.
+
+<Callout type="warning">
+מתכון הוא נקודת פתיחה, לא תחליף לבדיקה. עבור על התיקון, על ה-refactor ועל הבדיקות ש-Claude כתב לפני שממשיכים, ובקש ממנו להריץ את הבדיקות בעצמו.
+</Callout>
+
+## איפה יש עוד מתכונים?
+דף המקור כולל גם כמה נושאים שמכוסים בשיעורים אחרים באקדמיה:
+
+| משימה | איפה ללמוד |
+| --- | --- |
+| יצירת pull request | [Git בשפה טבעית](/beginner/git-basics) |
+| תכנון לפני עריכה (plan mode) | [מצבי הרשאות](/beginner-plus/permission-modes) |
+| להמשיך שיחה קודמת | [ניהול סשנים](/beginner-plus/sessions) |
+
+## הצעד הבא
+- ← [מצב אינטראקטיבי: קיצורי מקלדת ופקודות בסשן](/beginner-plus/interactive-mode)
+- שיעורים קשורים: [ה-workflow הנכון](/beginner-plus/core-workflow) · [ספריית פרומפטים](/beginner-plus/prompt-library)
