@@ -1,0 +1,105 @@
+---
+title: "מה זה auto memory ב-Claude Code ואיך הוא צובר לקחים לבד?"
+description: "auto memory הוא זיכרון ש-Claude Code כותב לעצמו מתוך התיקונים וההעדפות שלך. מה הוא שומר, איפה, כמה ממנו נטען בכל סשן, ואיך בודקים, עורכים או מכבים אותו."
+level: "beginner-plus"
+order: 12
+source: "https://code.claude.com/docs/en/memory"
+lastVerified: "2026-09-23"
+keywords: ["Claude Code", "auto memory", "זיכרון אוטומטי", "זיכרון", "MEMORY.md", "/memory", "לקחים", "העדפות", "autoMemoryEnabled"]
+canDo: "עכשיו אתה יכול להבין מה Claude Code זוכר לבד, לבקש ממנו לזכור משהו, ולבדוק, לערוך או לכבות את הזיכרון שלו."
+relatedSlugs: ["claude-md", "core-workflow"]
+faq:
+  - q: "מה ההבדל בין auto memory ל-CLAUDE.md?"
+    a: "את CLAUDE.md אתה כותב: הנחיות וכללים. את auto memory Claude כותב לעצמו: העדפות שלך, תיקונים שנתת והחלטות בפרויקט. שניהם נטענים בתחילת כל סשן."
+  - q: "איפה auto memory נשמר?"
+    a: "בתיקייה ~/.claude/projects/<project>/memory/ במחשב שלך. כל ה-worktrees ותתי-התיקיות של אותו ריפו git חולקים תיקייה אחת. הזיכרון לא משותף בין מחשבים או סביבות ענן."
+  - q: "איך מכבים את auto memory?"
+    a: "פותחים /memory ומשתמשים במתג של auto memory. כדי לכבות רק בפרויקט אחד, מגדירים autoMemoryEnabled: false בהגדרות של הפרויקט."
+  - q: "אמרתי ל-Claude לזכור משהו. לאן זה נשמר?"
+    a: "כשמבקשים מ-Claude לזכור משהו, כמו always use pnpm, not npm, הוא שומר את זה ב-auto memory. כדי שההנחיה תיכנס ל-CLAUDE.md, מבקשים במפורש add this to CLAUDE.md או עורכים את הקובץ דרך /memory."
+---
+
+import { CommandBlock, Callout } from "@/components/lesson";
+
+auto memory הוא זיכרון ש-Claude Code כותב לעצמו. תוך כדי עבודה הוא שומר הערות על ההעדפות שלך, תיקונים שנתת והחלטות בפרויקט, וטוען אותן בכל סשן. הוא פעיל כברירת מחדל, נשמר מקומית במחשב, ואפשר לקרוא, לערוך ולמחוק אותו דרך `/memory`.
+
+## למה זה חשוב
+כל סשן מתחיל עם חלון הקשר נקי. CLAUDE.md פותר חלק מזה, אבל רק את מה שכתבת בו. auto memory משלים את השאר: Claude לומד מהתיקונים שלך בלי שתצטרך לכתוב אותם בעצמך.
+
+## במה הוא שונה מ-CLAUDE.md?
+
+| | CLAUDE.md | auto memory |
+| --- | --- | --- |
+| מי כותב | אתה | Claude |
+| מה בפנים | הנחיות וכללים | לקחים ודפוסים |
+| היקף | פרויקט, משתמש או ארגון | לכל ריפו, משותף לכל ה-worktrees שלו |
+| מה נטען | כל הקובץ, בכל סשן | 200 השורות או 25KB הראשונים של `MEMORY.md`, בכל סשן |
+| מתאים ל | סטנדרטים, workflows, ארכיטקטורה | העדפות שלך, תיקונים, הקשר שאי אפשר להסיק מהקוד |
+
+כמו CLAUDE.md, גם auto memory הוא הקשר ולא הגדרה שנאכפת.
+
+## מה Claude שומר?
+Claude שומר ארבעה סוגים של הערות:
+
+- **user:** התפקיד שלך, רמת הניסיון והעדפות העבודה.
+- **feedback:** תיקונים שנתת וגישות שאישרת.
+- **project:** עבודה שוטפת, דדליינים והחלטות שאי אפשר להסיק מהקוד או מהיסטוריית git.
+- **reference:** איפה נמצא מידע מחוץ לפרויקט, כמו מערכת ניהול משימות או dashboard.
+
+Claude **לא** שומר מה שאפשר להסיק מהקוד, כמו ארכיטקטורה או נתיבי קבצים, וגם לא מה שכבר כתוב ב-CLAUDE.md. הוא גם לא שומר משהו בכל סשן: הוא שומר רק מידע שיהיה שימושי בשיחות הבאות.
+
+כשמופיעות הודעות כמו "Saved 2 memories" או "Recalled 2 memories", ‏Claude כותב לזיכרון או קורא ממנו.
+
+## איפה הזיכרון נשמר?
+לכל פרויקט יש תיקייה משלו:
+
+```text
+~/.claude/projects/<project>/memory/
+├── MEMORY.md           # Index, one line per memory, loaded into every session
+├── user_role.md        # One memory
+├── feedback_testing.md # One memory
+└── ...                 # Any other topic files Claude creates
+```
+
+- `MEMORY.md` הוא אינדקס: שורה אחת לכל זיכרון.
+- כל זיכרון נשמר בקובץ נושא נפרד.
+- הזיכרון מקומי למחשב. כל ה-worktrees ותתי-התיקיות של אותו ריפו git חולקים תיקייה אחת, אבל הוא לא עובר בין מחשבים או לסביבות ענן.
+
+## כמה ממנו נטען בכל סשן?
+בתחילת כל שיחה נטענים 200 השורות הראשונות של `MEMORY.md`, או 25KB הראשונים, המוקדם מביניהם. מה שמעבר לזה לא נטען. לכן Claude שומר את האינדקס קצר ומעביר פרטים לקובצי הנושא. את קובצי הנושא הוא קורא רק כשהוא צריך אותם.
+
+## איך מבקשים מ-Claude לזכור משהו?
+פשוט אומרים לו. למשל:
+
+```text
+always use pnpm, not npm
+```
+
+```text
+remember that the API tests require a local Redis instance
+```
+
+Claude שומר את זה ב-auto memory. כדי שההנחיה תיכנס ל-CLAUDE.md, ותהיה משותפת עם הצוות, מבקשים במפורש `add this to CLAUDE.md`.
+
+<Callout type="tip">
+הכלל הפשוט: מה שחשוב רק לך נשאר ב-auto memory. מה שכל מי שעובד על הפרויקט צריך לדעת עובר ל-CLAUDE.md.
+</Callout>
+
+## איך בודקים, עורכים או מכבים?
+מקלידים בתוך הסשן:
+
+<CommandBlock>/memory</CommandBlock>
+
+`/memory` מציג את קובצי CLAUDE.md, מאפשר לפתוח את תיקיית auto memory ולעיין במה שנשמר, ומכיל מתג להפעלה ולכיבוי של auto memory. כל הקבצים הם Markdown רגיל שאפשר לקרוא, לערוך ולמחוק.
+
+auto memory פעיל כברירת מחדל. כדי לכבות אותו רק בפרויקט אחד, מוסיפים להגדרות הפרויקט:
+
+```json
+{
+  "autoMemoryEnabled": false
+}
+```
+
+## הצעד הבא
+- ← [כל שיעורי רמה 1](/beginner-plus): השיעור הבא הוא ניהול sessions.
+- שיעורים קשורים: [CLAUDE.md ו-/init](/beginner-plus/claude-md) · [ה-workflow הנכון](/beginner-plus/core-workflow)
