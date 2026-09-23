@@ -1,0 +1,119 @@
+---
+title: "מה זה CLAUDE.md ואיך Claude Code זוכר את הפרויקט עם /init?"
+description: "CLAUDE.md הוא קובץ הנחיות ש-Claude Code קורא בכל סשן. איך יוצרים אותו עם /init, מה כותבים בו ומה לא, איפה הוא יושב, ומה קורה כשבפרויקט יש AGENTS.md."
+level: "beginner-plus"
+order: 11
+source: "https://code.claude.com/docs/en/memory"
+lastVerified: "2026-09-23"
+keywords: ["Claude Code", "CLAUDE.md", "/init", "AGENTS.md", "CLAUDE.local.md", "הנחיות לפרויקט", "זיכרון", "memory", "/memory", "/context", "קובץ הוראות"]
+canDo: "עכשיו אתה יכול ליצור CLAUDE.md עם /init, לכתוב בו הנחיות ש-Claude באמת ממלא, ולוודא שהוא נטען בסשן."
+relatedSlugs: ["core-workflow", "auto-memory"]
+faq:
+  - q: "מה ההבדל בין CLAUDE.md ל-CLAUDE.local.md?"
+    a: "CLAUDE.md של הפרויקט משותף עם הצוות דרך git: פקודות build, סגנון קוד וארכיטקטורה. CLAUDE.local.md מיועד להעדפות אישיות בפרויקט, כמו כתובות sandbox שלך, ומוסיפים אותו ל-.gitignore כדי שלא ייכנס ל-commit."
+  - q: "יש בפרויקט AGENTS.md. האם צריך גם CLAUDE.md?"
+    a: "לא בהכרח. כברירת מחדל Claude Code קורא את AGENTS.md כשאין CLAUDE.md או CLAUDE.local.md בתיקיית העבודה או מעליה. אם יש גם CLAUDE.md, הוא קורא רק אותו, אלא אם CLAUDE.md מייבא את AGENTS.md עם @AGENTS.md."
+  - q: "איך בודקים ש-Claude טען את CLAUDE.md?"
+    a: "מריצים /context בתוך הסשן ובודקים שהקובץ מופיע ברשימה תחת Memory files. /memory מציג את קובצי ההנחיות ומאפשר לפתוח ולערוך אותם."
+  - q: "למה Claude לא ממלא הוראה שכתבתי ב-CLAUDE.md?"
+    a: "CLAUDE.md הוא הקשר, לא הגדרה שנאכפת. הוראות מעורפלות או סותרות מתמלאות פחות. כדאי לנסח בצורה ספציפית ולקצר את הקובץ. פעולה שחייבת לקרות תמיד, כמו לפני כל commit, כותבים כ-hook."
+  - q: "כמה ארוך צריך להיות CLAUDE.md?"
+    a: "התיעוד הרשמי ממליץ על פחות מ-200 שורות לכל קובץ. קובץ ארוך צורך יותר מחלון ההקשר ו-Claude ממלא אותו פחות טוב."
+---
+
+import { CommandBlock, Callout } from "@/components/lesson";
+
+CLAUDE.md הוא קובץ Markdown עם הנחיות קבועות לפרויקט, ש-Claude Code קורא בתחילת כל סשן: פקודות build ובדיקה, סגנון קוד וכללי עבודה. מריצים `/init` כדי ליצור קובץ התחלתי מתוך הפרויקט, ומשפרים אותו עם הזמן. אם בפרויקט יש כבר `AGENTS.md`, Claude Code יכול לקרוא אותו במקום.
+
+## למה זה חשוב
+כל סשן של Claude Code מתחיל עם חלון הקשר נקי, בלי שיחות קודמות. בלי CLAUDE.md תסביר שוב ושוב איך מריצים בדיקות, באיזה סגנון כותבים ומה אסור. התיעוד הרשמי מציע לראות בו את המקום שבו כותבים את מה שהיית מסביר שוב. כדאי להוסיף לו שורה כש:
+
+- Claude עושה את אותה טעות בפעם השנייה.
+- code review מגלה משהו ש-Claude היה צריך לדעת על הפרויקט.
+- אתה מקליד את אותו תיקון שהקלדת בסשן הקודם.
+- חבר צוות חדש היה צריך את אותו הקשר כדי להתחיל לעבוד.
+
+## איך יוצרים CLAUDE.md?
+מריצים בתוך הסשן:
+
+<CommandBlock>/init</CommandBlock>
+
+Claude מנתח את הפרויקט ויוצר קובץ עם פקודות build, הוראות בדיקה ומוסכמות שגילה. אם כבר יש CLAUDE.md, ‏`/init` מציע שיפורים במקום לדרוס אותו. אחר כך משפרים את הקובץ עם הנחיות ש-Claude לא יגלה לבד.
+
+`/init` קורא גם קובצי הנחיות של כלים אחרים, כמו `.cursorrules` או `.github/copilot-instructions.md`, ומשלב את החלקים הרלוונטיים.
+
+## מה כותבים בו, ומה לא?
+אין פורמט חובה. שומרים על קובץ קצר וקריא. זו הדוגמה מהתיעוד הרשמי:
+
+```markdown
+# Code style
+- Use ES modules (import/export) syntax, not CommonJS (require)
+- Destructure imports when possible (eg. import { foo } from 'bar')
+
+# Workflow
+- Be sure to typecheck when you're done making a series of code changes
+- Prefer running single tests, and not the whole test suite, for performance
+```
+
+| כן לכתוב | לא לכתוב |
+| --- | --- |
+| פקודות Bash ש-Claude לא יכול לנחש | דברים ש-Claude יכול להבין מקריאת הקוד |
+| כללי סגנון שונים מברירת המחדל | מוסכמות סטנדרטיות של השפה |
+| הוראות בדיקה וכלי הבדיקה המועדף | תיעוד API מפורט (עדיף קישור) |
+| נוהלי הריפו: שמות branches ו-PRs | מידע שמשתנה לעיתים קרובות |
+| החלטות ארכיטקטורה ייחודיות לפרויקט | הסברים ארוכים ומדריכים |
+| תקלות ידועות והתנהגויות לא צפויות | תיאור של כל קובץ בפרויקט |
+
+לכל שורה, שאל: האם בלעדיה Claude יטעה? אם לא, מחק אותה. קובץ מנופח גורם ל-Claude להתעלם מההוראות החשובות.
+
+## איך כותבים הנחיות ש-Claude ממלא?
+- **גודל:** פחות מ-200 שורות לכל קובץ. קובץ ארוך צורך יותר הקשר ומתמלא פחות טוב.
+- **מבנה:** כותרות ורשימות ב-Markdown, ולא פסקאות צפופות.
+- **ספציפיות:** הוראות שאפשר לבדוק. "Use 2-space indentation" ולא "Format code properly". "Run `npm test` before committing" ולא "Test your changes".
+- **עקביות:** אם שני כללים סותרים, Claude עלול לבחור אחד באקראי. עוברים על הקובץ מדי פעם ומוחקים הוראות ישנות.
+
+אם Claude ממשיך לדלג על הוראה אחת, אפשר להדגיש אותה, למשל עם "IMPORTANT". אבל אם מדגישים הרבה שורות, אף אחת לא בולטת.
+
+<Callout type="warning">
+CLAUDE.md הוא הקשר, לא הגדרה שנאכפת. Claude קורא אותו ומנסה למלא, אבל אין הבטחה. פעולה שחייבת לקרות תמיד, כמו לפני כל commit או אחרי כל עריכה, כותבים כ-hook, שרץ כפקודת shell בנקודה קבועה.
+</Callout>
+
+## איפה הקובץ יושב?
+
+| סוג | מיקום | משותף עם |
+| --- | --- | --- |
+| הנחיות אישיות | `~/.claude/CLAUDE.md` | רק אתה, בכל הפרויקטים |
+| הנחיות הפרויקט | `./CLAUDE.md` או `./.claude/CLAUDE.md` | הצוות, דרך git |
+| הנחיות מקומיות | `./CLAUDE.local.md` (מוסיפים ל-`.gitignore`) | רק אתה, בפרויקט הזה |
+
+ארגונים יכולים להגדיר גם CLAUDE.md מנוהל לכל המשתמשים. Claude Code טוען את הקבצים מתיקיית העבודה ומכל תיקייה מעליה, ומחבר את כולם יחד. קבצים בתתי-תיקיות נטענים כש-Claude קורא קבצים באותן תיקיות.
+
+## אפשר לייבא קבצים אחרים?
+כן. כותבים `@` ואחריו נתיב, ו-Claude Code טוען את הקובץ יחד עם CLAUDE.md:
+
+```text
+See @README for project overview and @package.json for available npm commands for this project.
+```
+
+קבצים מיובאים עדיין נטענים בתחילת הסשן, כך שייבוא עוזר לארגן אבל לא חוסך הקשר.
+
+## ומה עם AGENTS.md?
+אם הפרויקט כבר מוגדר לכלי קוד אחרים עם `AGENTS.md`, לא חייבים להוסיף CLAUDE.md:
+
+| בפרויקט יש | Claude קורא |
+| --- | --- |
+| `AGENTS.md`, בלי CLAUDE.md או CLAUDE.local.md | את `AGENTS.md` |
+| `AGENTS.md` וגם CLAUDE.md או CLAUDE.local.md | רק את קובצי CLAUDE.md |
+| CLAUDE.md שמייבא את `AGENTS.md` | את CLAUDE.md, כולל `AGENTS.md` דרך הייבוא |
+
+כדי לשמור קובץ אחד לכל הכלים ולהוסיף הנחיות ל-Claude בלבד, יוצרים CLAUDE.md שמתחיל ב-`@AGENTS.md` ומוסיפים מתחתיו את ההנחיות הנוספות.
+
+## איך בודקים שהקובץ נטען?
+- `/context` מציג מה נמצא בחלון ההקשר. הקבצים שנטענו מופיעים תחת **Memory files**.
+- `/memory` מציג את כל קובצי ההנחיות ומאפשר לפתוח ולערוך אותם.
+
+מכניסים את CLAUDE.md של הפרויקט ל-git, כדי שכל הצוות ייהנה ממנו וישפר אותו.
+
+## הצעד הבא
+- ← [Auto memory: איך Claude Code צובר לקחים לבד](/beginner-plus/auto-memory)
+- שיעורים קשורים: [ה-workflow הנכון](/beginner-plus/core-workflow) · [פקודות חיוניות](/beginner/essential-commands)
