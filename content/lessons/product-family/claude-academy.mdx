@@ -1,0 +1,141 @@
+---
+title: "מה מציעה Claude Academy ל-Claude Code ולאן ממשיכים מכאן?"
+description: "Claude Academy היא אתר הלמידה הרשמי של Anthropic. הקורס Claude Code 101 מסומן שם Start here. כאן תמצא מפה מכל שיעור שם לשיעור המקביל אצלנו, ומה ללמוד אחר כך."
+level: "product-family"
+order: 60
+source: "https://academy.claude.com/products/code"
+lastVerified: "2026-09-23"
+keywords: ["Claude Code", "Claude Academy", "אקדמיה", "קורס רשמי", "קורסים", "Claude Code 101", "Claude Code in action", "Anthropic", "להמשיך ללמוד", "המשך לימוד", "למידה", "AI Fluency", "Cowork"]
+canDo: "עכשיו אתה יכול למצוא ב-Claude Academy את הקורס המתאים לשלב שלך, לדעת איזה שיעור אצלנו מקביל לכל שיעור שם, ולבחור לאן להמשיך."
+relatedSlugs: ["surfaces", "cowork", "claude-md"]
+faq:
+  - q: "מה זה Claude Academy?"
+    a: "Claude Academy היא אתר הלמידה של Anthropic בכתובת academy.claude.com. יש בו קורסים, מדריכים (tutorials) ומקרי שימוש לפי מוצר: Claude Code,‏ Cowork,‏ Claude Tag, ה-API ועוד. לכל מוצר יש עמוד עם נקודת התחלה מומלצת."
+  - q: "באיזה קורס מתחילים ב-Claude Academy אם רוצים ללמוד Claude Code?"
+    a: "בעמוד Claude Code של האקדמיה, הקורס Claude Code 101 מסומן כ-Start here. הוא מכסה את היסודות: מה זה סוכן קוד, התקנה, הפרומפט הראשון, ה-workflow היומי והתאמה אישית עם CLAUDE.md,‏ subagents,‏ skills,‏ MCP ו-hooks."
+  - q: "מה ההבדל בין Claude Code 101 ל-Claude Code in action?"
+    a: "Claude Code 101 מלמד את היסודות. Claude Code in action מיועד למי שכבר משתמש ב-Claude Code לפרומפטים בודדים ורוצה לעבור לסשנים ארוכים ופחות מפוקחים: הכוונת סשן, hooks, routines, מצב headless, Code Review ואימות של ריצות בלי השגחה."
+  - q: "אם Claude Academy והתיעוד הרשמי אומרים דברים שונים, למה להאמין?"
+    a: "לפרטים טכניים כמו דגלים, פקודות וברירות מחדל, התיעוד ב-code.claude.com/docs הוא הרפרנס המעודכן. האקדמיה מצוינת להבנת ה-workflow, אבל פרט מדויק בודקים בתיעוד. בשיעורים שלנו כל עובדה מאומתת מול התיעוד."
+  - q: "צריך חשבון כדי ללמוד ב-Claude Academy?"
+    a: "בעמודי הקורסים מופיעה האפשרות Sign in to save progress, כלומר התחברות שומרת את ההתקדמות. לקורסים שיש בהם quiz מופיע גם Completion badge. עמוד הבית של האקדמיה מתאר את הקורסים, המדריכים ומקרי השימוש כחינמיים (Free)."
+quiz:
+  - q: "באיזה משטח של Claude Code זמינים סקריפטים וה-Agent SDK?"
+    options: ["באפליקציית הדסקטופ", "רק ב-CLI (טרמינל)", "בהרחבה ל-VS Code", "באפליקציית Claude לנייד"]
+    answer: 1
+  - q: "מה עובר איתך בין המשטחים המקומיים של Claude Code בלי שום פעולה?"
+    options: ["השיחה עצמה, אוטומטית", "רק היסטוריית ה-git", "קובצי CLAUDE.md, ההגדרות ושרתי ה-MCP של הפרויקט", "שום דבר, צריך להגדיר כל משטח מאפס"]
+    answer: 2
+  - q: "לפי Claude Academy, מה מבדיל את Cowork מצ'אט רגיל עם Claude?"
+    options: ["Cowork מיועד לכתיבת קוד בתוך ריפו עם גישה ל-git", "ב-Cowork מאצילים משימה שלמה ורב-שלבית ומקבלים תוצר מוגמר", "Cowork עונה מהר יותר על שאלות קצרות", "Cowork עובד רק בטרמינל"]
+    answer: 1
+  - q: "איזה קורס מסומן Start here בעמוד Claude Code של Claude Academy?"
+    options: ["Claude Code in action", "Introduction to agent skills", "Claude Code 101", "AI Fluency: Framework and foundations"]
+    answer: 2
+  - q: "סיימת את היסודות ואתה רוצה להריץ סשנים ארוכים בלי השגחה ולאמת את התוצאה. איזה קורס באקדמיה מתאים?"
+    options: ["Claude Code in action", "Claude Code 101", "Introduction to Claude Cowork", "Introduction to Model Context Protocol"]
+    answer: 0
+---
+
+import { Callout } from "@/components/lesson";
+
+Claude Academy היא אתר הלמידה הרשמי של Anthropic, עם קורסים ומדריכים לפי מוצר. ל-Claude Code מתחילים שם ב-Claude Code 101, ואחריו ממשיכים ל-Claude Code in action ולקורסים ממוקדים. בשיעור הזה יש מפה מכל שיעור באקדמיה לשיעור המקביל אצלנו, ורשימה של מה ללמוד אחרי הקורס.
+
+## למה זה חשוב
+הקורס שלנו והאקדמיה משלימים זה את זה. אצלנו הכול בעברית, מאומת מול התיעוד הרשמי ומחולק ל-68 שיעורים קצרים. באקדמיה יש קורסים ומדריכים באנגלית, ברובם עם quiz בסוף הקורס, ישירות מצוות החינוך של Anthropic. כשיודעים איזה שיעור מקביל לאיזה, אפשר לחזור על נושא בשני המקורות, למלא פערים, ולדעת לאן ממשיכים.
+
+## מה יש בעמוד Claude Code של האקדמיה?
+[עמוד Claude Code](https://academy.claude.com/products/code) באקדמיה מרכז את כל מה שקשור למוצר:
+
+- **Start here:** הקורס [Claude Code 101](https://academy.claude.com/courses/claude-code-101).
+- **Your first day:** התקנה, התחברות והשינוי הראשון. מפנה לתיעוד הרשמי.
+- **Giving Claude context:** ‏CLAUDE.md והרגלי פרומפט. מפנה לתיעוד הרשמי.
+- **For Admins and IT:** מדריכי setup,‏ governance ו-rollout לארגון.
+- **Docs and reference:** קישורים לתיעוד ולמאמרים על MCP,‏ hooks,‏ skills,‏ subagents, תיקיית `.claude` וחלון ההקשר.
+- **Browse it all:** כל ה-tutorials וכל הקורסים של Claude Code.
+
+רוב הקישורים בעמוד מובילים ל-`code.claude.com`, אותו תיעוד רשמי שעליו מבוסס הקורס שלנו.
+
+<Callout type="note">
+בעמודי הקורסים מופיעה האפשרות Sign in to save progress. לקורסים שיש בהם quiz מופיע גם Completion badge. עמוד הבית של האקדמיה מתאר את הקורסים, המדריכים ומקרי השימוש כחינמיים (Free).
+</Callout>
+
+## איזה שיעור אצלנו מקביל ל-Claude Code 101?
+[Claude Code 101](https://academy.claude.com/courses/claude-code-101) הוא קורס היסודות. הוא מחולק לארבעה חלקים: מה זה Claude Code, הפרומפט הראשון, workflows יומיים והתאמה אישית. כל שיעור שלו מקביל לשיעור אצלנו:
+
+| שיעור ב-Academy | השיעור המקביל אצלנו |
+| --- | --- |
+| [What is Claude Code?](https://academy.claude.com/courses/claude-code-101/what-is-claude-code) | [מה זה Claude Code](/beginner/what-is-claude-code) |
+| [How Claude Code works](https://academy.claude.com/courses/claude-code-101/how-claude-code-works) | [הלולאה האג'נטית והכלים](/beginner/how-it-works) |
+| [Installing Claude Code](https://academy.claude.com/courses/claude-code-101/installing-claude-code) | [התקנה](/beginner/installation) · [המשטחים](/product-family/surfaces) |
+| [Your first prompt](https://academy.claude.com/courses/claude-code-101/your-first-prompt) | [השינוי הראשון](/beginner/first-change) · [מצבי הרשאות ו-plan mode](/beginner-plus/permission-modes) |
+| [The explore → plan → code → commit workflow](https://academy.claude.com/courses/claude-code-101/the-explore-plan-code-commit-workflow) | [ה-workflow הנכון](/beginner-plus/core-workflow) |
+| [Context management](https://academy.claude.com/courses/claude-code-101/context-management) | [טוקנים והקשר: ‏/clear ו-/compact](/beginner-plus/costs-context) |
+| [Code review](https://academy.claude.com/courses/claude-code-101/code-review) | [‏/code-review ו-ultrareview](/pro/ultrareview) |
+| [The CLAUDE.md file](https://academy.claude.com/courses/claude-code-101/the-claude-md-file) | [CLAUDE.md](/beginner-plus/claude-md) |
+| [Subagents](https://academy.claude.com/courses/claude-code-101/subagents) | [Subagents](/advanced/subagents) |
+| [Skills](https://academy.claude.com/courses/claude-code-101/skills) | [Skills](/advanced/skills) |
+| [MCP](https://academy.claude.com/courses/claude-code-101/mcp) | [שרתי MCP](/advanced/mcp) |
+| [Hooks](https://academy.claude.com/courses/claude-code-101/hooks) | [Hooks](/advanced/hooks) |
+
+## איזה שיעור אצלנו מקביל ל-Claude Code in action?
+[Claude Code in action](https://academy.claude.com/courses/claude-code-in-action) הוא השלב הבא. הוא מיועד למי שכבר משתמש ב-Claude Code לפרומפטים בודדים ורוצה לעבור לסשנים ארוכים, פחות מפוקחים ומשותפים לצוות. הקורס מחולק לארבעה חלקים: להכווין את העבודה, להגדיר את Claude, לאטמט עבודה חוזרת, ולאמת ולשתף.
+
+| שיעור ב-Academy | השיעור המקביל אצלנו |
+| --- | --- |
+| [Steering long sessions](https://academy.claude.com/courses/claude-code-in-action/steering-long-sessions) | [‏/rewind](/beginner-plus/checkpointing) · [‏/loop ו-/goal](/pro/scheduled) · [worktrees](/pro/worktrees) |
+| [A CLAUDE.md that follows](https://academy.claude.com/courses/claude-code-in-action/a-claude-md-that-follows) | [CLAUDE.md](/beginner-plus/claude-md) |
+| [Verification skills](https://academy.claude.com/courses/claude-code-in-action/verification-skills) | [Skills](/advanced/skills) · [אימות ריצות בלי השגחה](/pro/routines#איך-בודקים-עבודה-שרצה-בלי-השגחה) |
+| [Permission modes](https://academy.claude.com/courses/claude-code-in-action/permission-modes) | [מצבי הרשאות](/beginner-plus/permission-modes) |
+| [Hooks](https://academy.claude.com/courses/claude-code-in-action/hooks) | [Hooks](/advanced/hooks) |
+| [Routines and headless](https://academy.claude.com/courses/claude-code-in-action/routines-and-headless) | [Routines](/pro/routines) · [‏claude -p ו-Agent SDK](/pro/agent-sdk) |
+| [GitHub Actions and Code Review](https://academy.claude.com/courses/claude-code-in-action/github-actions-and-code-review) | [CI/CD](/pro/ci-cd) |
+| [Trust it: Verifying unsupervised runs](https://academy.claude.com/courses/claude-code-in-action/trust-it-verifying-unsupervised-runs) | [אימות ריצות בלי השגחה](/pro/routines#איך-בודקים-עבודה-שרצה-בלי-השגחה) |
+| [Plugins](https://academy.claude.com/courses/claude-code-in-action/plugins) | [Plugins](/advanced/plugins) |
+
+לשיעור על אימות ריצות בלי השגחה אין אצלנו שיעור ייעודי, אבל יש סעיף שמרכז אותו בשיעור [Routines](/pro/routines#איך-בודקים-עבודה-שרצה-בלי-השגחה): ‏Stop hook שמריץ טסטים, `/code-review` כדעה שנייה מהקשר נקי ו-skill אימות. את הפירוט של כל כלי תמצא בשיעורי [Hooks](/advanced/hooks),‏ [‏/code-review](/pro/ultrareview) ו-[Skills](/advanced/skills).
+
+<Callout type="warning">
+כשהאקדמיה והתיעוד הרשמי לא מסכימים על פרט טכני, התיעוד ב-`code.claude.com/docs` הוא הרפרנס. לדוגמה, השיעור Routines and headless אומר ש-`-p` מדלג על טעינה אוטומטית של hooks,‏ skills ו-CLAUDE.md. [דף ה-headless בתיעוד](https://code.claude.com/docs/en/headless) אומר ש-`claude -p` טוען את אותו הקשר כמו סשן אינטראקטיבי, ושהדגל `--bare` הוא זה שמדלג על הטעינה. בשיעורים שלנו כל עובדה כזו מאומתת מול התיעוד.
+</Callout>
+
+## אילו קורסים נוספים באקדמיה רלוונטיים?
+אחרי שני הקורסים המרכזיים, אלה הקורסים שכדאי להכיר, לפי נושא. [רשימת כל הקורסים](https://academy.claude.com/courses) כוללת גם קורסים על ה-API ועל פלטפורמות ענן.
+
+### העמקה ב-Claude Code
+| קורס | על מה | אצלנו |
+| --- | --- | --- |
+| [Introduction to agent skills](https://academy.claude.com/courses/introduction-to-agent-skills) | יצירה, הגדרה, שיתוף ופתרון תקלות ב-skills | [Skills](/advanced/skills) |
+| [Introduction to subagents](https://academy.claude.com/courses/introduction-to-subagents) | פירוק משימה מורכבת בין כמה subagents | [Subagents](/advanced/subagents) |
+| [The AI-native SDLC playbook](https://academy.claude.com/courses/ai-native-sdlc-playbook) | מדריך טכני להתאמת תהליך פיתוח התוכנה (SDLC) לעבודה עם AI | — |
+| [Introduction to Model Context Protocol](https://academy.claude.com/courses/introduction-to-model-context-protocol) | בניית שרתי MCP ולקוחות מאפס עם ה-Python SDK | [שרתי MCP](/advanced/mcp) (חיבור שרתים, לא בנייה) |
+| [Model Context Protocol: Advanced topics](https://academy.claude.com/courses/model-context-protocol-advanced-topics) | ‏sampling,‏ notifications ו-roots ב-MCP | — |
+
+### מוצרים נוספים במשפחה
+| קורס | על מה | אצלנו |
+| --- | --- | --- |
+| [Introduction to Claude Cowork](https://academy.claude.com/courses/introduction-to-claude-cowork) | האצלת עבודה רב-שלבית ל-Claude ב-Cowork | [Cowork](/product-family/cowork) |
+| [Introduction to Claude Tag](https://academy.claude.com/courses/introduction-to-claude-tag) | Claude בתוך ה-Slack של הצוות: איפה להעביר לו עבודה ואיך לתקן אותו | [Claude Tag](/pro/claude-tag) |
+| [Deploying Claude Enterprise with confidence](https://academy.claude.com/courses/deploying-claude-enterprise-with-confidence) | חמש ההחלטות שמעצבות פריסה בארגון: מבנה וזהות, גישה, governance, הוצאות ו-visibility | — |
+
+### חשיבה ועבודה עם AI
+| קורס | על מה | אצלנו |
+| --- | --- | --- |
+| [AI Fluency: Framework and foundations](https://academy.claude.com/courses/ai-fluency-framework-foundations) | מסגרת 4D: ‏Delegation,‏ Description,‏ Discernment,‏ Diligence | [AI Fluency](/fluency/ai-fluency) |
+| [AI Fluency for builders](https://academy.claude.com/courses/ai-fluency-for-builders) | AI Fluency למי שבונה מוצרים, מהבעיה ועד פתרון שעלה לאוויר | [AI Fluency](/fluency/ai-fluency) |
+| [AI capabilities and limitations](https://academy.claude.com/courses/ai-capabilities-and-limitations) | מה מודלי שפה יכולים ולא יכולים לעשות: חיזוי הטוקן הבא, ידע, זיכרון עבודה ומגבלות הקשר | — |
+| [Building effective human-agent teams (beta)](https://academy.claude.com/courses/building-effective-human-agent-teams) | מעבר מעבודה של אדם אחד עם AI לעבודה של צוות עם סוכנים | — |
+
+## איך בונים מסלול המשך אחרי הקורס?
+בוחרים לפי מה שחסר לך, לא לפי הסדר:
+
+- **רוצה לחזק את היסודות?** עבור על Claude Code 101 במקביל לרמות "מתחיל" ו"מתחיל+" אצלנו. הטבלה למעלה מראה איזה שיעור מקביל לאיזה.
+- **עובד כבר יומיומית ורוצה לתת ל-Claude לרוץ לבד?** Claude Code in action, ובעיקר השיעור על אימות ריצות בלי השגחה. אצלנו הנושא מרוכז ב[סעיף האימות בשיעור Routines](/pro/routines#איך-בודקים-עבודה-שרצה-בלי-השגחה).
+- **בונה כלים לצוות?** Introduction to agent skills ו-Introduction to subagents, יחד עם שיעורי [Skills](/advanced/skills) ו-[Subagents](/advanced/subagents).
+- **רוצה לעבוד נכון עם סוכן, בלי קשר לכלי?** מסלול AI Fluency, שהוא גם השיעור הבא אצלנו.
+
+האקדמיה מתעדכנת, ושמות וקורסים יכולים להשתנות. לפני שממליצים על קורס לצוות, כדאי לפתוח את [עמוד Claude Code](https://academy.claude.com/products/code) ולבדוק מה מופיע בו היום.
+
+## הצעד הבא
+- ← [AI Fluency: איך לחשוב נכון על עבודה עם סוכן](/fluency/ai-fluency)
+- שיעורים קשורים: [איפה רץ Claude Code](/product-family/surfaces) · [Cowork](/product-family/cowork) · [CLAUDE.md](/beginner-plus/claude-md)
