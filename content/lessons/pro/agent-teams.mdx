@@ -1,0 +1,211 @@
+---
+title: "מה זה Agent Teams ב-Claude Code ואיך מתזמרים צוות סשנים?"
+description: "Agent Teams מריץ כמה סשנים של Claude Code כצוות: lead מחלק משימות, וה-teammates עובדים במקביל ומדברים ישירות. זו יכולת ניסיונית שמפעילים במשתנה סביבה."
+level: "pro"
+order: 38
+source: "https://code.claude.com/docs/en/agent-teams"
+lastVerified: "2026-09-23"
+keywords: ["Claude Code", "agent teams", "צוות סוכנים", "צוותי סוכנים", "teammates", "team lead", "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS", "רשימת משימות", "task list", "teammateMode", "עבודה במקביל", "תזמור סוכנים", "ניסיוני"]
+canDo: "עכשיו אתה יכול להפעיל Agent Teams, לבקש מה-lead להקים צוות teammates למשימה מקבילית, לתקשר עם כל teammate ישירות ולהחליט מתי צוות שווה את העלות."
+relatedSlugs: ["agents-overview", "cross-session", "worktrees"]
+faq:
+  - q: "איך מפעילים Agent Teams ב-Claude Code?"
+    a: "היכולת ניסיונית וכבויה כברירת מחדל. מגדירים את משתנה הסביבה CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS לערך 1, ב-shell או תחת env בקובץ settings.json. בלי המשתנה Claude לא מקים צוות ולא מציע teammates."
+  - q: "מה ההבדל בין teammates ל-subagents?"
+    a: "subagent מחזיר תוצאה לסוכן שהפעיל אותו, והסוכן הראשי מנהל את כל העבודה. teammates הם מופעים עצמאיים של Claude Code שמדברים ישירות זה עם זה ומתאמים עבודה דרך רשימת משימות משותפת. צוות עולה יותר טוקנים, ומתאים לעבודה שדורשת דיון ושיתוף ממצאים."
+  - q: "כמה teammates כדאי להפעיל?"
+    a: "התיעוד הרשמי ממליץ להתחיל ב-3 עד 5 teammates לרוב העבודות. עלות הטוקנים גדלה ליניארית עם כל teammate, ומעבר לנקודה מסוימת teammates נוספים לא מאיצים את העבודה באופן יחסי."
+  - q: "למה Claude מקים teammates כשביקשתי רק subagent?"
+    a: "כש-Agent Teams מופעל, subagent ש-Claude נותן לו שם מופעל כ-teammate, ו-Claude נותן שמות ל-subagents גם ביוזמתו. כדי לחזור ל-subagents רגילים מגדירים את CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS לערך 0 ב-settings.json."
+  - q: "האם אפשר להמשיך סשן עם צוות אחרי /resume?"
+    a: "לא במלואו. /resume ו-/rewind לא משחזרים teammates שרצים in-process, וה-lead עלול לנסות לשלוח הודעות ל-teammates שכבר לא קיימים. במקרה כזה מבקשים מה-lead להקים teammates חדשים."
+---
+
+import { CommandBlock, Callout, StepList } from "@/components/lesson";
+
+Agent Teams מאפשר להריץ כמה סשנים של Claude Code כצוות. סשן אחד הוא ה-lead: הוא מחלק משימות ומסכם תוצאות. ה-teammates עובדים במקביל, כל אחד בחלון הקשר משלו, ומדברים ישירות זה עם זה. זו יכולת ניסיונית, כבויה כברירת מחדל, ומפעילים אותה במשתנה סביבה.
+
+## למה זה חשוב
+צוות מתאים למשימות שבהן חקירה מקבילית באמת מוסיפה ערך. התיעוד הרשמי מונה ארבעה שימושים חזקים:
+
+- **מחקר ו-review:** כמה teammates בודקים היבטים שונים של בעיה, ואז משתפים ומאתגרים ממצאים.
+- **מודולים או פיצ'רים חדשים:** כל teammate אחראי על חלק נפרד.
+- **debugging עם השערות מתחרות:** כל teammate בודק תיאוריה אחרת, והם מתכנסים לתשובה מהר יותר.
+- **תיאום בין שכבות:** frontend,‏ backend ובדיקות, כל שכבה אצל teammate אחר.
+
+למשימות רציפות, עריכות באותו קובץ או עבודה עם הרבה תלויות, סשן יחיד או [subagents](/advanced/subagents) יעילים יותר.
+
+<Callout type="warning">
+Agent Teams משתמש בהרבה יותר טוקנים מסשן יחיד. לכל teammate יש חלון הקשר משלו, והשימוש בטוקנים גדל עם מספר ה-teammates הפעילים. למחקר, review ופיצ'רים חדשים זה בדרך כלל משתלם. למשימות שגרתיות סשן יחיד זול יותר. ראה [עלויות טוקנים של צוות](https://code.claude.com/docs/en/costs#agent-team-token-costs).
+</Callout>
+
+## מה ההבדל בין צוות ל-subagents?
+ההבדל העיקרי הוא מי מתאם את העבודה. subagents מחזירים תוצאה לסוכן הראשי. teammates מתאמים ביניהם.
+
+| | Subagents | Agent teams |
+| --- | --- | --- |
+| הקשר | חלון הקשר משלו; התוצאה חוזרת למי שהפעיל | חלון הקשר משלו; עצמאי לגמרי |
+| תקשורת | מחזירים תוצאה למי שהפעיל אותם; subagents ש-Claude נתן להם שם יכולים גם לשלוח הודעות זה לזה | teammates שולחים הודעות ישירות זה לזה |
+| תיאום | הסוכן הראשי מנהל את כל העבודה | תיאום עצמי בהודעות, ורשימת משימות משותפת לסוכנים שיש להם את כלי ה-Task |
+| מתאים ל | משימות ממוקדות שרק התוצאה חשובה בהן | עבודה מורכבת שדורשת דיון ושיתוף פעולה |
+| עלות טוקנים | נמוכה יותר | גבוהה יותר: כל teammate הוא מופע נפרד |
+
+לפני שמקימים צוות, כדאי לבדוק אם אפשרות קלה יותר מספיקה: subagents בתוך סשן אחד, או [הודעות בין סשנים](/pro/cross-session) שאתה מריץ בעצמך.
+
+## איך מפעילים Agent Teams?
+מגדירים את משתנה הסביבה `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS` לערך `1`, ב-shell או דרך `settings.json`:
+
+```json
+{
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+  }
+}
+```
+
+בלי המשתנה לא מוקם צוות בתחילת הסשן, לא נכתבות תיקיות צוות, ו-Claude לא מפעיל או מציע teammates.
+
+<Callout type="note">
+הפעלת היכולת משנה גם האצלה רגילה. כש-Agent Teams מופעל, subagent ש-Claude נותן לו שם מופעל כ-teammate, ו-Claude נותן שמות ל-subagents גם ביוזמתו. לכן צוות יכול להיווצר גם כשלא ביקשת. כדי לבטל, מגדירים את המשתנה לערך `0`.
+</Callout>
+
+צריך גם סשן אינטראקטיבי. במצב non-interactive עם `-p`, כולל סשנים של Agent SDK, ‏Claude לא מפעיל teammates, ו-subagent ש-Claude נותן לו שם רץ כ-subagent רגיל גם כשהיכולת מופעלת.
+
+## איך מקימים צוות ראשון?
+מתארים במילים את המשימה ואת ה-teammates הרצויים. Claude מקים אותם ומתאם את העבודה. זו הדוגמה מהתיעוד הרשמי, שעובדת טוב כי שלושת התפקידים עצמאיים:
+
+```text
+I'm designing a CLI tool that helps developers track TODO comments across
+their codebase. Spawn three teammates to explore this from different angles:
+one on UX, one on technical architecture, one playing devil's advocate.
+```
+
+Claude ממלא רשימת משימות משותפת, מקים teammate לכל נקודת מבט, ומסכם את הממצאים בסוף. לפעמים Claude משתמש ב-subagents במקום צוות. הם מופיעים באותו agent panel כמו teammates, כך שהפאנל לבדו לא מוכיח שנוצר צוות. אם זה קרה, מבקשים שוב ומציינים במפורש agent team.
+
+ה-teammates מופיעים ב-agent panel מתחת לשורת הפרומפט:
+
+| מקש | פעולה |
+| --- | --- |
+| חצים למעלה ולמטה | בחירת teammate |
+| `Enter` | פתיחת ה-transcript של ה-teammate ושליחת הודעה ישירה |
+| `Escape` | ניקוי הבחירה; בזמן צפייה ב-teammate, עוצר את התור הנוכחי שלו |
+| `x` | עצירת ה-teammate הנבחר |
+| `Ctrl+T` | הצגה או הסתרה של רשימת המשימות |
+
+## איך ה-lead מתאם את ה-teammates?
+ה-lead הוא הסשן הראשי. הוא מקים teammates, מחלק משימות ומסכם. מדברים איתו בשפה טבעית.
+
+### רשימת משימות משותפת
+ה-lead יוצר משימות, וה-teammates עובדים עליהן. למשימה יש שלושה מצבים: pending,‏ in progress ו-completed. משימה יכולה להיות תלויה במשימות אחרות, ואי אפשר לקחת אותה עד שהן הושלמו. יש שתי דרכים לחלק:
+
+- **ה-lead מקצה:** אומרים ל-lead איזו משימה לתת לאיזה teammate.
+- **לקיחה עצמית:** teammate שסיים לוקח לבד את המשימה הבאה שלא הוקצתה ולא חסומה.
+
+### הגדרת teammates ומודלים
+Claude מחליט כמה teammates להקים לפי המשימה, או שאתה מציין במפורש. אפשר גם לציין מודל לכל teammate בפרומפט. אם לא ציינת, Claude Code בוחר לפי סדר עדיפויות שמפורט בתיעוד, ובסופו נופל למודל הנוכחי של ה-lead. את שמות המודלים הזמינים בודקים עם `/model` ובדף [הגדרות המודל](https://code.claude.com/docs/en/model-config).
+
+אפשר להשתמש בהגדרת subagent קיימת כתפקיד של teammate, למשל security-reviewer:
+
+```text
+Spawn a teammate using the security-reviewer agent type to audit the auth module.
+```
+
+### תכנון לפני ביצוע
+למשימות מורכבות או מסוכנות, מעבירים את ה-lead ל-plan mode לפני שמבקשים teammate. ה-teammate עובד במצב קריאה בלבד עד שהתוכנית שלו מוכנה. שים לב: Claude Code מאשר את התוכנית בסשן של ה-lead ברגע שהבקשה מגיעה, בלי שה-lead בודק אותה. העריכות והפקודות של ה-teammate עדיין עוברות דרך בקשות ההרשאה הרגילות.
+
+### סגירת teammate
+פונים ל-teammate בשמו:
+
+```text
+Ask the researcher teammate to shut down
+```
+
+ה-lead שולח בקשת סגירה, וה-teammate יכול לאשר או לסרב עם הסבר. אין שלב ניקוי נפרד: תיקיית הגדרות הצוות נמחקת אוטומטית כשהסשן נגמר, ותיקיית רשימת המשימות נשמרת מקומית כדי שסשן שממשיכים אותו ישמור את המשימות.
+
+## איך ה-teammates מתקשרים?
+כל teammate הוא סשן Claude Code מלא ועצמאי, עם חלון הקשר משלו. בהקמה הוא טוען את אותו הקשר פרויקט כמו סשן רגיל (CLAUDE.md,‏ MCP servers ו-skills) ואת פרומפט ההקמה מה-lead. היסטוריית השיחה של ה-lead **לא** עוברת אליו.
+
+המידע עובר בין חברי הצוות כך:
+
+- **הודעות אוטומטיות:** הודעות בין teammates מגיעות לנמען אוטומטית. ה-lead לא צריך לבדוק עדכונים.
+- **התראות idle:** teammate שסיים מודיע ל-lead אוטומטית, יחד עם התשובה הסופית שלו.
+- **רשימת המשימות:** teammates רואים סטטוס משימות ולוקחים עבודה פנויה.
+- **הודעה ל-teammate לפי שם:** כדי להגיע לכולם, שולחים הודעה נפרדת לכל נמען.
+
+אתה יכול גם לדבר עם כל teammate ישירות, בלי לעבור דרך ה-lead. כדי לקבל שמות צפויים, אומרים ל-lead איך לקרוא לכל teammate כבר בבקשת ההקמה.
+
+### מה עם הרשאות?
+teammates מתחילים במצב ההרשאות של ה-lead, חוץ מ-`dontAsk`, שהם לא יורשים. בקשות הרשאה של teammates מופיעות בסשן של ה-lead, ושם מאשרים אותן. teammate לא יכול לאשר בקשת הרשאה בשמך, ו-Claude Code מסמן לנמען שההודעה הגיעה מסשן Claude אחר ולא ממך. כדי לצמצם הפרעות, מאשרים מראש פעולות נפוצות ב[הגדרות ההרשאות](https://code.claude.com/docs/en/permissions) לפני שמקימים את הצוות.
+
+## איך בוחרים מצב תצוגה?
+יש שני מצבים:
+
+- **In-process (ברירת המחדל):** כל ה-teammates רצים בתוך הטרמינל הראשי. עובד בכל טרמינל בלי התקנה.
+- **Split panes:** כל teammate מקבל חלונית משלו. דורש tmux, או iTerm2 עם ה-CLI‏ `it2`.
+
+משנים את ברירת המחדל עם `teammateMode` בקובץ `~/.claude/settings.json`. הערך `"auto"` מפעיל split panes אם אתה כבר בתוך סשן tmux או ב-iTerm2 עם ה-CLI‏ `it2`, ואחרת חוזר ל-in-process:
+
+```json
+{
+  "teammateMode": "auto"
+}
+```
+
+לסשן בודד אפשר להעביר דגל. לפי התיעוד, הדגל ניסיוני ולא מופיע ב-`claude --help`:
+
+<CommandBlock>claude --teammate-mode auto</CommandBlock>
+
+<Callout type="note">
+Split panes לא נתמך בטרמינל המובנה של VS Code, ב-Windows Terminal וב-Ghostty. במערכות האלה עובדים במצב in-process.
+</Callout>
+
+## דוגמה מעשית: code review מקבילי
+reviewer יחיד נוטה להתמקד בסוג אחד של בעיות בכל פעם. כשמחלקים את ה-review לתחומים נפרדים, אבטחה, ביצועים וכיסוי בדיקות מקבלים תשומת לב במקביל:
+
+```text
+Spawn three teammates to review PR #142:
+- One focused on security implications
+- One checking performance impact
+- One validating test coverage
+Have them each review and report findings.
+```
+
+כל reviewer עובד על אותו PR עם עדשה אחרת, וה-lead מסכם את הממצאים של שלושתם בסוף. אם אתה חדש ב-Agent Teams, התיעוד ממליץ להתחיל במשימות כאלה, עם גבולות ברורים ובלי כתיבת קוד: review ל-PR, מחקר על ספרייה או חקירת באג.
+
+## איך עובדים נכון עם צוות?
+- **תן מספיק הקשר:** ה-teammates לא יורשים את השיחה של ה-lead. כלול בפרומפט ההקמה את הפרטים של המשימה.
+- **גודל צוות:** התחל ב-3 עד 5 teammates. שלושה teammates ממוקדים עובדים לעיתים קרובות טוב יותר מחמישה מפוזרים.
+- **גודל משימה:** לא קטנה מדי (התיאום עולה יותר מהתועלת) ולא גדולה מדי. יחידה עצמאית עם תוצר ברור, כמו פונקציה, קובץ בדיקות או review. 5-6 משימות לכל teammate שומרות את כולם עסוקים.
+- **הימנע מהתנגשויות בקבצים:** שני teammates שעורכים את אותו קובץ דורסים זה את זה. חלק את העבודה כך שכל teammate אחראי על קבצים אחרים.
+- **עקוב וכוון:** בדוק את ההתקדמות ותקן כיוונים שלא עובדים. צוות שרץ זמן רב בלי השגחה מגדיל את הסיכון לעבודה מבוזבזת.
+
+לפעמים ה-lead מתחיל לבצע משימות בעצמו במקום לחכות. במקרה כזה:
+
+```text
+Wait for your teammates to complete their tasks before proceeding
+```
+
+אפשר גם לאכוף כללי איכות עם [hooks](/advanced/hooks): ‏`TeammateIdle` רץ כש-teammate עומד לעבור ל-idle, ו-`TaskCreated` ו-`TaskCompleted` רצים ביצירה ובהשלמה של משימה. יציאה עם קוד 2 שולחת משוב: ב-`TeammateIdle` היא משאירה את ה-teammate בעבודה, ובשני האחרים היא מונעת את היצירה או את ההשלמה.
+
+## מה המגבלות?
+Agent Teams ניסיוני. המגבלות הנוכחיות לפי התיעוד:
+
+| מגבלה | מה זה אומר |
+| --- | --- |
+| אין שחזור סשן | `/resume` ו-`/rewind` לא משחזרים teammates שרצים in-process. מבקשים מה-lead להקים חדשים. |
+| סטטוס משימות מתעכב | teammates לפעמים לא מסמנים משימה כהושלמה, וזה חוסם משימות תלויות. |
+| סגירה איטית | teammate מסיים את הבקשה או הפעולה הנוכחית לפני שהוא נסגר. |
+| צוות אחד לסשן | אי אפשר ליצור צוותים נוספים או לשתף צוות בין סשנים. |
+| אין צוותים מקוננים | teammates לא יכולים להקים teammates משלהם. רק ה-lead מנהל את הצוות. |
+| אין subagents ברקע מ-teammate | ה-subagents של teammate שרץ in-process רצים בחזית, כי עבודת רקע שלו לא יכולה להימשך אחרי התהליך של ה-lead. |
+| ה-lead קבוע | אי אפשר להעביר את תפקיד ה-lead ל-teammate. |
+| הרשאות נקבעות בהקמה | אפשר לשנות מצב הרשאות של teammate אחרי ההקמה, אבל לא לקבוע מצב שונה לכל teammate בזמן ההקמה. |
+| split panes מוגבל | דורש tmux או iTerm2, ולא נתמך בטרמינל המובנה של VS Code, ב-Windows Terminal וב-Ghostty. |
+
+<Callout type="warning">
+ה-lead יכול גם לעצור מוקדם ולהחליט שהצוות סיים לפני שכל המשימות הושלמו. אם זה קורה, אומרים לו להמשיך. teammate שעצר אחרי שגיאה אפשר לכוון ישירות, או להקים teammate חלופי שימשיך את העבודה.
+</Callout>
+
+## הצעד הבא
+- ← [הודעות בין סשנים](/pro/cross-session)
+- שיעורים קשורים: [סקירת סוכנים](/pro/agents-overview) · [Subagents](/advanced/subagents) · [Worktrees](/pro/worktrees)
