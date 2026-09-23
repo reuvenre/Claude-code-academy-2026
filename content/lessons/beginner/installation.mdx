@@ -1,0 +1,144 @@
+---
+title: "איך מתקינים את Claude Code ב-Windows, ב-macOS וב-Linux?"
+description: "מתקינים את Claude Code בפקודה אחת לפי מערכת ההפעלה ובודקים עם claude --version. דרישות מערכת, התקנה ב-Windows וב-WSL, עדכונים ופתרון תקלות נפוצות."
+level: "beginner"
+order: 4
+source: "https://code.claude.com/docs/en/setup"
+lastVerified: "2026-09-23"
+keywords: ["Claude Code", "התקנה", "להתקין Claude Code", "התקנת Claude Code", "install", "Windows", "macOS", "Linux", "WSL", "PowerShell", "Homebrew", "WinGet"]
+canDo: "עכשיו אתה יכול להתקין את Claude Code במחשב שלך, לוודא שההתקנה עבדה ולתקן את השגיאות הנפוצות."
+relatedSlugs: ["terminal-basics", "login"]
+faq:
+  - q: "האם צריך הרשאות מנהל (Administrator) כדי להתקין ב-Windows?"
+    a: "לא. מריצים את פקודת ההתקנה מ-PowerShell או מ-CMD רגילים, בלי הרצה כמנהל."
+  - q: "האם Claude Code מתעדכן לבד?"
+    a: "בהתקנה המומלצת (native) כן: העדכונים יורדים ברקע ונכנסים לתוקף בהפעלה הבאה. התקנות דרך Homebrew,‏ WinGet ומנהלי חבילות של Linux לא מתעדכנות לבד כברירת מחדל."
+  - q: "מה עושים אם מופיע command not found: claude?"
+    a: "התיקייה שבה הותקן claude לא נמצאת ב-PATH. מריצים את הפקודה שמודפסת תחת Setup notes בסוף ההתקנה, או את פקודת התיקון לפי ה-shell, ואז פותחים חלון טרמינל חדש ומנסים שוב."
+  - q: "האם צריך להתקין Node.js?"
+    a: "לא בהתקנה המומלצת. רק ההתקנה כחבילת npm גלובלית דורשת Node.js בגרסה 22 ומעלה."
+---
+
+import { CommandBlock, Callout } from "@/components/lesson";
+
+מתקינים את Claude Code בפקודה אחת: ב-macOS, ב-Linux וב-WSL מריצים את סקריפט ההתקנה עם `curl`, וב-Windows מריצים את פקודת ההתקנה ב-PowerShell או ב-CMD. אחר כך בודקים עם `claude --version` שההתקנה עבדה. ההתקנה המומלצת מתעדכנת לבד ברקע.
+
+## למה זה חשוב
+זה הצעד הראשון שבלעדיו אין Claude Code בטרמינל. ההתקנה עצמה קצרה, אבל רוב התקלות של מתחילים קורות כאן: פקודה שמתאימה ל-PowerShell מודבקת ב-CMD, או שהמחשב לא מוצא את `claude` אחרי ההתקנה. השיעור מכסה את שני המקרים.
+
+## מה צריך לפני ההתקנה?
+דרישות המערכת לפי התיעוד הרשמי:
+
+| מערכת הפעלה | גרסה מינימלית |
+| --- | --- |
+| macOS | 13.0 |
+| Windows | Windows 10 1809, או Windows Server 2019 |
+| Ubuntu | 20.04 |
+| Debian | 10 |
+| Alpine Linux | 3.19 |
+
+| רכיב | דרישה |
+| --- | --- |
+| חומרה | 4GB RAM לפחות, מעבד x64 או ARM64 |
+| רשת | חיבור לאינטרנט |
+| Shell | Bash,‏ Zsh,‏ PowerShell או CMD |
+| מיקום | מדינה ש-Anthropic תומכת בה |
+
+תצטרך גם חשבון מתאים כדי להשתמש ב-Claude Code. על זה בשיעור הבא.
+
+## איך מתקינים?
+ההתקנה המומלצת היא ה-native installer. בוחרים את הפקודה לפי המערכת, מדביקים בטרמינל ולוחצים `Enter`.
+
+**macOS,‏ Linux ו-WSL:**
+
+```bash
+curl -fsSL https://claude.ai/install.sh | bash
+```
+
+**Windows PowerShell:**
+
+```powershell
+irm https://claude.ai/install.ps1 | iex
+```
+
+**Windows CMD:**
+
+```batch
+curl -fsSL https://claude.ai/install.cmd -o install.cmd && install.cmd && del install.cmd
+```
+
+בסוף ההתקנה תופיע ההודעה "Claude Code successfully installed!".
+
+<Callout type="warning">
+אם מופיע `The token '&&' is not a valid statement separator`, אתה ב-PowerShell ולא ב-CMD. אם מופיע `'irm' is not recognized as an internal or external command`, אתה ב-CMD ולא ב-PowerShell. בחר את הפקודה שמתאימה לחלון שפתוח אצלך.
+</Callout>
+
+## מה חשוב לדעת ב-Windows?
+אפשר להריץ את Claude Code ישירות ב-Windows או בתוך WSL:
+
+| אפשרות | מתי מתאים |
+| --- | --- |
+| Windows (native) | פרויקטים וכלים של Windows. לא צריך להריץ כמנהל |
+| WSL 2 | כלי פיתוח של Linux, או כשצריך הרצת פקודות בסביבה מבודדת (sandboxing) |
+
+ב-WSL מתקינים ומפעילים את `claude` מתוך הטרמינל של WSL, עם פקודת ההתקנה של Linux, ולא מ-PowerShell או מ-CMD.
+
+ב-Windows (native) מומלץ להתקין גם Git for Windows. בלעדיו Claude Code מריץ פקודות דרך PowerShell, ואיתו הוא משתמש ב-Git Bash.
+
+## איך בודקים שההתקנה עבדה?
+מריצים:
+
+<CommandBlock>claude --version</CommandBlock>
+
+התקנה תקינה מדפיסה מספר גרסה ואחריו `(Claude Code)`. לבדיקה מפורטת יותר של ההתקנה וההגדרות:
+
+<CommandBlock>claude doctor</CommandBlock>
+
+`claude doctor` מציג אבחון של ההתקנה וההגדרות בלי לפתוח סשן, כולל אזהרות והצעות לתיקון.
+
+## מה עושים אם `claude` לא נמצא?
+זו התקלה הנפוצה ביותר: התיקייה שבה הותקן `claude` לא נמצאת ב-PATH. המתקין מדפיס את התיקון המדויק תחת `Setup notes` בסוף ההתקנה. אפשר גם להשתמש בפקודות האלה מהמדריך הרשמי:
+
+**macOS (Zsh):**
+
+```bash
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc
+source ~/.zshrc
+```
+
+**Linux (Bash):**
+
+```bash
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
+source ~/.bashrc
+```
+
+**Windows (PowerShell), כשמופיע `'claude' is not recognized`:**
+
+```powershell
+$currentPath = [Environment]::GetEnvironmentVariable('PATH', 'User')
+[Environment]::SetEnvironmentVariable('PATH', "$currentPath;$env:USERPROFILE\.local\bin", 'User')
+```
+
+אחרי התיקון פותחים חלון טרמינל חדש ומנסים שוב. לשגיאות אחרות יש [מדריך פתרון תקלות התקנה רשמי](https://code.claude.com/docs/en/troubleshoot-install).
+
+## איך Claude Code מתעדכן?
+בהתקנה המומלצת העדכונים אוטומטיים: Claude Code בודק אם יש עדכון בהפעלה ומדי פעם תוך כדי ריצה, מוריד אותו ברקע, והוא נכנס לתוקף בהפעלה הבאה. כדי לעדכן מיד:
+
+<CommandBlock>claude update</CommandBlock>
+
+## יש דרכים נוספות להתקין?
+כן, אבל הן לא מתעדכנות לבד כברירת מחדל:
+
+- **Homebrew (macOS):** `brew install --cask claude-code`. מעדכנים עם `brew upgrade claude-code`.
+- **WinGet (Windows):** `winget install Anthropic.ClaudeCode`. מעדכנים עם `winget upgrade Anthropic.ClaudeCode`.
+- **apt,‏ dnf או apk (Linux):** מאגרים חתומים. ההוראות ב[דף ההגדרה הרשמי](https://code.claude.com/docs/en/setup#install-with-linux-package-managers).
+- **npm:** `npm install -g @anthropic-ai/claude-code`, דורש Node.js 22 ומעלה.
+
+<Callout type="warning">
+אל תשתמש ב-`sudo npm install -g`. לפי התיעוד הרשמי זה עלול לגרום לבעיות הרשאות ולסיכוני אבטחה.
+</Callout>
+
+## הצעד הבא
+- ← [איך מתחברים ל-Claude Code ואיזה חשבון צריך](/beginner/login)
+- שיעורים קשורים: [לא מכיר טרמינל? מאיפה מתחילים](/beginner/terminal-basics) · [מה זה Claude Code](/beginner/what-is-claude-code)
