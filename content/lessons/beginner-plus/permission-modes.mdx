@@ -1,0 +1,197 @@
+---
+title: "מה ההבדל בין מצבי ההרשאות ב-Claude Code ואיך עובד plan mode?"
+description: "מצב הרשאות קובע מה Claude Code עושה בלי לשאול: Manual,‏ acceptEdits,‏ plan ו-auto. איך מחליפים מצב עם Shift+Tab, באיזה מצב סשן מתחיל ואיך מאשרים תוכנית."
+level: "beginner-plus"
+order: 14
+source: "https://code.claude.com/docs/en/permission-modes"
+lastVerified: "2026-09-23"
+keywords: ["Claude Code", "permission modes", "מצבי הרשאות", "הרשאות", "plan mode", "מצב תוכנית", "auto mode", "Manual", "acceptEdits", "Shift+Tab", "/permissions", "defaultMode", "אישור פעולות", "לאשר תוכנית"]
+canDo: "עכשיו אתה יכול לזהות באיזה מצב הרשאות הסשן שלך נמצא, להחליף מצב עם Shift+Tab, ולתכנן שינוי ב-plan mode לפני ש-Claude נוגע בקוד."
+relatedSlugs: ["core-workflow", "common-workflows", "checkpointing"]
+faq:
+  - q: "האם auto mode הוא מצב ברירת המחדל של Claude Code?"
+    a: "רק בחלק מהמקרים. auto הוא מצב ההתחלה המובנה בתוכניות Pro,‏ Max ו-Team בטרמינל או בתוסף VS Code. ב-Enterprise, עם מפתח API של Console, בהרצה עם claude -p, בספקי ענן כמו Amazon Bedrock, ובדרך כלל גם בסשן הראשון אחרי התקנה או עדכון, המצב המובנה הוא Manual. דגל בשורת הפקודה או defaultMode בהגדרות גוברים על המצב המובנה."
+  - q: "איך יודעים באיזה מצב הרשאות הסשן נמצא?"
+    a: "מסתכלים על שורת הסטטוס בטרמינל. היא מציגה למשל manual mode on,‏ accept edits on,‏ plan mode on או auto mode on. לחיצה על Shift+Tab עוברת למצב הבא."
+  - q: "מה ההבדל בין plan mode ל-Manual?"
+    a: "ב-Manual Claude קורא בלי לשאול, אבל עוצר ומבקש אישור לפני רוב העריכות והפקודות. ב-plan mode הוא קורא, מריץ פקודות כדי לחקור וכותב תוכנית, והעריכות חסומות עד שאתה מאשר את התוכנית."
+  - q: "האם auto mode בטוח לשימוש?"
+    a: "auto mode מפחית את מספר בקשות האישור אבל לא מבטיח בטיחות. מסווג חוסם ברקע פעולות מסוכנות, כמו force push או פריסה לפרודקשן. התיעוד הרשמי ממליץ להשתמש בו במשימות שאתה סומך על הכיוון שלהן, ולא במקום בדיקה של פעולות רגישות."
+  - q: "איך גורמים לכל הסשנים להתחיל ב-Manual?"
+    a: "מגדירים permissions.defaultMode לערך default בקובץ ‎~/.claude/settings.json. הסשן הבא בטרמינל יתחיל ב-Manual, ושורת הסטטוס תציג manual mode on. ערך defaultMode בהגדרות פרויקט או בהגדרות מנוהלות גובר על הקובץ הזה."
+---
+
+import { CommandBlock, Callout, StepList } from "@/components/lesson";
+
+מצב הרשאות (permission mode) קובע מה Claude Code עושה בלי לשאול אותך. ב-Manual הוא שואל לפני עריכות ופקודות, ב-auto מסווג בודק את הפעולות ברקע, וב-plan הוא חוקר ומציע תוכנית בלי לערוך. מחליפים מצב עם `Shift+Tab`. מצב ההתחלה תלוי בתוכנית ובהגדרות שלך.
+
+## למה זה חשוב
+המצב קובע את האיזון בין נוחות לפיקוח. אם תאשר כל פעולה, תאבד זמן במשימות ארוכות. אם תיתן ל-Claude לעבוד לבד, תפקח פחות על כל צעד. כשמכירים את המצבים, בוחרים את המתאים למשימה: plan כדי לחקור קוד לא מוכר, Manual לעבודה רגישה, ו-auto למשימות ארוכות שאתה סומך על הכיוון שלהן.
+
+## אילו מצבי הרשאות יש?
+יש שישה מצבים. הטבלה מראה מה רץ בלי בקשת אישור בכל מצב:
+
+| מצב | מה רץ בלי לשאול | מתאים ל |
+| --- | --- | --- |
+| `default` (מוצג כ-**Manual**) | רק קריאות | בדיקה של כל פעולה בעצמך, עבודה רגישה |
+| `acceptEdits` | קריאות, עריכת קבצים ופקודות קבצים נפוצות כמו `mkdir`,‏ `mv`,‏ `cp` | עבודה על קוד שאתה בודק אחר כך |
+| `plan` | קריאות, ופקודות שהמסווג אישר כש-auto mode זמין | חקירת קוד לפני שמשנים אותו |
+| `auto` | הכול, עם בדיקות בטיחות ברקע | משימות ארוכות, פחות בקשות אישור |
+| `dontAsk` | קריאות וכלים שאושרו מראש. כל השאר נדחה | CI וסקריפטים נעולים |
+| `bypassPermissions` | הכול | קונטיינרים ומכונות וירטואליות מבודדות בלבד |
+
+במצב Manual הערך בהגדרות הוא `default`. ה-CLI מקבל גם `manual` ככינוי. בשיעור הזה נתמקד בארבעת הראשונים. `dontAsk` ו-`bypassPermissions` מיועדים להרצות אוטומטיות ולסביבות מבודדות.
+
+<Callout type="warning">
+`bypassPermissions` מדלג על בדיקות הבטיחות ולא מגן מפני prompt injection או פעולות לא רצויות. התיעוד הרשמי מורה להשתמש בו רק בסביבה מבודדת, כמו קונטיינר או VM, שבה Claude Code לא יכול לפגוע במחשב שלך.
+</Callout>
+
+## באיזה מצב הסשן מתחיל?
+זה תלוי. כשפותחים סשן חדש בטרמינל, Claude Code לוקח את המצב מהדבר הראשון שמתקיים ברשימה הזו:
+
+<StepList>
+
+1. הדגל `--permission-mode` (או `--dangerously-skip-permissions`).
+2. `permissions.defaultMode` בקובץ הגדרות.
+3. מצב ההתחלה המובנה (built-in default).
+
+</StepList>
+
+מצב ההתחלה המובנה תלוי באופן ההרצה, בתוכנית ובהגדרות. השורה הראשונה שמתאימה לסשן שלך קובעת:
+
+| איך מריצים את Claude Code | מצב ההתחלה המובנה |
+| --- | --- |
+| קובץ הגדרות כלשהו מגדיר `disableAutoMode` ל-`"disable"` | Manual |
+| שליפת feature flags כבויה | Manual |
+| הסשן הראשון אחרי התקנה או עדכון לגרסה שמוסיפה את ברירת המחדל הזו (אלא אם, אחרי התקנה חדשה, ה-flags הגיעו בזמן) | Manual |
+| `claude -p` או Agent SDK | Manual |
+| Amazon Bedrock, Google Cloud's Agent Platform, Microsoft Foundry, Claude Platform on AWS או סשן מחובר של Claude apps gateway | Manual |
+| תוכנית Pro,‏ Max או Team, בטרמינל או בתוסף VS Code | auto |
+| תוכנית Enterprise או מפתח API של Claude Console | Manual |
+
+כלומר, auto הוא מצב ההתחלה המובנה רק בתוכניות Pro,‏ Max ו-Team, ורק אם שום דבר מעליו בטבלה לא חל. בגרסאות ישנות של Claude Code המצב המובנה הוא Manual בכל מקרה. גם כשהכול בוחר ב-auto, אם auto mode לא זמין לסשן (למשל ההגדרות כיבו אותו, או שהמודל לא תומך בו), הסשן מתחיל ב-Manual.
+
+בפעם הראשונה שהמצב המובנה פותח סשן ב-auto, Claude Code מציג הודעה בראש הסשן. תוסף VS Code, אפליקציית הדסקטופ ו-claude.ai בוחרים את מצב ההתחלה קצת אחרת. הפרטים בדף [Choose a permission mode](https://code.claude.com/docs/en/permission-modes#switch-permission-modes).
+
+## איך מחליפים מצב באמצע סשן?
+לוחצים `Shift+Tab`. כל לחיצה עוברת למצב הבא:
+
+- מ-auto, הלחיצה הראשונה עוברת ל-Manual.
+- משם הסבב הוא: Manual ← acceptEdits ← plan ← חזרה ל-Manual.
+- auto מופיע בסבב אחרי plan כש-auto mode זמין.
+- `bypassPermissions` מופיע בסבב (לפני auto) רק אם הפעלת אותו כשפתחת את הסשן. `dontAsk` אף פעם לא מופיע בסבב, ומגדירים אותו עם `--permission-mode dontAsk`.
+
+שורת הסטטוס מציגה את המצב הפעיל:
+
+| מצב | מה מוצג |
+| --- | --- |
+| Manual | `⏸ manual mode on` |
+| acceptEdits | `⏵⏵ accept edits on` |
+| plan | `⏸ plan mode on` |
+| auto | `⏵⏵ auto mode on` |
+
+יש עוד דרך להגיע ל-auto: במצבי Manual ו-acceptEdits, כש-auto mode זמין, בקשת אישור לפקודת Bash כוללת את האפשרות **Yes, and switch to auto mode**. היא מאשרת את הפקודה ומעבירה את הסשן ל-auto.
+
+## איך פותחים סשן במצב מסוים?
+לסשן אחד, מעבירים דגל:
+
+<CommandBlock>claude --permission-mode plan</CommandBlock>
+
+כדי שכל הסשנים בטרמינל במחשב שלך יתחילו במצב קבוע, מגדירים `permissions.defaultMode` בקובץ `~/.claude/settings.json`. הדוגמה מהתיעוד הרשמי מגדירה Manual:
+
+```json
+{
+  "permissions": {
+    "defaultMode": "default"
+  }
+}
+```
+
+אפשר להגדיר `defaultMode` גם בקובץ `.claude/settings.json` של פרויקט. כשכמה קבצים מגדירים אותו, סדר העדיפויות של ההגדרות קובע, כך שערך של פרויקט או של הגדרות מנוהלות (managed settings) גובר על `~/.claude/settings.json`. סשנים בטרמינל מכבדים מהגדרות הפרויקט כל ערך חוץ מ-`auto` ו-`bypassPermissions`.
+
+<Callout type="warning">
+הערך `"auto"` לא נכנס לתוקף מ-`.claude/settings.json` או מ-`.claude/settings.local.json` של הפרויקט, וגם `"bypassPermissions"` לא (במקרה הזה הסשן מתחיל ב-Manual). אם הגדרת שם auto והסשן מתחיל ב-Manual בלי שגיאה, העבר את ההגדרה ל-`~/.claude/settings.json`.
+</Callout>
+
+## איך עובד plan mode?
+ב-plan mode ‏Claude חוקר ומציע שינויים בלי לבצע אותם. הוא קורא קבצים, מריץ פקודות shell כדי לחקור וכותב תוכנית, אבל לא עורך את קוד המקור. העריכות חסומות עד שאתה מאשר את התוכנית (חריג אחד: בסשן טרמינל אינטראקטיבי שבו `bypassPermissions` זמין, Claude Code לא אוכף את החסימות של plan mode).
+
+נכנסים ל-plan mode באחת משלוש דרכים:
+
+- לוחצים `Shift+Tab` עד ששורת הסטטוס מציגה `⏸ plan mode on`.
+- מתחילים פרומפט בודד ב-`/plan`.
+- פותחים את הסשן עם `claude --permission-mode plan`.
+
+כש-auto mode זמין וההגדרה `useAutoModeDuringPlan` פעילה (ברירת המחדל), המסווג בודק את פקודות ה-shell בזמן התכנון במקום לשאול אותך. אחרת, פקודות שאינן בקבוצת הפקודות לקריאה בלבד מבקשות אישור. לחיצה נוספת על `Shift+Tab` יוצאת מ-plan mode בלי לאשר תוכנית.
+
+### איך מאשרים תוכנית?
+כשהתוכנית מוכנה, Claude מציג אותה ושואל איך להמשיך:
+
+| אפשרות | מה קורה |
+| --- | --- |
+| **Yes, and use auto mode** | מאשר וממשיך ב-auto mode. אם auto mode לא זמין, האפשרות נקראת **Yes, auto-accept edits** |
+| **Yes, manually approve edits** | מאשר, ואתה בודק כל עריכה בנפרד |
+| **No, keep planning** | נשאר ב-plan mode. כותבים ל-Claude מה לשנות בתוכנית |
+
+אישור התוכנית יוצא מ-plan mode ומעביר את הסשן למצב שבחרת, ו-Claude מתחיל לערוך. כדי לתכנן שוב, חוזרים ל-plan עם `Shift+Tab` או מתחילים את הפרומפט הבא ב-`/plan`.
+
+<Callout type="tip">
+לוחצים `Ctrl+G` כדי לפתוח את התוכנית בעורך הטקסט שלך ולערוך אותה ישירות לפני ש-Claude ממשיך.
+</Callout>
+
+## מה עושה auto mode?
+ב-auto mode ‏Claude עובד בלי בקשות אישור שגרתיות. מודל נפרד, המסווג (classifier), בודק פעולות לפני שהן רצות. קריאות ועריכות קבצים בתיקיית העבודה מאושרות בלי המסווג, חוץ מכתיבה לנתיבים מוגנים כמו `.git`. פקודות shell ופעולות רשת עוברות דרכו.
+
+המסווג חוסם כברירת מחדל, בין השאר:
+
+- הורדה והרצה של קוד, כמו `curl | bash`.
+- שליחת מידע רגיש לכתובות חיצוניות.
+- פריסות ו-migrations לפרודקשן.
+- force push.
+- מחיקה בלתי הפיכה של קבצים שהיו קיימים לפני הסשן.
+- פקודות שמוחקות שינויים שלא נשמרו ב-commit, כמו `git reset --hard`.
+
+כשפעולה נחסמת, Claude מקבל את הסיבה ומנסה דרך אחרת. אם המסווג חוסם פעולה 3 פעמים ברצף או 20 פעמים בסך הכול, auto mode נעצר ו-Claude Code חוזר לבקש ממך אישור.
+
+אפשר גם להציב גבולות בשיחה. אם כותבים ל-Claude "don't push", המסווג חוסם פעולות מתאימות גם כשהכללים הרגילים היו מאפשרים אותן. הגבול נשמר עד שתבטל אותו, אבל הוא לא נשמר ככלל ועלול ללכת לאיבוד אם ההקשר נדחס. לחסימה מובטחת, מוסיפים כלל deny.
+
+auto mode דורש מודל נתמך. הרשימה המעודכנת מופיעה בתיעוד הרשמי, ובוחרים מודל עם `/model` (ראה [model-config](https://code.claude.com/docs/en/model-config)). ב-Team וב-Enterprise מנהלים יכולים לכבות את auto mode לכל הארגון.
+
+<Callout type="warning">
+auto mode מפחית את בקשות האישור אבל לא מבטיח בטיחות. השתמש בו במשימות שאתה סומך על הכיוון שלהן, ולא במקום בדיקה של פעולות רגישות.
+</Callout>
+
+## איך מאשרים או חוסמים כלים ספציפיים?
+מצבי ההרשאות קובעים את הבסיס, וכללי הרשאות (permission rules) מוסיפים שכבה מעליהם. מריצים בתוך הסשן:
+
+<CommandBlock>/permissions</CommandBlock>
+
+החלון מציג את כל הכללים ואת קובץ ה-`settings.json` שממנו הגיע כל כלל. לפי [דף ההרשאות הרשמי](https://code.claude.com/docs/en/permissions#manage-permissions) יש שלושה סוגי כללים:
+
+- **Allow:** ‏Claude Code משתמש בכלי בלי לבקש אישור.
+- **Ask:** ‏Claude Code מבקש אישור בכל פעם.
+- **Deny:** ‏Claude Code לא משתמש בכלי.
+
+הכללים נבדקים בסדר: deny, אחר כך ask, אחר כך allow. כלל deny חוסם בכל מצב, כולל `bypassPermissions`. כלל ask מבקש אישור גם ב-auto mode. תחביר הכללים המלא מוסבר בשיעור נפרד ברמת המתקדמים.
+
+<Callout type="note">
+הוראות ב-CLAUDE.md משפיעות על מה ש-Claude מנסה לעשות, אבל לא על מה ש-Claude Code מאפשר. כדי לתת או לשלול גישה, משתמשים ב-`/permissions`, בכללים או במצב הרשאות.
+</Callout>
+
+## דוגמה מעשית
+אתה צריך לשנות מודול שלא הכרת קודם. במקום לתת ל-Claude לערוך ישר, מתחילים בתכנון:
+
+<StepList>
+
+1. פותחים סשן במצב plan:
+   <CommandBlock>claude --permission-mode plan</CommandBlock>
+2. מבקשים מ-Claude לחקור את המודול ולהציע איך לבצע את השינוי.
+3. קוראים את התוכנית. אם משהו חסר, בוחרים **No, keep planning** וכותבים מה לתקן.
+4. כשהתוכנית נראית נכונה, בוחרים **Yes, manually approve edits** כדי לבדוק כל עריכה, או **Yes, and use auto mode** אם אתה סומך על הכיוון.
+5. בודקים את השינויים עם `/diff`.
+
+</StepList>
+
+## הצעד הבא
+- ← [זרימות עבודה נפוצות ב-Claude Code](/beginner-plus/common-workflows)
+- שיעורים קשורים: [ה-workflow הנכון](/beginner-plus/core-workflow) · [השינוי הראשון](/beginner/first-change) · [checkpoints וביטול שינויים](/beginner-plus/checkpointing)
