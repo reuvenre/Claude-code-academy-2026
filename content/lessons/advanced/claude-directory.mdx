@@ -1,0 +1,199 @@
+---
+title: "מה יש בתיקיית .claude של Claude Code ומה מכניסים ל-git?"
+description: "תיקיית .claude בפרויקט משותפת עם הצוות, ו-~/.claude חלה על כל הפרויקטים שלך. מה עושה כל קובץ, מה נכנס ל-git, ומה Claude Code שומר אצלך בזמן העבודה."
+level: "advanced"
+order: 30
+source: "https://code.claude.com/docs/en/claude-directory"
+lastVerified: "2026-09-23"
+keywords: ["Claude Code", ".claude", "~/.claude", "תיקיית .claude", "תיקיית הגדרות", "settings.json", "settings.local.json", "CLAUDE.md", "gitignore", "תמלילים", "transcripts", "cleanupPeriodDays", "claude project purge", "מבנה תיקיות"]
+canDo: "עכשיו אתה יכול לזהות כל קובץ ותיקייה ב-.claude וב-~/.claude, להחליט מה נכנס ל-git ומה נשאר אישי, ולנקות נתונים ש-Claude Code שומר על הדיסק."
+relatedSlugs: ["claude-md", "settings", "skills"]
+faq:
+  - q: "מה ההבדל בין .claude בפרויקט ל-~/.claude בתיקיית הבית?"
+    a: "תיקיית .claude בתוך הפרויקט מכילה הגדרות, rules,‏ skills ו-subagents של הפרויקט הזה, ובדרך כלל נכנסת ל-git כדי שכל הצוות ישתף אותה. ‏~/.claude בתיקיית הבית מכילה את ההגדרות האישיות שלך, שחלות על כל הפרויקטים ולא נכנסות לאף ריפו."
+  - q: "האם להכניס את settings.local.json ל-git?"
+    a: "לא. settings.local.json מיועד להגדרות אישיות שגוברות על הגדרות הצוות בפרויקט. כש-Claude Code שומר אליו הגדרה בריפו שעוד לא מתעלם ממנו, הוא מוסיף אותו לקובץ ה-excludes הגלובלי של git. כדי לשתף את כלל ההתעלמות עם הצוות, מוסיפים אותו גם ל-.gitignore של הפרויקט."
+  - q: "איפה מגדירים hooks בתוך תיקיית .claude?"
+    a: "במבנה של .claude אין תיקיית hooks. לפי התיעוד, hooks מוגדרים תחת המפתח hooks בקובץ settings.json, בפרויקט או ב-~/.claude, יחד עם ההרשאות. שם מגדירים באיזה אירוע ה-hook רץ ואיזו פקודה הוא מריץ."
+  - q: "כמה זמן Claude Code שומר את תמלילי השיחות?"
+    a: "תמלילים נשמרים כקובצי jsonl תחת ~/.claude/projects ונמחקים אוטומטית כשהם ישנים מהערך של cleanupPeriodDays. ברירת המחדל היא 30 יום. הם נשמרים כטקסט רגיל, בלי הצפנה, ולכן כדאי לקצר את התקופה אם עובדים עם מידע רגיש."
+  - q: "איך מוחקים את כל מה ש-Claude Code שמר על פרויקט מסוים?"
+    a: "מריצים claude project purge עם הנתיב לפרויקט. הפקודה מוחקת תמלילים ו-auto memory, רשומות של tasks, debug ו-file-history, שורות מתאימות ב-history.jsonl ואת רשומת הפרויקט ב-~/.claude.json. עם הדגל --dry-run רואים את התוכנית בלי למחוק, ובלי הדגל הפקודה מבקשת אישור לפני מחיקה."
+---
+
+import { CommandBlock, Callout } from "@/components/lesson";
+
+Claude Code קורא הנחיות, הגדרות, skills,‏ subagents ו-memory משני מקומות: תיקיית `.claude/` בפרויקט, שנכנסת ל-git ומשותפת עם הצוות, ו-`~/.claude` בתיקיית הבית, שחלה על כל הפרויקטים שלך. רוב המשתמשים עורכים רק את `CLAUDE.md` ו-`settings.json`. כל השאר אופציונלי.
+
+## למה זה חשוב
+כשמשהו לא עובד כמו שציפית, כמעט תמיד השאלה היא איזה קובץ נטען ומאיפה. אם שמים הגדרה אישית בקובץ משותף, היא מגיעה לכל הצוות. אם שמים כלל צוות בקובץ אישי, אף אחד אחר לא מקבל אותו. הכרת המבנה עוזרת לשים כל שינוי במקום הנכון, ולדעת מה Claude Code שומר על הדיסק שלך.
+
+ב-Windows,‏ `~/.claude` הוא `%USERPROFILE%\.claude`. אם הגדרת את משתנה הסביבה `CLAUDE_CONFIG_DIR`, כל הנתיבים של `~/.claude` בשיעור הזה נמצאים תחת התיקייה שהגדרת.
+
+## איך נראה המבנה?
+זה המבנה שהתיעוד הרשמי מציג. אף קובץ לא חובה, ומוסיפים רק מה שצריך:
+
+```text
+your-project/
+├── CLAUDE.md              הנחיות הפרויקט, נטען בכל סשן
+├── .mcp.json              שרתי MCP משותפים לצוות
+├── .worktreeinclude       קבצים ב-gitignore להעתקה ל-worktrees חדשים
+└── .claude/
+    ├── settings.json      הרשאות, hooks והגדרות
+    ├── settings.local.json  דריסות אישיות (gitignored)
+    ├── rules/             הנחיות לפי נושא, אפשר לפי נתיבים
+    ├── skills/            <name>/SKILL.md, מופעל עם /name
+    ├── commands/          פרומפט בקובץ אחד, מופעל עם /name
+    ├── output-styles/     סגנונות פלט שהצוות משתף
+    ├── agents/            הגדרות subagents
+    ├── workflows/         סקריפטים של dynamic workflows
+    └── agent-memory/      זיכרון קבוע של subagents
+
+~/
+├── .claude.json           מצב האפליקציה, OAuth, שרתי MCP אישיים
+└── .claude/
+    ├── CLAUDE.md          העדפות אישיות לכל הפרויקטים
+    ├── settings.json      ברירות מחדל לכל הפרויקטים
+    ├── keybindings.json   קיצורי מקלדת
+    ├── themes/            ערכות צבע מותאמות
+    ├── projects/          auto memory ותמלילים, לפי פרויקט
+    ├── rules/  skills/  commands/  output-styles/  agents/  workflows/
+    └── agent-memory/      זיכרון subagents עם memory: user
+```
+
+אפשר לשים גם את CLAUDE.md של הפרויקט בתוך `.claude/CLAUDE.md`, אם רוצים שורש פרויקט נקי.
+
+## מה עושה כל קובץ בתיקיית הפרויקט?
+
+| קובץ או תיקייה | מה הוא עושה | מתי נטען |
+| --- | --- | --- |
+| `CLAUDE.md` | הנחיות, מוסכמות ופקודות של הפרויקט | בתחילת כל סשן |
+| `settings.json` | הרשאות, hooks,‏ `env`,‏ `model`,‏ `statusLine`,‏ `outputStyle` | גובר על `~/.claude/settings.json`; הגדרות local, דגלי CLI ו-managed settings גוברים עליו |
+| `settings.local.json` | אותו פורמט, להגדרות אישיות שגוברות על הגדרות הצוות | הגבוה מבין קובצי ה-settings שעורכים ידנית; דגלי CLI ו-managed settings עדיין גוברים עליו |
+| `rules/*.md` | הנחיות מפוצלות לפי נושא | בלי `paths:` בתחילת הסשן; עם `paths:` כש-Claude קורא קובץ מתאים |
+| `skills/<name>/SKILL.md` | פרומפט או יכולת עם קבצים נלווים | כשמקלידים `/name` או כש-Claude מזהה משימה מתאימה |
+| `commands/*.md` | פרומפט בקובץ אחד, אותו מנגנון כמו skills | כשמקלידים `/name` |
+| `output-styles/*.md` | סגנון פלט שהצוות משתף | הקבצים נקראים בהפעלה; הסגנון שנבחר ב-`outputStyle` חל על כל תשובה |
+| `agents/*.md` | subagent עם system prompt וכלים משלו | כש-Claude מאציל אליו או כשמזכירים אותו עם `@` |
+| `workflows/*.js` | סקריפט שמתזמר הרבה subagents | בהפעלה; כל קובץ הופך לפקודה `/<name>` |
+| `agent-memory/<name>/` | זיכרון קבוע של subagent עם `memory: project` | כשה-subagent מתחיל לרוץ |
+| `.mcp.json` (בשורש) | שרתי MCP שכל הצוות משתמש בהם | בתחילת הסשן |
+| `.worktreeinclude` (בשורש) | קבצים ב-gitignore, כמו `.env`, להעתקה ל-worktree חדש | כש-Claude יוצר git worktree |
+
+`commands/` ו-`skills/` הם היום אותו מנגנון: הקובץ `commands/deploy.md` יוצר את `/deploy` בדיוק כמו `skills/deploy/SKILL.md`. לתהליכים חדשים התיעוד ממליץ על `skills/`, כי שם אפשר לצרף קבצים נלווים. פרטים ב[שיעור על skills](/advanced/skills).
+
+## מה יש ב-~/.claude?
+`~/.claude` היא המקבילה האישית של `.claude/` בפרויקט. הקבצים בה חלים על כל פרויקט שאתה עובד בו, ולא נכנסים לאף ריפו:
+
+- **`CLAUDE.md`**: העדפות שחלות בכל מקום, כמו סגנון תשובה ופורמט commit. הוא נטען יחד עם CLAUDE.md של הפרויקט, וכשיש סתירה, ההנחיות של הפרויקט גוברות.
+- **`settings.json`**: אותם מפתחות כמו בפרויקט. מתאים להרשאות שאתה תמיד מאשר או ל-hook של התראות.
+- **`rules/`,‏ `skills/`,‏ `commands/`,‏ `agents/`,‏ `output-styles/`,‏ `workflows/`**: אותו מבנה כמו בפרויקט, זמינים בכל הפרויקטים. ב-output styles וב-workflows, קובץ פרויקט עם אותו שם גובר.
+- **`projects/<project>/memory/`**: [auto memory](/beginner-plus/auto-memory), ההערות ש-Claude כותב לעצמו. ‏`MEMORY.md` נטען בתחילת הסשן (200 השורות הראשונות, עד 25KB).
+- **`keybindings.json`** ו-**`themes/`**: קיצורי מקלדת וערכות צבע. מריצים `/keybindings` או `/theme` כדי ליצור אותם.
+
+הקובץ `~/.claude.json` יושב מחוץ לתיקייה, ישירות בתיקיית הבית. הוא מחזיק מצב אפליקציה: theme, סשן OAuth, החלטות trust לכל פרויקט, שרתי MCP אישיים והעדפות ממשק. בדרך כלל עורכים אותו דרך `/config` ולא ידנית.
+
+## איפה מגדירים hooks?
+במבנה של `.claude/` אין תיקיית hooks. לפי התיעוד, hooks מוגדרים תחת המפתח `hooks` בקובץ `settings.json`, יחד עם ההרשאות. זו הדוגמה מהתיעוד: היא מאשרת `npm test` ו-`npm run` בלי לשאול, חוסמת `rm -rf`, ומריצה Prettier אחרי כל עריכה או כתיבה של קובץ:
+
+```json
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm test *)",
+      "Bash(npm run *)"
+    ],
+    "deny": [
+      "Bash(rm -rf *)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [{
+      "matcher": "Edit|Write",
+      "hooks": [{
+        "type": "command",
+        "command": "jq -r '.tool_input.file_path' | xargs npx prettier --write"
+      }]
+    }]
+  }
+}
+```
+
+<Callout type="note">
+CLAUDE.md ו-`rules/` הם הנחיות ש-Claude קורא ומנסה למלא. `settings.json` נאכף על ידי Claude Code, בין אם Claude ממלא אחרי ההנחיות ובין אם לא. מה שחייב לקרות תמיד כותבים כ-[hook](/advanced/hooks) או כהרשאה.
+</Callout>
+
+## מה מכניסים ל-git ומה לא?
+הכלל: קבצי הפרויקט נכנסים ל-git, קבצים אישיים לא. התיעוד מסמן כל קובץ באחת משלוש תגיות (ובנוסף בתגית Claude writes לקבצים ש-Claude כותב בעצמו):
+
+| קבוצה | קבצים | מה עושים |
+| --- | --- | --- |
+| committed | `CLAUDE.md`,‏ `.mcp.json`,‏ `.worktreeinclude`, ובתוך `.claude/`: `settings.json`,‏ `rules/`,‏ `skills/`,‏ `commands/`,‏ `output-styles/`,‏ `agents/`,‏ `workflows/`,‏ `agent-memory/` | מכניסים ל-git כדי שהצוות ישתף |
+| gitignored | `.claude/settings.local.json` | לא מכניסים. אישי לך בפרויקט הזה |
+| local only | כל מה שב-`~/.claude` ו-`~/.claude.json` | נשאר על המחשב שלך |
+
+כש-Claude Code שומר הגדרה ל-`settings.local.json` בריפו שעוד לא מתעלם ממנו, הוא מוסיף את `**/.claude/settings.local.json` לקובץ ה-excludes הגלובלי של git שלך. הכלל הזה לא משותף עם הצוות, ולכן כדאי להוסיף את השורה גם ל-`.gitignore` של הפרויקט.
+
+אותו רעיון חל על `CLAUDE.local.md` בשורש הפרויקט: העדפות אישיות לפרויקט, שיוצרים ידנית ומוסיפים ל-`.gitignore`.
+
+<Callout type="warning">
+המלצה שלנו: אל תשים סודות ב-`settings.json` של הפרויקט, כולל תחת `env`. הקובץ מסומן committed, כלומר מגיע לכל מי שמשכפל את הריפו. ב-`.mcp.json` התיעוד מדגים הפניה למשתנה סביבה, כמו `${NOTION_TOKEN}`, כדי שהטוקן לא ייכתב לקובץ.
+</Callout>
+
+## איזה קובץ מתאים לשינוי שאני רוצה?
+
+| אתה רוצה | עורכים | היקף |
+| --- | --- | --- |
+| לתת ל-Claude הקשר ומוסכמות | `CLAUDE.md` | פרויקט או גלובלי |
+| לאשר או לחסום קריאות לכלים | `settings.json`, ‏`permissions` או `hooks` | פרויקט או גלובלי |
+| להריץ סקריפט לפני או אחרי קריאה לכלי | `settings.json`, ‏`hooks` | פרויקט או גלובלי |
+| להגדיר משתני סביבה לסשן | `settings.json`, ‏`env` | פרויקט או גלובלי |
+| לשמור דריסות אישיות מחוץ ל-git | `settings.local.json` | פרויקט בלבד |
+| להוסיף פקודה שמפעילים עם `/name` | `skills/<name>/SKILL.md` | פרויקט או גלובלי |
+| להגדיר subagent עם כלים משלו | `agents/*.md` | פרויקט או גלובלי |
+| לתזמר הרבה subagents מסקריפט | `workflows/*.js` | פרויקט או גלובלי |
+| לחבר כלים חיצוניים דרך MCP | `.mcp.json` | פרויקט בלבד |
+| לשנות את פורמט התשובות | `output-styles/*.md` | פרויקט או גלובלי |
+
+## מה גובר כשיש כמה הגדרות?
+ב-settings יש סדר קדימות: `settings.local.json` גובר על `settings.json` של הפרויקט, שגובר על `~/.claude/settings.json`. דגלי CLI כמו `--permission-mode` או `--settings` גוברים על `settings.json` לאותו סשן, ו-managed settings של הארגון גוברים על הכול, למעט חריגים מעטים.
+
+שני פרטים חשובים:
+
+- הגדרות מסוג מערך, כמו `permissions.allow`, מתחברות מכל ההיקפים. הגדרות בודדות, כמו `model`, לוקחות את הערך הספציפי ביותר.
+- ב-CLAUDE.md אין דריסה לפי מפתח: הקובץ הגלובלי וקובץ הפרויקט נטענים שניהם להקשר.
+
+הסדר המלא ב[שיעור על settings](/advanced/settings).
+
+## מה Claude Code שומר ב-~/.claude בזמן העבודה?
+מלבד ההגדרות שאתה כותב, Claude Code כותב ל-`~/.claude` נתונים תוך כדי עבודה. הקבצים האלה הם טקסט רגיל, וכל מה שעובר דרך כלי נכתב לתמליל על הדיסק: תוכן קבצים, פלט פקודות וטקסט שהדבקת.
+
+**נמחק אוטומטית** אחרי `cleanupPeriodDays` (ברירת מחדל 30 יום, מינימום 1), כל עוד Claude Code יכול לקבוע בבטחה את תקופת השמירה:
+
+- `projects/<project>/<session>.jsonl`: התמליל המלא של הסשן, כולל כל קריאה לכלי והתוצאה שלה. משמש ל-resume ול-rewind.
+- `file-history/<session>/`: צילומי קבצים לפני עריכה, בשביל [checkpoints](/beginner-plus/checkpointing).
+- `plans/`,‏ `debug/`,‏ `paste-cache/`,‏ `tasks/` ועוד.
+
+**נשמר עד שמוחקים ידנית**:
+
+- `history.jsonl`: כל פרומפט שהקלדת, בשביל חץ למעלה ו-`Ctrl+R`.
+- `stats-cache.json`: סיכומי טוקנים ועלויות ש-`/usage` מציג.
+
+קובצי auto memory ב-`projects/<project>/memory/` לא נמחקים בניקוי האוטומטי.
+
+<Callout type="warning">
+תמלילים והיסטוריה לא מוצפנים. אם כלי קרא קובץ `.env` או פקודה הדפיסה credential, הערך נשמר בתמליל. כדי לצמצם חשיפה: מקצרים את `cleanupPeriodDays`, מגדירים את משתנה הסביבה `CLAUDE_CODE_SKIP_PROMPT_HISTORY` כדי לא לכתוב תמלילים והיסטוריה, וחוסמים קריאה של קובצי credentials ב-[כללי הרשאות](/advanced/permissions-sandbox).
+</Callout>
+
+### איך מוחקים את הנתונים של פרויקט אחד?
+מריצים `claude project purge` עם נתיב הפרויקט. קודם כדאי לראות מה יימחק, בלי למחוק כלום:
+
+<CommandBlock>claude project purge ~/work/my-repo --dry-run</CommandBlock>
+
+הפקודה מוחקת את התמלילים וה-auto memory של הפרויקט, רשומות `tasks/`,‏ `debug/` ו-`file-history/`, שורות מתאימות ב-`history.jsonl`, ואת רשומת הפרויקט ב-`~/.claude.json`. בלי `--dry-run` היא מציגה את אותה תוכנית ומבקשת אישור לפני מחיקה. בלי נתיב, בוחרים פרויקט מרשימה.
+
+אל תמחק את `~/.claude.json`,‏ `~/.claude/settings.json` או `~/.claude/plugins/`. הם מחזיקים את ההתחברות, ההעדפות והפלאגינים המותקנים.
+
+## הצעד הבא
+- ← [Settings: הגדרות ברמת פרויקט, צוות וארגון](/advanced/settings)
+- שיעורים קשורים: [CLAUDE.md](/beginner-plus/claude-md) · [Skills](/advanced/skills) · [Subagents](/advanced/subagents)
