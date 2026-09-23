@@ -33,13 +33,17 @@ export async function LevelHub({ level }: { level: Level }) {
         <p className="text-sm text-muted-foreground">
           {available} מתוך {entries.length} שיעורים זמינים
         </p>
+        {/* בנייד: זמן/סטטוס יורדים לשורה משלהם מתחת לתיאור; מ-sm ומעלה — עמודה בקצה */}
         <ol className="not-prose mt-4 divide-y rounded-lg border">
           {entries.map((entry) => (
-            <li key={entry.slug} className="flex gap-4 p-4">
-              <span className="w-8 shrink-0 text-sm tabular-nums text-muted-foreground">
+            <li
+              key={entry.slug}
+              className="grid grid-cols-[2rem_minmax(0,1fr)] gap-x-2 gap-y-2 p-4 sm:grid-cols-[2rem_minmax(0,1fr)_auto] sm:gap-x-4"
+            >
+              <span className="text-sm tabular-nums text-muted-foreground">
                 {entry.n ?? '•'}
               </span>
-              <div className="min-w-0 flex-1">
+              <div className="min-w-0">
                 {entry.url ? (
                   <Link href={entry.url} className="font-medium hover:underline">
                     {entry.title}
@@ -51,7 +55,7 @@ export async function LevelHub({ level }: { level: Level }) {
                   <p className="mt-1 text-sm text-muted-foreground">{entry.description}</p>
                 )}
               </div>
-              <div className="flex shrink-0 flex-col items-end gap-1 text-xs text-muted-foreground">
+              <div className="col-start-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground sm:col-start-auto sm:flex-col sm:items-end sm:gap-1">
                 {entry.url ? (
                   <>
                     {entry.minutes && (

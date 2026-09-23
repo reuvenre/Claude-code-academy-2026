@@ -9,6 +9,8 @@
 
 html {
   scrollbar-gutter: stable;
+  /* רשת ביטחון לנייד: שום רכיב לא יגרום לגלילה אופקית של העמוד כולו (clip לא שובר sticky) */
+  overflow-x: clip;
 }
 
 /* קוד/פקודות נשארים LTR גם בתוך משפט עברי (בלוקי קוד כבר LTR ב-Fumadocs) */
@@ -20,11 +22,12 @@ kbd {
   white-space: nowrap;
 }
 
-/* תא טבלה שכולו קוד (למשל פרומפט ארוך): בלוק LTR שנשבר לשורות, במקום שורה אחת שמרחיבה את הטבלה */
+/* תא טבלה שכולו קוד (למשל פרומפט ארוך): בלוק LTR שנשבר לשורות ברווחים בלבד.
+   לא שוברים באמצע token (`--continue` לא יהפוך ל-`--continu`/`e`); טבלה רחבה מדי נגללת אופקית בתוך העטיפה של Fumadocs */
 td > code:only-child {
   display: block;
   white-space: pre-wrap;
-  overflow-wrap: anywhere;
+  overflow-wrap: normal;
   text-align: start;
 }
 

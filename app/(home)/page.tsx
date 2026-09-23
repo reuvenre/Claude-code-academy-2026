@@ -109,7 +109,7 @@ export default function HomePage() {
     // הרקע (רשת + זוהר) משותף לכל האתר: components/site/site-background.tsx
     <div className="relative w-full">
       <div className="mx-auto w-full max-w-6xl px-4 pb-20 pt-14 md:pt-24">
-        <section className="grid items-center gap-12 lg:grid-cols-[1.1fr_1fr]">
+        <section className="grid grid-cols-[minmax(0,1fr)] items-center gap-12 lg:grid-cols-[1.1fr_1fr]">
           <div>
             <span className="inline-flex items-center gap-2 rounded-full border bg-card/60 px-3 py-1 text-xs text-muted-foreground backdrop-blur">
               <span className="size-1.5 rounded-full bg-brand-2 shadow-[0_0_8px_var(--brand-2)]" />
@@ -144,7 +144,7 @@ export default function HomePage() {
           </div>
 
           {/* כרטיס טרמינל: פקודות אמיתיות מהשיעורים הראשונים */}
-          <figure className="rounded-2xl border-brand-gradient p-px shadow-2xl shadow-brand/10">
+          <figure className="min-w-0 rounded-2xl border-brand-gradient p-px shadow-2xl shadow-brand/10">
             <div className="overflow-hidden rounded-2xl bg-[#0d0f13] text-[#e6e9ef]">
               <div className="flex items-center gap-2 border-b border-white/10 px-4 py-3" dir="ltr">
                 <span className="size-3 rounded-full bg-[#ff5f57]" />
@@ -158,7 +158,7 @@ export default function HomePage() {
                     <span className="text-[11px] text-[#7dd3fc]/70" dir="rtl">
                       {line.label}
                     </span>
-                    <span dir="ltr" className="flex gap-2 overflow-x-auto whitespace-nowrap">
+                    <span dir="ltr" className="flex gap-2 whitespace-pre-wrap [overflow-wrap:anywhere]">
                       <span className="select-none text-[#00e5ff]">{line.prompt}</span>
                       <span>{line.code}</span>
                     </span>
