@@ -193,9 +193,15 @@ JSON-LD מסוג BlogPosting. הוסף פוסט דמו אחד.
 
 **✅ הושלם — 68/68 שיעורים.** בוצע גם יישור מול Claude Academy: מופו כל הקורסים הרלוונטיים; שתי סתירות (`-p` מול `--bare`, tool search כברירת מחדל) — התיעוד הרשמי תומך בנו; פערים נסגרו בהרחבות ל-claude-md, skills, subagents, routines ובשיעורים 50/51/55. שיעור 59: ה-URL `academy.claude.com/products/cowork` אומת (200).
 
-## שלב 14 — פריסה ל-Vercel (רק באישור מפורש)
+## שלב 14 — פריסה ל-Vercel ✅ הושלם
 חיבור הריפו ב-GitHub, פרויקט ב-Vercel, דומיין (`NEXT_PUBLIC_SITE_URL`), ואימות JSON-LD
 ב-Rich Results Test על ה-URL החי.
+
+**✅ הושלם.** פרויקט Vercel `claude-code-academy-2026` (צוות `reuvenres-projects`) מחובר לריפו; `main` הוא ענף ה-production וכל מיזוג אליו נפרס אוטומטית. דומיין ראשי: `academy.win-solutions.co.il` (גם `claude-code-academy-2026.vercel.app`). canonical, sitemap ו-JSON-LD מצביעים על הדומיין הראשי (`lib/shared.ts` נופל ל-`VERCEL_PROJECT_PRODUCTION_URL` כש-`NEXT_PUBLIC_SITE_URL` לא מוגדר). אזהרות Rich Results Test תוקנו (image, תאריכי ISO 8601 עם אזור זמן, `knowsLanguage`). Vercel Authentication פעיל על כל הפריסות חוץ מהדומיין המותאם, ולכן קישורי preview של ענפים דורשים התחברות.
+
+**אחרי הפריסה — תיקוני נייד (PR #1):** ה-hero בדף הבית גרם לגלילה אופקית בטלפון (פקודת ההתקנה כפתה רוחב מינימלי); תוקן יחד עם טבלאות הרפרנס (קוד נשבר ברווחים בלבד), שורות עמודי הרמה, תג "מקור רשמי", כתובות ארוכות בבלוג ו-`overflow-x: clip` על `html`. נוספו עמודי 404 בעברית לכל layout. נבדק ב-Playwright ב-360/390px על כל עמודי ה-sitemap (אפס גלישה), ואושר ידנית בטלפון על ה-URL החי.
+
+**פתוח:** מדידה חוזרת של ביצועי מובייל ב-Lighthouse על ה-URL החי (ראה שלב 8).
 
 ---
 
