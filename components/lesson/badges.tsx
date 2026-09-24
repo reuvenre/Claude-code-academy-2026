@@ -32,11 +32,12 @@ export function SourceBadge({ href }: { href: string }) {
       href={href}
       target="_blank"
       rel="noopener"
-      className={`${badgeClass} hover:text-foreground`}
+      className={`${badgeClass} max-w-full hover:text-foreground`}
     >
       <ExternalLink aria-hidden className="size-3.5" />
-      מקור רשמי:{' '}
-      <span dir="ltr" className="font-mono">
+      {/* בנייד הנתיב ארוך מהמסך: התווית נשארת שלמה והנתיב נשבר בתוך הבאדג' */}
+      <span className="whitespace-nowrap">מקור רשמי:</span>
+      <span dir="ltr" className="min-w-0 font-mono [overflow-wrap:anywhere]">
         {url.hostname + url.pathname}
       </span>
     </a>

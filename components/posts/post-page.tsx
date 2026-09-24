@@ -64,9 +64,10 @@ export function PostPage({ page, source }: { page: PostPageData; source: PostSou
             <ul>
               {data.sources.map((href) => (
                 <li key={href}>
-                  <a href={href} target="_blank" rel="noopener" className="inline-flex items-center gap-1">
+                  {/* URL ארוך נשבר בתוך השורה (inline-flex היה מונע שבירה וגרם לגלילה אופקית בנייד) */}
+                  <a href={href} target="_blank" rel="noopener" className="[overflow-wrap:anywhere]">
                     <span dir="ltr">{href}</span>
-                    <ExternalLink aria-hidden className="size-3.5" />
+                    <ExternalLink aria-hidden className="ms-1 inline size-3.5 align-[-0.125em]" />
                   </a>
                 </li>
               ))}
